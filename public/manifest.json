@@ -1,0 +1,43 @@
+{
+    "name": "Finora - Finance Manager",
+    "short_name": "Finora",
+    "description": "Clear financial insights for better decisions",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#ffffff",
+    "theme_color": "#3b82f6",
+    "icons": [
+        {
+            "src": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png",
+            "sizes": "180x180",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "categories": [
+        "finance",
+        "productivity"
+    ],
+    "screenshots": [
+        {
+            "src": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png",
+            "sizes": "540x720",
+            "type": "image/png",
+            "form_factor": "narrow"
+        }
+    ]
+}

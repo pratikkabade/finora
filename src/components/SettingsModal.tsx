@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, RotateCcw, Download, Upload, Cloud, LogOut, Zap, Moon, Sun } from 'lucide-react';
+import { X, RotateCcw, Download, Upload, Cloud, LogOut, Zap } from 'lucide-react';
 import type { FinanceData } from '../types/finance.types';
 import { useAuth } from '../context/AuthContext';
-import { useDarkMode } from '../context/DarkModeContext';
-import { FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
+// import { useDarkMode } from '../context/DarkModeContext';
+import { FreeWhiteBtn, ModalHeader, settingBtnDangerClass, settingBtnDetailTextClass, settingBtnPlainClass } from '../constants/TailwindClasses';
+import { PINManagement } from './PINManagement';
+import { SyncStatusIndicator } from './SyncStatusIndicator';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -29,12 +31,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onResetClick,
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [cloudSyncStatus, setCloudSyncStatus] = useState({ isSynced: true, lastSyncTime: localStorage.getItem('lastCloudBackup') ? parseInt(localStorage.getItem('lastCloudBackup') as string, 10) : 0 });
     const [isBackingUp, setIsBackingUp] = useState(false);
     const [backupStatus, setBackupStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [sampleDataStatus, setSampleDataStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const { user, logout } = useAuth();
-    const { isDarkMode, toggleDarkMode } = useDarkMode();
+    // const { isDarkMode, toggleDarkMode } = useDarkMode();
     const [localUser, setLocalUser] = useState<string>('');
 
     useEffect(() => {
@@ -52,6 +57,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             await onBackupToFirebase();
             setBackupStatus('success');
             setTimeout(() => setBackupStatus('idle'), 3000);
+            setCloudSyncStatus({ isSynced: true, lastSyncTime: Date.now() });
+            localStorage.setItem('lastCloudBackup', Date.now().toString());
         } catch (error: any) {
             console.error('Backup error:', error);
             setBackupStatus('error');
@@ -85,6 +92,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             await onSyncFromFirebase();
             setSyncStatus('success');
             setTimeout(() => setSyncStatus('idle'), 3000);
+            setCloudSyncStatus({ isSynced: true, lastSyncTime: Date.now() });
+            localStorage.setItem('lastCloudBackup', Date.now().toString());
         } catch (error: any) {
             console.error('Sync error:', error);
             setSyncStatus('error');
@@ -137,6 +146,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     };
 
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setImportStatus('idle');
+
         const file = event.target.files?.[0];
         if (!file) return;
 
@@ -149,16 +160,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 // Validate the imported data structure
                 if (importedData && importedData.accounts && importedData.categories && importedData.transactions) {
                     onImport(importedData);
-                    onClose();
+                    // onClose();
                     // Reset file input
                     if (fileInputRef.current) {
                         fileInputRef.current.value = '';
                     }
-                    alert('Data imported successfully!');
+                    setImportStatus('success');
+                    setCloudSyncStatus({ isSynced: false, lastSyncTime: Date.now() });
+                    setTimeout(() => setImportStatus('idle'), 3000);
                 } else {
-                    alert('Invalid file format. Please ensure the JSON file contains accounts, categories, and transactions.');
+                    setImportStatus('error');
+                    alert('Invalid data format in the imported file.');
+                    setTimeout(() => setImportStatus('idle'), 3000);
                 }
             } catch (error) {
+                console.error('Import error:', error);
+                setImportStatus('error');
                 alert('Error importing file. Please make sure it\'s a valid JSON file.');
             }
         };
@@ -167,12 +184,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     if (!isOpen) return null;
 
-    const settingBtnPlainClass = 'w-full glass-button flex items-center justify-start gap-2 px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-50 rounded-xl hover:bg-white/40 dark:hover:bg-gray-700/40 transition-colors';
-    const settingBtnDangerClass = 'w-full glass-button flex items-center justify-start gap-2 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/50 rounded-xl hover:bg-red-100/50 dark:hover:bg-red-900/30 transition-colors';
-
     return (
-        <div className={ModalOut}>
-            <div className={ModalPopUp}>
+        <div className='fixed inset-0 overflow-y-hidden flex items-center justify-center z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full fade-in'>
+            <div className='w-full max-w-xl'>
                 {/* Header */}
                 <div className={ModalHeader}>
                     <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-50">Settings</h2>
@@ -185,7 +199,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
 
                 {/* Content */}
-                <div className="p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto max-h-[70vh]">
+                <div className="p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto max-h-[80vh]">
 
                     {localUser && (
                         <div className="px-4 pt-2 text-lg">
@@ -199,8 +213,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                     }
 
-
                     <div className="px-4 pt-4">
+                        <span className="text-sm text-gray-800 dark:text-gray-300">Security</span>
+                    </div>
+
+                    {user && <PINManagement userId={user.uid} onSuccess={() => { }} />}
+
+
+                    {/* <div className="px-4 pt-4">
                         <span className="text-sm text-gray-800 dark:text-gray-300">Appearance</span>
                     </div>
 
@@ -210,7 +230,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     >
                         {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
                         <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
-                    </button>
+                    </button> */}
 
                     <div className="px-4 pt-4">
                         <span className="text-sm text-gray-800 dark:text-gray-300">Safeguard data</span>
@@ -221,31 +241,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         className={settingBtnPlainClass}
                     >
                         <Download size={18} />
-                        <span>Export Data</span>
+                        <div className='flex flex-col items-start'>
+                            <span>Download Your Data</span>
+                            <span className={settingBtnDetailTextClass}>Export and download Your Data</span>
+                        </div>
                     </button>
 
+
                     {user && (
-                        <button
-                            onClick={handleBackupToFirebase}
-                            disabled={isBackingUp}
-                            className={`${settingBtnPlainClass} ${backupStatus === 'success'
-                                ? 'bg-green-50/50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/50 dark:border-green-800/50'
-                                : backupStatus === 'error'
-                                    ? 'bg-red-50/50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-800/50'
-                                    : 'text-gray-900 dark:text-gray-50 hover:bg-white/40 dark:hover:bg-gray-700/40'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                            <Cloud size={18} />
-                            <span>
-                                {isBackingUp
-                                    ? 'Backing up...'
-                                    : backupStatus === 'success'
-                                        ? 'Backup successful!'
-                                        : backupStatus === 'error'
-                                            ? 'Backup failed'
-                                            : 'Backup to Cloud'}
-                            </span>
-                        </button>
+                        <div className='flex flex-row gap-4'>
+                            <button
+                                onClick={handleBackupToFirebase}
+                                disabled={isBackingUp}
+                                className={`${settingBtnPlainClass} ${backupStatus === 'success'
+                                    ? 'bg-green-50/50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/50 dark:border-green-800/50'
+                                    : backupStatus === 'error'
+                                        ? 'bg-red-50/50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-800/50'
+                                        : 'text-gray-900 dark:text-gray-50 hover:bg-white/40 dark:hover:bg-gray-700/40'
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                                <Cloud size={18} />
+                                <div className='flex flex-col items-start'>
+                                    <span>
+                                        {isBackingUp
+                                            ? 'Backing up...'
+                                            : backupStatus === 'success'
+                                                ? 'Backup successful!'
+                                                : backupStatus === 'error'
+                                                    ? 'Backup failed'
+                                                    : 'Backup to Cloud'}
+                                    </span>
+                                    <span className={settingBtnDetailTextClass}>Securely back up your data to the cloud</span>
+                                </div>
+                            </button>
+                            <SyncStatusIndicator isSynced={cloudSyncStatus.isSynced} lastSyncTime={cloudSyncStatus.lastSyncTime} />
+                        </div>
                     )}
 
                     <div className="px-4 pt-4">
@@ -264,24 +294,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             <Cloud size={18} />
-                            <span>
-                                {isSyncing
-                                    ? 'Syncing...'
-                                    : syncStatus === 'success'
-                                        ? 'Sync successful!'
-                                        : syncStatus === 'error'
-                                            ? 'Sync failed'
-                                            : 'Cloud'}
-                            </span>
+                            <div className='flex flex-col items-start'>
+                                <span>
+                                    {isSyncing
+                                        ? 'Syncing...'
+                                        : syncStatus === 'success'
+                                            ? 'Sync successful!'
+                                            : syncStatus === 'error'
+                                                ? 'Sync failed'
+                                                : 'Restore from Cloud'}
+                                </span>
+                                <span className={settingBtnDetailTextClass}>Load your previously backed-up data from the cloud</span>
+                            </div>
                         </button>
                     )}
 
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        className={settingBtnPlainClass}
+                        className={`${settingBtnPlainClass} ${importStatus === 'success'
+                            ? 'bg-green-50/50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/50 dark:border-green-800/50'
+                            : importStatus === 'error'
+                                ? 'bg-red-50/50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-800/50'
+                                : 'text-gray-900 dark:text-gray-50 hover:bg-white/40 dark:hover:bg-gray-700/40'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                         <Upload size={18} />
-                        <span>Local File</span>
+                        <div className='flex flex-col items-start'>
+                            <span>{importStatus === 'success'
+                                ? 'Import successful!' : importStatus === 'error'
+                                    ? 'Import failed' : 'Import from File'}</span>
+                            <span className={settingBtnDetailTextClass}>Upload data from a file stored on your device</span>
+                        </div>
                     </button>
                     <input
                         ref={fileInputRef}
@@ -292,11 +335,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     />
 
                     <button
-                        onClick={handleGetSampleData}
-                        className={settingBtnPlainClass}
+                        onClick={() => {
+                            handleGetSampleData();
+                            setSampleDataStatus('success');
+                            setCloudSyncStatus({ isSynced: false, lastSyncTime: Date.now() });
+                            setTimeout(() => setSampleDataStatus('idle'), 3000);
+                        }}
+                        className={`${settingBtnPlainClass} ${sampleDataStatus === 'success'
+                            ? 'bg-green-50/50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/50 dark:border-green-800/50'
+                            : sampleDataStatus === 'error'
+                                ? 'bg-red-50/50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-800/50'
+                                : 'text-gray-900 dark:text-gray-50 hover:bg-white/40 dark:hover:bg-gray-700/40'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                         <Zap size={18} />
-                        <span>Dummy Data</span>
+                        <div className='flex flex-col items-start'>
+                            <span>
+                                {sampleDataStatus === 'success'
+                                    ? 'Sample data loaded successfully!'
+                                    : sampleDataStatus === 'error'
+                                        ? 'Failed to load sample data'
+                                        : 'Use Sample Data'}
+                            </span>
+                            <span className={settingBtnDetailTextClass}>Load sample data to explore or test the app</span>
+                        </div>
                     </button>
 
 
@@ -309,7 +371,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         className={settingBtnDangerClass}
                     >
                         <RotateCcw size={18} />
-                        <span>Reset All Data</span>
+                        <div className='flex flex-col items-start'>
+                            <span>Reset All Data</span>
+                            <span className={settingBtnDetailTextClass}>Reset all data and settings to their default values</span>
+                        </div>
                     </button>
 
                     {user && (
@@ -318,7 +383,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             className={settingBtnDangerClass}
                         >
                             <LogOut size={18} />
-                            <span>Logout</span>
+                            <div className='flex flex-col items-start'>
+                                <span>Logout</span>
+                                <span className={settingBtnDetailTextClass}>Sign out of your account</span>
+                            </div>
                         </button>
                     )}
                 </div>

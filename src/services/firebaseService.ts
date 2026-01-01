@@ -22,7 +22,7 @@ export interface FirebaseFinanceData extends FinanceData {
  */
 export async function fetchFinanceDataFromFirebase(userId: string, retryCount = 0): Promise<FirebaseFinanceData | null> {
   try {
-    const docRef = doc(db, FIREBASE_COLLECTION, userId, 'data', 'finance');
+    const docRef = doc(db, FIREBASE_COLLECTION, userId);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
@@ -58,7 +58,7 @@ export async function backupFinanceDataToFirebase(
 ): Promise<void> {
   try {
     console.log(`Backing up data for user: ${userId}`);
-    const docRef = doc(db, FIREBASE_COLLECTION, userId, 'data', 'finance');
+    const docRef = doc(db, FIREBASE_COLLECTION, userId);
     const dataToSave: FirebaseFinanceData = {
       ...data,
       lastSynced: serverTimestamp(),
@@ -101,7 +101,7 @@ export async function updateFinanceDataInFirebase(
   updateData: Partial<FinanceData>
 ): Promise<void> {
   try {
-    const docRef = doc(db, FIREBASE_COLLECTION, userId, 'data', 'finance');
+    const docRef = doc(db, FIREBASE_COLLECTION, userId);
     const dataToUpdate: any = {
       ...updateData,
       lastModified: serverTimestamp(),
@@ -120,7 +120,7 @@ export async function updateFinanceDataInFirebase(
  */
 export async function hasUserDataInFirebase(userId: string): Promise<boolean> {
   try {
-    const docRef = doc(db, FIREBASE_COLLECTION, userId, 'data', 'finance');
+    const docRef = doc(db, FIREBASE_COLLECTION, userId);
     const docSnap = await getDoc(docRef);
     return docSnap.exists();
   } catch (error) {

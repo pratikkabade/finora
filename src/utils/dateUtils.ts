@@ -1,3 +1,35 @@
+export const getFormattedDate = (timestamp: number): string => {
+    const date = timestamp;
+    const seconds = Math.floor(date / 1000);
+    const minutes = Math.floor(seconds / 60);
+
+    if (minutes < 1) {
+        return `few seconds.`;
+    } else {
+        return `${minutes} minute${minutes !== 1 ? 's' : ''}.`;
+    }
+}
+
+export const updateTime = (lastSyncTime: number, setDisplayTime: (time: string) => void, setNeedSync: (needSync: boolean) => void) => {
+    const now = Date.now();
+    const diff = now - lastSyncTime;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (seconds < 60) {
+        setDisplayTime('just now');
+    } else if (minutes < 60) {
+        setDisplayTime(`${minutes}m ago`);
+    } else if (hours < 24) {
+        setDisplayTime(`${hours}h ago`);
+    } else {
+        setDisplayTime(`${days}d ago`);
+        setNeedSync(true);
+    }
+};
+
 export const getMonthYear = (date: Date) => {
   const month = date.getMonth();
   const year = date.getFullYear();

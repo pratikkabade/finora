@@ -1,15 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Settings, CircleX, CalendarDays, Calendar1, ChartPie } from 'lucide-react';
 import type { FinanceData, Transaction } from './types/finance.types';
 import { CreateTransactionModal } from './components/CreateTransactionModal';
+import { AddTransactionPage } from './pages/AddTransactionPage';
 import { SettingsModal } from './components/SettingsModal';
-import { DateRangeModal } from './components/DateRangeModal.tsx';
+import { DateRangeModal } from './components/DateRangeModal';
 import { DataSourceModal } from './components/DataSourceModal';
 import { TransactionCard } from './components/TransactionCard';
 import { ExpensePieChart } from './components/ExpensePieChart';
 import { SkeletonApp } from './components/SkeletonLoader';
 import { LoginPage } from './pages/LoginPage';
+import { PINVerificationModal } from './components/PINVerificationModal';
 import { useAuth } from './context/AuthContext';
+import { getPINStatus } from './services/pinService';
 import {
     generateMonthYearOptions,
     filterTransactionsByMonth,
@@ -20,7 +24,7 @@ import { fetchFinanceDataFromFirebase, backupFinanceDataToFirebase } from './ser
 import financeDataJson from './data/finance-data.json';
 import './App.css';
 import { formatNumberWithCommas } from './utils/numberFormatterUtils.ts';
-import { BlueBtn } from './constants/TailwindClasses.tsx';
+import { BlueBtn } from './constants/TailwindClasses';
 
 export const appHeader = (
     <div className='flex flex-row items-center gap-4 mb-6 sm:mb-8 pt-5'>
@@ -35,6 +39,8 @@ export const appHeader = (
 function App() {
     // const { user, isLoading } = useAuth();
     const { user, isLoading: authLoading } = useAuth();
+    const location = useLocation();
+    const navigate = useNavigate();
     const [financeData, setFinanceData] = useState<FinanceData | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -49,6 +55,22 @@ function App() {
     const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string | null>(null);
     const [selectedIncomeCategory, setSelectedIncomeCategory] = useState<string | null>(null);
     const [animation, setAnimation] = useState(true);
+    const [isPINVerified, setIsPINVerified] = useState(false);
+    const [showPINModal, setShowPINModal] = useState(false);
+
+    // Check if PIN is required for homepage
+    useEffect(() => {
+        if (!user || authLoading) return;
+
+        const isHomePage = location.pathname === '/';
+        const pinStatus = getPINStatus(user.uid);
+
+        if (isHomePage && pinStatus.isPINSet && !isPINVerified) {
+            setShowPINModal(true);
+        } else {
+            setShowPINModal(false);
+        }
+    }, [location.pathname, user, authLoading, isPINVerified]);
 
     // Load data when user logs in
     useEffect(() => {
@@ -239,6 +261,21 @@ function App() {
         .filter(t => t.type === 'EXPENSE')
         .reduce((sum, t) => sum + t.amount, 0);
 
+    // Prevent background scroll when any modal is open
+    useEffect(() => {
+        const isAnyModalOpen = isModalOpen || isSettingsOpen || isDateRangeOpen || showDataSourceModal || showPINModal || !!editingTransaction;
+
+        if (isAnyModalOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isModalOpen, isSettingsOpen, isDateRangeOpen, showDataSourceModal, showPINModal, editingTransaction]);
+
     useEffect(() => {
         setTimeout(() => {
             setAnimation(false);
@@ -247,6 +284,53 @@ function App() {
 
     if (!user) {
         return <LoginPage />;
+    }
+
+    // Handle /add route
+    if (location.pathname === '/add') {
+        return (
+            <>
+                <AddTransactionPage
+                    financeData={financeData}
+                    onSave={handleCreateTransaction}
+                />
+                <PINVerificationModal
+                    isOpen={showPINModal}
+                    onClose={() => navigate('/')}
+                    onVerified={() => setIsPINVerified(true)}
+                    userId={user.uid}
+                />
+            </>
+        );
+    }
+
+    // Handle /settings route
+    if (location.pathname === '/settings') {
+        return (
+            <>
+                <SettingsModal
+                    isOpen={true}
+                    onClose={() => navigate('/')}
+                    onReset={handleResetData}
+                    onImport={handleImportData}
+                    financeData={financeData}
+                    onBackupToFirebase={user ? handleBackupToFirebase : undefined}
+                    onSyncFromFirebase={user ? handleFetchFromFirebase : undefined}
+                    onGetSampleData={handleGetSampleData}
+                />
+                <PINVerificationModal
+                    isOpen={showPINModal}
+                    onClose={() => {
+                        setIsPINVerified(false);
+                        navigate('/');
+                    }}
+                    onVerified={() => {
+                        setIsPINVerified(true);
+                    }}
+                    userId={user.uid}
+                />
+            </>
+        );
     }
 
     if (!financeData || authLoading || animation) {
@@ -273,16 +357,14 @@ function App() {
     }
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 fade-i">
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-
+        <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 fade-in">
                 <div className="flex flex-col sm:flex-row justify-between gap-3 md:gap-4 mb-6">
                     {/* Header */}
                     {appHeader}
 
                     {/* Controls */}
                     <div className="flex gap-2 items-center">
-
                         <button
                             onClick={() => setShowPieChart(!showPieChart)}
                             className="glass-card p-4 sm:p-5 md:p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors text-left rounded-xl w-64 cursor-pointer group">
@@ -426,6 +508,22 @@ function App() {
                     </div>
                 )}
             </div>
+
+
+            {showPINModal && (
+                <PINVerificationModal
+                    isOpen={showPINModal}
+                    onClose={() => {
+                        setIsPINVerified(false);
+                        setShowPINModal(false);
+                    }}
+                    onVerified={() => {
+                        setIsPINVerified(true);
+                        setShowPINModal(false);
+                    }}
+                    userId={user.uid}
+                />
+            )}
 
             <CreateTransactionModal
                 isOpen={isModalOpen || !!editingTransaction}
