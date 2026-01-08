@@ -23,9 +23,9 @@ const intToHex = (num: number): string => {
 const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-white p-2 rounded-lg border border-gray-200">
-                <p className="text-sm font-medium text-gray-900">{payload[0].name}</p>
-                <p className="text-sm font-bold text-gray-700">₹{payload[0].value.toFixed(2)}</p>
+            <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-50">{payload[0].name}</p>
+                <p className="text-sm font-bold text-gray-700 dark:text-gray-300">₹{payload[0].value.toFixed(2)}</p>
             </div>
         );
     }
@@ -116,7 +116,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
             <div className="flex flex-col md:flex-row gap-3 sm:gap-4 md:gap-6 h-full">
                 {expenseChartData.length > 0 && (
                     <div className="glass-card p-3 sm:p-4 md:p-6 w-full md:flex-1">
-                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 sm:mb-4 md:mb-6">Expense Breakdown</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-50 mb-3 sm:mb-4 md:mb-6">Expense Breakdown</h2>
                         <ResponsiveContainer width="100%" height={chartHeight}>
                             <PieChart>
                                 <Pie
@@ -141,7 +141,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
 
                 {incomeChartData.length > 0 && (
                     <div className="glass-card p-3 sm:p-4 md:p-6 w-full md:flex-1">
-                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 sm:mb-4 md:mb-6">Income Breakdown</h2>
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-50 mb-3 sm:mb-4 md:mb-6">Income Breakdown</h2>
                         <ResponsiveContainer width="100%" height={chartHeight}>
                             <PieChart>
                                 <Pie
@@ -166,7 +166,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
 
                 {expenseChartData.length === 0 && incomeChartData.length === 0 && (
                     <div className="glass-card p-6 w-full">
-                        <p className="text-gray-600 text-center py-6 sm:py-8">No breakdown data available</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-center py-6 sm:py-8">No breakdown data available</p>
                     </div>
                 )}
             </div>

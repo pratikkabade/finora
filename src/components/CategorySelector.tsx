@@ -57,13 +57,13 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
 
     return (
         <div className="glass-card p-3 sm:p-4 md:p-6 w-full">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">{title}</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-50 mb-4">{title}</h3>
             <div className="flex flex-wrap gap-2">
                 <button
                     onClick={() => onSelectCategory(null)}
                     className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${selectedCategory === null
-                            ? 'bg-blue-600 text-white shadow-lg'
-                            : 'glass-button text-gray-900 hover:bg-white'
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'glass-button text-gray-900 dark:text-gray-50 hover:bg-white dark:hover:bg-gray-800'
                         }`}
                 >
                     All ({categoryData.reduce((sum, cat) => sum + cat.count, 0)})
@@ -74,8 +74,8 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
                         key={category.categoryId}
                         onClick={() => onSelectCategory(category.categoryId)}
                         className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${selectedCategory === category.categoryId
-                                ? 'bg-blue-600 text-white shadow-lg'
-                                : 'glass-button text-gray-900 hover:bg-white'
+                            ? 'bg-blue-600 text-white shadow-lg'
+                            : 'glass-button text-gray-900 dark:text-gray-50 hover:bg-white dark:hover:bg-gray-800'
                             }`}
                     >
                         <div
@@ -89,21 +89,21 @@ export const CategorySelector: React.FC<CategorySelectorProps> = ({
             </div>
 
             {selectedCategory && (
-                <div className="mt-4 p-3 bg-white/50 rounded-lg">
+                <div className="mt-4 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
                     {categoryData
                         .filter(cat => cat.categoryId === selectedCategory)
                         .map(category => (
-                            <div key={category.categoryId} className="text-sm text-gray-700">
-                                <p className="font-semibold text-gray-900">
+                            <div key={category.categoryId} className="text-sm text-gray-700 dark:text-gray-300">
+                                <p className="font-semibold text-gray-900 dark:text-gray-50">
                                     {category.name}
                                 </p>
-                                <p className="text-xs text-gray-600 mt-1">
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                                     Amount: <span className="font-bold">₹{category.amount.toFixed(2)}</span>
                                 </p>
-                                <p className="text-xs text-gray-600">
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
                                     Percentage: <span className="font-bold">{total > 0 ? ((category.amount / total) * 100).toFixed(2) : '0.00'}%</span>
                                 </p>
-                                <p className="text-xs text-gray-600">
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
                                     Transactions: <span className="font-bold">{category.count}</span>
                                 </p>
                             </div>

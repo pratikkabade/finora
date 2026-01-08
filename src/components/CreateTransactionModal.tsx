@@ -14,6 +14,16 @@ interface CreateTransactionModalProps {
     editingTransaction?: Transaction | null;
 }
 
+// Helper function to format local datetime for datetime-local input
+const formatLocalDateTime = (date: Date = new Date()): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
     isOpen,
     onClose,
@@ -29,7 +39,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
         amount: '',
         title: '',
         categoryId: '',
-        dateTime: new Date().toISOString().slice(0, 16),
+        dateTime: formatLocalDateTime(),
     });
 
     useEffect(() => {
@@ -41,7 +51,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 amount: editingTransaction.amount.toString(),
                 title: editingTransaction.title || '',
                 categoryId: (editingTransaction.categoryId as string) || '',
-                dateTime: dateObj.toISOString().slice(0, 16),
+                dateTime: formatLocalDateTime(dateObj),
             });
         } else {
             setFormData({
@@ -50,7 +60,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 amount: '',
                 title: '',
                 categoryId: '',
-                dateTime: new Date().toISOString().slice(0, 16),
+                dateTime: formatLocalDateTime(),
             });
         }
     }, [editingTransaction, isOpen]);
@@ -83,7 +93,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
             amount: '',
             title: '',
             categoryId: '',
-            dateTime: new Date().toISOString().slice(0, 16),
+            dateTime: formatLocalDateTime(),
         });
 
         onClose();
@@ -107,7 +117,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
             <div className={ModalPopUp}>
                 {/* Header */}
                 <div className={ModalHeader}>
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-50">
                         {isEditing ? 'Edit Transaction' : 'New Transaction'}
                     </h2>
                     <button
@@ -123,13 +133,13 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                     {/* Row 1: Account & Type */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-900 mb-2 uppercase tracking-wide">
+                            <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                                 Account
                             </label>
                             <select
                                 value={formData.accountId}
                                 onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
-                                className="glass-input w-full px-3 py-2 text-sm text-gray-900 rounded-lg cursor-pointer"
+                                className="glass-input w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg cursor-pointer"
                                 required
                             >
                                 <option value="">Select...</option>
@@ -141,13 +151,13 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-900 mb-2 uppercase tracking-wide">
+                            <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                                 Type
                             </label>
                             <select
                                 value={formData.type}
                                 onChange={(e) => setFormData({ ...formData, type: e.target.value as TransactionType })}
-                                className="glass-input w-full px-3 py-2 text-sm text-gray-900 rounded-lg cursor-pointer"
+                                className="glass-input w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg cursor-pointer"
                                 required
                             >
                                 <option value="INCOME">Income</option>
@@ -159,7 +169,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                     {/* Row 2: Amount & Title */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-semibold text-gray-900 mb-2 uppercase tracking-wide">
+                            <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                                 Amount
                             </label>
                             <input
@@ -167,20 +177,20 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                                 step="0.01"
                                 value={formData.amount}
                                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                className="glass-input w-full px-3 py-2 text-sm text-gray-900 rounded-lg"
+                                className="glass-input w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg cursor-pointer"
                                 placeholder="0.00"
                                 required
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-semibold text-gray-900 mb-2 uppercase tracking-wide">
+                            <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                                 Title
                             </label>
                             <input
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                className="glass-input w-full px-3 py-2 text-sm text-gray-900 rounded-lg"
+                                className="glass-input w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg cursor-pointer"
                                 placeholder="Description"
                                 required
                             />
@@ -189,13 +199,13 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
 
                     {/* Row 3: Category */}
                     <div>
-                        <label className="block text-xs font-semibold text-gray-900 mb-2 uppercase tracking-wide">
+                        <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                             Category
                         </label>
                         <select
                             value={formData.categoryId}
                             onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                            className="glass-input w-full px-3 py-2 text-sm text-gray-900 rounded-lg cursor-pointer"
+                            className="glass-input w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg cursor-pointer"
                             required
                         >
                             <option value="">Select...</option>
@@ -209,14 +219,14 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
 
                     {/* Row 4: Date */}
                     <div>
-                        <label className="block text-xs font-semibold text-gray-900 mb-2 uppercase tracking-wide">
+                        <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                             Date & Time
                         </label>
                         <input
                             type="datetime-local"
                             value={formData.dateTime}
                             onChange={(e) => setFormData({ ...formData, dateTime: e.target.value })}
-                            className="glass-input w-full px-3 py-2 text-sm text-gray-900 rounded-lg"
+                            className="glass-input w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg"
                             required
                         />
                     </div>
@@ -232,7 +242,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                             >
                                 <Trash2 size={18} />
                             </button>
-                        ):(<div></div>)}
+                        ) : (<div></div>)}
                         <div className='flex gap-3'>
                             <button
                                 type="button"

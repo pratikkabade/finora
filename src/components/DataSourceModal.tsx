@@ -26,11 +26,11 @@ export const DataSourceModal: React.FC<DataSourceModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-white/50 backdrop-blur-lg flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+        <div className="fixed inset-0 bg-white/50 dark:bg-gray-900/70 backdrop-blur-lg flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full">
                 {/* Header */}
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome!</h2>
-                <p className="text-gray-600 mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-50 mb-2">Welcome!</h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
                     How would you like to start?
                 </p>
 
@@ -43,15 +43,15 @@ export const DataSourceModal: React.FC<DataSourceModalProps> = ({
                     <Cloud size={20} />
                     {isLoadingFirebase ? 'Fetching...' : 'Fetch from Cloud'}
                 </button>
-                <p className="text-sm text-gray-600 text-center mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
                     Load your previously backed up data from the cloud
                 </p>
 
                 {/* Divider */}
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="flex-1 h-px bg-gray-300"></div>
-                    <span className="text-gray-500 text-sm">or</span>
-                    <div className="flex-1 h-px bg-gray-300"></div>
+                    <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700"></div>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm">or</span>
+                    <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700"></div>
                 </div>
 
                 {/* Option 2: Dummy Data */}
@@ -63,13 +63,13 @@ export const DataSourceModal: React.FC<DataSourceModalProps> = ({
                     <Zap size={20} />
                     Get Sample Data
                 </button>
-                <p className="text-sm text-gray-600 text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
                     Start with sample transactions to explore the app
                 </p>
 
                 {/* Info */}
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-xs text-gray-700">
+                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                    <p className="text-xs text-gray-700 dark:text-gray-300">
                         💡 <strong>Tip:</strong> You can always change this later in Settings. Firebase data is optional - your data is always saved locally.
                     </p>
                 </div>

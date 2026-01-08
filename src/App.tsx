@@ -26,8 +26,8 @@ export const appHeader = (
     <div className='flex flex-row items-center gap-4 mb-6 sm:mb-8 pt-5'>
         <img src="https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png" alt="Finora Logo" className="h-24 w-24 mx-auto sm:mx-0" />
         <div className="text-left">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">Finora</h1>
-            <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 sm:mt-2">Clear financial insights for better decisions</p>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-50">Finora</h1>
+            <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">Clear financial insights for better decisions</p>
         </div>
     </div>
 );
@@ -273,7 +273,7 @@ function App() {
     }
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 fade-i">
+        <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 fade-i">
             <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
 
                 <div className="flex flex-col sm:flex-row justify-between gap-3 md:gap-4 mb-6">
@@ -285,8 +285,8 @@ function App() {
 
                         <button
                             onClick={() => setShowPieChart(!showPieChart)}
-                            className="glass-card p-4 sm:p-5 md:p-3 hover:bg-white transition-colors text-left rounded-xl w-64 cursor-pointer group">
-                            <p className="text-xs sm:text-sm text-gray-700 font-medium mb-1 sm:mb-2 flex flex-row justify-between items-center">
+                            className="glass-card p-4 sm:p-5 md:p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors text-left rounded-xl w-64 cursor-pointer group">
+                            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium mb-1 sm:mb-2 flex flex-row justify-between items-center">
                                 Net Balance
                                 {showPieChart ?
                                     <div className='flex gap-2'>
@@ -309,7 +309,7 @@ function App() {
                                     setDateRange(null);
                                 }}
                                 disabled={dateRange !== null}
-                                className={`glass-input px-3 py-2 text-sm text-gray-900 rounded-lg disabled:opacity-50 hover:bg-white ${dateRange ? 'text-red-600 cursor-not-allowed' : ''}`}
+                                className={`glass-input px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg disabled:opacity-50 hover:bg-white dark:hover:bg-gray-800 ${dateRange ? 'text-red-600 cursor-not-allowed' : ''}`}
                             >
                                 {monthYearOptions.map((option) => (
                                     <option key={option.value} value={option.value}>
@@ -322,14 +322,14 @@ function App() {
                                 {dateRange ? (
                                     <button
                                         onClick={() => setDateRange(null)}
-                                        className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 rounded-lg hover:bg-white transition-colors"
+                                        className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-50 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
                                         title="Clear date range">
                                         <Calendar1 size={16} className='text-red-600' />
                                     </button>
                                 ) : (
                                     <button
                                         onClick={() => setIsDateRangeOpen(true)}
-                                        className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 rounded-lg hover:bg-white transition-colors"
+                                        className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-50 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
                                         title="Select custom date range"
                                     >
                                         <CalendarDays size={16} />
@@ -337,7 +337,7 @@ function App() {
                                 )}
                                 <button
                                     onClick={() => setIsSettingsOpen(true)}
-                                    className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 rounded-lg hover:bg-white transition-colors"
+                                    className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-50 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
                                 >
                                     <Settings size={18} />
                                     Settings
@@ -351,15 +351,15 @@ function App() {
                 {showPieChart && (
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-6">
                         <div
-                            className="glass-card p-4 sm:p-5 md:p-6 hover:bg-white transition-colors text-left rounded-xl"
+                            className="glass-card p-4 sm:p-5 md:p-6 hover:bg-white dark:hover:bg-gray-800 transition-colors text-left rounded-xl"
                         >
-                            <p className="text-xs sm:text-sm text-gray-700 font-medium mb-1 sm:mb-2">Total Expense</p>
+                            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium mb-1 sm:mb-2">Total Expense</p>
                             <p className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600">₹ {formatNumberWithCommas(totalExpense.toFixed(2))}</p>
                         </div>
                         <div
-                            className="glass-card p-4 sm:p-5 md:p-6 hover:bg-white transition-colors text-left rounded-xl"
+                            className="glass-card p-4 sm:p-5 md:p-6 hover:bg-white dark:hover:bg-gray-800 transition-colors text-left rounded-xl"
                         >
-                            <p className="text-xs sm:text-sm text-gray-700 font-medium mb-1 sm:mb-2">Total Income</p>
+                            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium mb-1 sm:mb-2">Total Income</p>
                             <p className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600">₹ {formatNumberWithCommas(totalIncome.toFixed(2))}</p>
                         </div>
                     </div>
@@ -387,15 +387,15 @@ function App() {
                     <div>
                         <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 xs:gap-4 mb-4">
                             <div className="min-w-0">
-                                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
+                                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-50">
                                     Recent Transactions
                                 </h2>
-                                <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">Showing {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}</p>
+                                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">Showing {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}</p>
                             </div>
                         </div>
                         {filteredTransactions.length === 0 ? (
                             <div className="glass-card p-6 sm:p-8 text-center">
-                                <p className="text-sm sm:text-base text-gray-700">No transactions found</p>
+                                <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">No transactions found</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">

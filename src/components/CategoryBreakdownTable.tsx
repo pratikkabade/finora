@@ -60,24 +60,24 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
 
     return (
         <div className="glass-card p-3 sm:p-4 md:p-6 w-full">
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">{title}</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-50 mb-4">{title}</h3>
             <div className="overflow-x-auto">
                 <table className="w-full">
                     <thead>
-                        <tr className="border-b border-white/20">
-                            <th className="text-left py-3 px-3 sm:px-4 font-semibold text-gray-800">Category</th>
-                            <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-800">Amount</th>
-                            <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-800">Percentage</th>
+                        <tr className="border-b border-white/20 dark:border-gray-700/30">
+                            <th className="text-left py-3 px-3 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Category</th>
+                            <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Amount</th>
+                            <th className="text-right py-3 px-3 sm:px-4 font-semibold text-gray-800 dark:text-gray-200">Percentage</th>
                         </tr>
                     </thead>
                     <tbody>
                         {tableData.map((row, index) => (
                             <tr
                                 key={row.name}
-                                className={`border-b border-white/10 hover:bg-white/10 transition-colors ${index % 2 === 0 ? 'bg-white/5' : 'bg-transparent'
+                                className={`border-b border-white/10 dark:border-gray-700/20 hover:bg-white/10 dark:hover:bg-gray-800/30 transition-colors ${index % 2 === 0 ? 'bg-white/5 dark:bg-gray-900/10' : 'bg-transparent'
                                     }`}
                             >
-                                <td className="py-3 px-3 sm:px-4 text-gray-900 font-medium flex flex-col items-start gap-2">
+                                <td className="py-3 px-3 sm:px-4 text-gray-900 dark:text-gray-50 font-medium flex flex-col items-start gap-2">
                                     <button
                                         onClick={() => {
                                             if (onSelectCategory) {
@@ -109,17 +109,17 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
                                         </button>
                                     )}
                                 </td>
-                                <td className="py-3 px-3 sm:px-4 text-right text-gray-800 font-semibold">
+                                <td className="py-3 px-3 sm:px-4 text-right text-gray-800 dark:text-gray-200 font-semibold">
                                     ₹{row.amount.toFixed(2)}
                                 </td>
-                                <td className="py-3 px-3 sm:px-4 text-right text-gray-800 font-semibold">
+                                <td className="py-3 px-3 sm:px-4 text-right text-gray-800 dark:text-gray-200 font-semibold">
                                     {row.percentage}%
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                     <tfoot>
-                        {selectedCategory === null && <tr className="font-bold text-gray-900 bg-white/10">
+                        {selectedCategory === null && <tr className="font-bold text-gray-900 dark:text-gray-50 bg-white/10 dark:bg-gray-800/20">
                             <td className="py-3 px-3 sm:px-4">Total</td>
                             <td className="py-3 px-3 sm:px-4 text-right">₹{total.toFixed(2)}</td>
                             <td className="py-3 px-3 sm:px-4 text-right">100.00%</td>

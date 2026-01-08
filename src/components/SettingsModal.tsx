@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, RotateCcw, Download, Upload, Cloud, LogOut, Zap } from 'lucide-react';
+import { X, RotateCcw, Download, Upload, Cloud, LogOut, Zap, Moon, Sun } from 'lucide-react';
 import type { FinanceData } from '../types/finance.types';
 import { useAuth } from '../context/AuthContext';
+import { useDarkMode } from '../context/DarkModeContext';
 import { FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
 
 interface SettingsModalProps {
@@ -33,6 +34,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const { user, logout } = useAuth();
+    const { isDarkMode, toggleDarkMode } = useDarkMode();
     const [localUser, setLocalUser] = useState<string>('');
 
     useEffect(() => {
@@ -165,20 +167,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     if (!isOpen) return null;
 
-    const settingBtnPlainClass = 'w-full glass-button flex items-center justify-start gap-2 px-4 py-3 text-sm font-medium text-gray-900 rounded-xl hover:bg-white/40 transition-colors';
-    const settingBtnDangerClass = 'w-full glass-button flex items-center justify-start gap-2 px-4 py-3 text-sm font-medium text-red-600 bg-red-50/50 border border-red-200/50 rounded-xl hover:bg-red-100/50 transition-colors';
+    const settingBtnPlainClass = 'w-full glass-button flex items-center justify-start gap-2 px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-50 rounded-xl hover:bg-white/40 dark:hover:bg-gray-700/40 transition-colors';
+    const settingBtnDangerClass = 'w-full glass-button flex items-center justify-start gap-2 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/50 rounded-xl hover:bg-red-100/50 dark:hover:bg-red-900/30 transition-colors';
 
     return (
         <div className={ModalOut}>
             <div className={ModalPopUp}>
                 {/* Header */}
                 <div className={ModalHeader}>
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-900">Settings</h2>
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-50">Settings</h2>
                     <button
                         onClick={onClose}
                         className={FreeWhiteBtn}
                     >
-                        <X size={20} className="text-gray-600 hover:text-gray-900" />
+                        <X size={20} className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50" />
                     </button>
                 </div>
 
@@ -187,19 +189,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                     {localUser && (
                         <div className="px-4 pt-2 text-lg">
-                            <span className="text-gray-800">Welcome, <span className='text-xl font-mono'>{localUser}</span></span>
+                            <span className="text-gray-800 dark:text-gray-200">Welcome, <span className='text-xl font-mono'>{localUser}</span></span>
                         </div>
                     )}
 
                     {user &&
                         <div className="px-4">
-                            <span className="text-sm text-gray-800">{user.email}</span>
+                            <span className="text-sm text-gray-800 dark:text-gray-300">{user.email}</span>
                         </div>
                     }
 
 
                     <div className="px-4 pt-4">
-                        <span className="text-sm text-gray-800">Safeguard data</span>
+                        <span className="text-sm text-gray-800 dark:text-gray-300">Appearance</span>
+                    </div>
+
+                    <button
+                        onClick={toggleDarkMode}
+                        className={settingBtnPlainClass}
+                    >
+                        {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                        <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                    </button>
+
+                    <div className="px-4 pt-4">
+                        <span className="text-sm text-gray-800 dark:text-gray-300">Safeguard data</span>
                     </div>
 
                     <button
@@ -215,10 +229,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             onClick={handleBackupToFirebase}
                             disabled={isBackingUp}
                             className={`${settingBtnPlainClass} ${backupStatus === 'success'
-                                ? 'bg-green-50/50 text-green-600 border border-green-200/50'
+                                ? 'bg-green-50/50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/50 dark:border-green-800/50'
                                 : backupStatus === 'error'
-                                    ? 'bg-red-50/50 text-red-600 border border-red-200/50'
-                                    : 'text-gray-900 hover:bg-white/40'
+                                    ? 'bg-red-50/50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-800/50'
+                                    : 'text-gray-900 dark:text-gray-50 hover:bg-white/40 dark:hover:bg-gray-700/40'
                                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             <Cloud size={18} />
@@ -235,7 +249,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     )}
 
                     <div className="px-4 pt-4">
-                        <span className="text-sm text-gray-800">Sync local data from</span>
+                        <span className="text-sm text-gray-800 dark:text-gray-300">Sync local data from</span>
                     </div>
 
                     {user && (
@@ -243,10 +257,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             onClick={handleSyncFromFirebase}
                             disabled={isSyncing}
                             className={`${settingBtnPlainClass} ${syncStatus === 'success'
-                                ? 'bg-green-50/50 text-green-600 border border-green-200/50'
+                                ? 'bg-green-50/50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/50 dark:border-green-800/50'
                                 : syncStatus === 'error'
-                                    ? 'bg-red-50/50 text-red-600 border border-red-200/50'
-                                    : 'text-gray-900 hover:bg-white/40'
+                                    ? 'bg-red-50/50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-800/50'
+                                    : 'text-gray-900 dark:text-gray-50 hover:bg-white/40 dark:hover:bg-gray-700/40'
                                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             <Cloud size={18} />
@@ -287,7 +301,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
 
                     <div className="px-4 pt-4">
-                        <span className="text-sm text-gray-800">Danger Zone</span>
+                        <span className="text-sm text-gray-800 dark:text-gray-300">Danger Zone</span>
                     </div>
 
                     <button
