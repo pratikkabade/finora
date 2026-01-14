@@ -26,7 +26,7 @@ export const DataSourceModal: React.FC<DataSourceModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-lg flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-white/50 backdrop-blur-lg flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
                 {/* Header */}
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome!</h2>
@@ -38,10 +38,10 @@ export const DataSourceModal: React.FC<DataSourceModalProps> = ({
                 <button
                     onClick={handleFetchFirebase}
                     disabled={isLoadingFirebase}
-                    className="w-full bg-linear-to-r from-blue-500 to-blue-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-4 flex items-center justify-center gap-2"
+                    className="w-full bg-linear-to-r from-blue-500 to-blue-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-4 flex items-center justify-center gap-2 cursor-pointer"
                 >
                     <Cloud size={20} />
-                    {isLoadingFirebase ? 'Fetching...' : 'Fetch from Firebase'}
+                    {isLoadingFirebase ? 'Fetching...' : 'Fetch from Cloud'}
                 </button>
                 <p className="text-sm text-gray-600 text-center mb-4">
                     Load your previously backed up data from the cloud
@@ -58,7 +58,7 @@ export const DataSourceModal: React.FC<DataSourceModalProps> = ({
                 <button
                     onClick={onGetDummyData}
                     disabled={isLoadingFirebase}
-                    className="w-full bg-linear-to-r from-purple-500 to-purple-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-linear-to-r from-purple-500 to-purple-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-4 flex items-center justify-center gap-2 cursor-pointer"
                 >
                     <Zap size={20} />
                     Get Sample Data

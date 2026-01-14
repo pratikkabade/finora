@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Trash2 } from 'lucide-react';
 import type { Account, Category, TransactionType, Transaction } from '../types/finance.types';
 import { generateUUID } from '../utils/dateUtils';
-import { FreeBlueBtn, FreeWhiteBtn } from '../constants/TailwindClasses';
+import { FreeBlueBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
 
 interface CreateTransactionModalProps {
     isOpen: boolean;
@@ -103,23 +103,23 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
     const isEditing = !!editingTransaction;
 
     return (
-        <div className="fixed inset-0 bg-black/0 backdrop-blur-lg flex items-center justify-center z-50 p-4 sm:p-0">
-            <div className="w-full max-w-sm sm:max-w-md mx-auto backdrop-blur-2xl rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto border shadow-2xl">
+        <div className={ModalOut}>
+            <div className={ModalPopUp}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-5 sm:p-7 backdrop-blur-3xl sticky top-0 rounded-t-3xl z-10">
+                <div className={ModalHeader}>
                     <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                         {isEditing ? 'Edit Transaction' : 'New Transaction'}
                     </h2>
                     <button
                         onClick={onClose}
-                        className="text-gray-500 hover:text-gray-900 transition duration-300 p-2 hover:bg-white/30 rounded-lg cursor-pointer"
+                        className={FreeWhiteBtn}
                     >
                         <X size={20} />
                     </button>
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
                     {/* Row 1: Account & Type */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
@@ -222,8 +222,8 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                     </div>
 
                     {/* Actions */}
-                    <div className="flex justify-between gap-3 pt-4">
-                        {isEditing && onDelete && (
+                    <div className="flex flex-row justify-between gap-3 pt-4">
+                        {isEditing && onDelete ? (
                             <button
                                 type="button"
                                 onClick={handleDelete}
@@ -232,7 +232,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                             >
                                 <Trash2 size={18} />
                             </button>
-                        )}
+                        ):(<div></div>)}
                         <div className='flex gap-3'>
                             <button
                                 type="button"

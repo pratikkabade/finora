@@ -251,7 +251,24 @@ function App() {
 
     if (!financeData || authLoading || animation) {
         return (
-            <SkeletonApp />
+            <>
+                <SkeletonApp
+                    handleResetData={handleResetData}
+                    handleImportData={handleImportData}
+                    financeData={financeData}
+                    user={user}
+                    handleBackupToFirebase={handleBackupToFirebase}
+                    handleFetchFromFirebase={handleFetchFromFirebase}
+                    handleGetSampleData={handleGetSampleData}
+                    isSettingsOpen={isSettingsOpen}
+                    setIsSettingsOpen={setIsSettingsOpen}
+                />
+                <DataSourceModal
+                    isOpen={showDataSourceModal}
+                    onFetchFirebase={handleFetchFromFirebase}
+                    onGetDummyData={handleGetSampleData}
+                />
+            </>
         );
     }
 
@@ -432,6 +449,7 @@ function App() {
                 onBackupToFirebase={user ? handleBackupToFirebase : undefined}
                 onSyncFromFirebase={user ? handleFetchFromFirebase : undefined}
                 onGetSampleData={handleGetSampleData}
+                onResetClick={() => setShowDataSourceModal(true)}
             />
 
             <DateRangeModal

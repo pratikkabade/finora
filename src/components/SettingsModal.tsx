@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { X, RotateCcw, Download, Upload, Cloud, LogOut, Zap } from 'lucide-react';
 import type { FinanceData } from '../types/finance.types';
 import { useAuth } from '../context/AuthContext';
-import { FreeWhiteBtn } from '../constants/TailwindClasses';
+import { FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -13,6 +13,7 @@ interface SettingsModalProps {
     onBackupToFirebase?: () => Promise<void>;
     onSyncFromFirebase?: () => Promise<void>;
     onGetSampleData?: () => void;
+    onResetClick?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -24,6 +25,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onBackupToFirebase,
     onSyncFromFirebase,
     onGetSampleData,
+    onResetClick,
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isBackingUp, setIsBackingUp] = useState(false);
@@ -125,6 +127,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const handleReset = () => {
         if (window.confirm('Are you sure you want to reset all data? This will clear your local data only - your Firebase backup (if any) will remain safe.')) {
             onReset();
+            if (onResetClick) {
+                onResetClick();
+            }
             onClose();
         }
     };
@@ -164,10 +169,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const settingBtnDangerClass = 'w-full glass-button flex items-center justify-start gap-2 px-4 py-3 text-sm font-medium text-red-600 bg-red-50/50 border border-red-200/50 rounded-xl hover:bg-red-100/50 transition-colors';
 
     return (
-        <div className="fixed inset-0 bg-black/0 backdrop-blur-lg flex items-center justify-center z-50 p-4">
-            <div className="glass-card w-full max-w-sm rounded-2xl shadow-xl">
+        <div className={ModalOut}>
+            <div className={ModalPopUp}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/20">
+                <div className={ModalHeader}>
                     <h2 className="text-lg sm:text-xl font-bold text-gray-900">Settings</h2>
                     <button
                         onClick={onClose}
@@ -181,19 +186,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div className="p-4 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto max-h-[70vh]">
 
                     {localUser && (
-                        <div className="px-4 pt-2 bg-white/20 rounded-lg text-lg">
+                        <div className="px-4 pt-2 text-lg">
                             <span className="text-gray-800">Welcome, <span className='text-xl font-mono'>{localUser}</span></span>
                         </div>
                     )}
 
                     {user &&
-                        <div className="px-4 bg-white/20 rounded-lg">
+                        <div className="px-4">
                             <span className="text-sm text-gray-800">{user.email}</span>
                         </div>
                     }
 
 
-                    <div className="px-4 pt-4 bg-white/20 rounded-lg">
+                    <div className="px-4 pt-4">
                         <span className="text-sm text-gray-800">Safeguard data</span>
                     </div>
 
@@ -229,7 +234,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </button>
                     )}
 
-                    <div className="px-4 pt-4 bg-white/20 rounded-lg">
+                    <div className="px-4 pt-4">
                         <span className="text-sm text-gray-800">Sync local data from</span>
                     </div>
 
@@ -281,7 +286,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </button>
 
 
-                    <div className="px-4 pt-4 bg-white/20 rounded-lg">
+                    <div className="px-4 pt-4">
                         <span className="text-sm text-gray-800">Danger Zone</span>
                     </div>
 

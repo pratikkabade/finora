@@ -2,6 +2,7 @@ import React from 'react';
 import { appHeader } from '../App';
 import { Calendar1, ChartPie, Plus, Settings } from 'lucide-react';
 import { BlueBtn } from '../constants/TailwindClasses';
+import { SettingsModal } from './SettingsModal';
 
 const shimmerStyle = `
   @keyframes shimmer {
@@ -106,8 +107,32 @@ export const SkeletonLoader2: React.FC = () => (
     </div>
 )
 
-export const SkeletonApp: React.FC = () => (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 fade-in2">
+
+
+interface SkeletonAppProps {
+    isSettingsOpen: boolean;
+    setIsSettingsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    handleResetData: () => void;
+    handleImportData: (data: any) => void;
+    financeData: any;
+    user: any;
+    handleBackupToFirebase: () => Promise<void>;
+    handleFetchFromFirebase: () => Promise<void>;
+    handleGetSampleData: () => void;
+}
+
+export const SkeletonApp: React.FC<SkeletonAppProps> = ({
+    isSettingsOpen,
+    setIsSettingsOpen,
+    handleResetData,
+    handleImportData,
+    financeData,
+    user,
+    handleBackupToFirebase,
+    handleFetchFromFirebase,
+    handleGetSampleData
+}) => (
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 fade-i">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
 
             <div className="flex flex-col sm:flex-row justify-between gap-3 md:gap-4 mb-6">
@@ -128,7 +153,7 @@ export const SkeletonApp: React.FC = () => (
                     </button>
 
                     <div className='flex flex-col gap-2'>
-                        <div className='h-9 bg-slate-300 rounded-lg animate-pulse' style={{"width":"10rem"}}></div>
+                        <div className='h-9 bg-slate-300 rounded-lg animate-pulse' style={{ "width": "10rem" }}></div>
 
                         <div className='flex justify-between gap-2'>
                             <button
@@ -137,7 +162,8 @@ export const SkeletonApp: React.FC = () => (
                                 <Calendar1 size={16} className='text-red-600' />
                             </button>
                             <button
-                                className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 rounded-lg hover:bg-white transition-colors cursor-not-allowed"
+                                onClick={() => setIsSettingsOpen(true)}
+                                className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 rounded-lg hover:bg-white transition-colors"
                             >
                                 <Settings size={18} />
                                 Settings
@@ -171,5 +197,16 @@ export const SkeletonApp: React.FC = () => (
             <Plus size={18} />
             <span className="text-xs sm:text-sm">Add</span>
         </button>
+
+        <SettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            onReset={handleResetData}
+            onImport={handleImportData}
+            financeData={financeData}
+            onBackupToFirebase={user ? handleBackupToFirebase : undefined}
+            onSyncFromFirebase={user ? handleFetchFromFirebase : undefined}
+            onGetSampleData={handleGetSampleData}
+        />
     </div>
 )

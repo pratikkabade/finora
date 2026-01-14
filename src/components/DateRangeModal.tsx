@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { X, Calendar } from 'lucide-react';
 import type { Transaction } from '../types/finance.types';
 import { generateMonthYearOptions } from '../utils/dateUtils';
-import { FreeBlueBtn, FreeWhiteBtn } from '../constants/TailwindClasses';
+import { FreeBlueBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
 
 interface DateRangeModalProps {
     isOpen: boolean;
@@ -47,10 +47,10 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/0 backdrop-blur-lg flex items-center justify-center z-50 p-4">
-            <div className="glass-card w-full max-w-sm rounded-2xl shadow-xl">
+        <div className={ModalOut}>
+            <div className={ModalPopUp}>
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/20">
+                <div className={ModalHeader}>
                     <div className="flex items-center gap-2">
                         <Calendar size={20} className="text-gray-600" />
                         <h2 className="text-lg sm:text-xl font-bold text-gray-900">Select Date Range</h2>
