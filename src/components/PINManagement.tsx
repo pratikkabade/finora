@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, LockKeyholeOpen } from 'lucide-react';
 import { setPIN, clearPIN, getPINStatus } from '../services/pinService';
-import { FreeBlueBtn, FreeWhiteBtn, settingBtnDangerClass, settingBtnDetailTextClass, settingBtnPlainClass, settingBtnPlainDisabledClass } from '../constants/TailwindClasses';
+import { FreeBlueBtn, FreeWhiteBtn, settingBtnDangerClass, settingBtnDetailTextClass, settingBtnPlainClass } from '../constants/TailwindClasses';
 
 interface PINManagementProps {
     userId: string;
@@ -73,7 +73,8 @@ export const PINManagement: React.FC<PINManagementProps> = ({ userId, onSuccess 
         return (
             <div className="flex flex-row gap-4">
                 {status.isPINSet ?
-                    <div className={settingBtnPlainDisabledClass}>
+                    // <div className={settingBtnPlainDisabledClass}>
+                    <div className=''>
                         <Lock size={18} />
                         <div className="flex flex-col items-start">
                             <span>{status.isPINSet ? 'PIN is set' : 'Set PIN'}</span>
