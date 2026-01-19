@@ -1,0 +1,49 @@
+@import "tailwindcss/preflight";
+@tailwind utilities;
+@import "tailwindcss";
+
+@layer base {
+    body {
+        @apply bg-linear-to-br from-blue-50 via-white to-purple-50;
+    }
+}
+
+@layer components {
+    .glass-card {
+        @apply bg-white/50 backdrop-blur-xl rounded-2xl border border-white/20;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    }
+
+    .glass-card-dark {
+        @apply bg-black/5 backdrop-blur-xl rounded-2xl border border-white/10;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    }
+
+    .glass-button {
+        @apply bg-white/60 hover:bg-white/80 backdrop-blur-md border border-white/40 transition-all duration-300 rounded-xl font-medium text-gray-900 cursor-pointer;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    }
+
+    .glass-button:hover {
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25);
+    }
+
+    .glass-input {
+        @apply bg-white/20 backdrop-blur-md border border-white/30 rounded-xl text-gray-900 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all duration-300 px-3 py-2;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    }
+
+    select.glass-input {
+        @apply appearance-none bg-white/20 backdrop-blur-md border border-white/30 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent transition-all duration-300 px-3 py-2 cursor-pointer;
+        width: 10rem;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23374151' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1.2em 1.2em;
+        padding-right: 2.5rem;
+    }
+
+    select.glass-input::-ms-expand {
+        display: none;
+    }
+}

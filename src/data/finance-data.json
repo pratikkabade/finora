@@ -1,0 +1,520 @@
+{
+    "accounts": [
+        {
+            "name": "Cash",
+            "currency": "INR",
+            "color": -15414114,
+            "icon": "cash",
+            "isSynced": true,
+            "id": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc"
+        },
+        {
+            "name": "Bank",
+            "currency": "INR",
+            "color": -13293952,
+            "icon": "bank",
+            "orderNum": 1.0,
+            "isSynced": true,
+            "id": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf"
+        }
+    ],
+    "categories": [
+        {
+            "name": "Food & Drinks",
+            "color": -15414114,
+            "icon": "fooddrink",
+            "orderNum": 1.0,
+            "isSynced": true,
+            "id": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b"
+        },
+        {
+            "name": "Travel",
+            "color": -4987137,
+            "icon": "travel",
+            "orderNum": 2.0,
+            "isSynced": true,
+            "id": "d10cb866-462c-4063-98c5-67aafacdf8c2"
+        },
+        {
+            "name": "Home",
+            "color": -12196229,
+            "icon": "house",
+            "orderNum": 3.0,
+            "isSynced": true,
+            "id": "3847911b-3487-412f-80f5-5606710ab9f0"
+        },
+        {
+            "name": "Car",
+            "color": -12223514,
+            "icon": "vehicle",
+            "orderNum": 4.0,
+            "isSynced": true,
+            "id": "9403f923-2022-407e-8d03-ee03227c824c"
+        },
+        {
+            "name": "Gifts",
+            "color": -13099,
+            "icon": "gift",
+            "orderNum": 5.0,
+            "isSynced": true,
+            "id": "11fecccd-4d08-409a-925d-5f2446cd5566"
+        },
+        {
+            "name": "Transport",
+            "color": -2151,
+            "icon": "transport",
+            "orderNum": 6.0,
+            "isSynced": true,
+            "id": "e3385498-975a-4ae7-8a38-e4ece0b03504"
+        }
+    ],
+    "plannedPaymentRules": [
+        {
+            "startDate": 1768890600000,
+            "intervalN": 1,
+            "intervalType": "MONTH",
+            "oneTime": false,
+            "type": "EXPENSE",
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "amount": 10.0,
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "title": "Bus",
+            "id": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3"
+        }
+    ],
+    "settings": [
+        {
+            "theme": "LIGHT",
+            "currency": "INR",
+            "bufferAmount": 1000.0,
+            "name": "Xuser",
+            "id": "5efc4549-93b5-4b3d-bd3c-6d75e4c8c0db",
+            "settingName": "MyApp",
+            "settingCurrency": "USD"
+        }
+    ],
+    "transactions": [
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "INCOME",
+            "amount": 500.0,
+            "title": "Drink",
+            "dateTime": 1768667861401,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "ed04dd95-0d29-4e38-8be1-53df7e4315f0"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 600.0,
+            "title": "Freebies",
+            "dateTime": 1768495075098,
+            "categoryId": "11fecccd-4d08-409a-925d-5f2446cd5566",
+            "isSynced": true,
+            "id": "db231c99-52ef-49ea-8871-fdca47ea4fdb"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1768890600000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "7e89a964-624f-40bb-9ee8-e07ae28c55b7"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1771569000000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "52463b17-39d6-4090-b28f-66f3791b95d0"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1773988200000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "a03c29e9-a7aa-4c85-9f76-90d44bcf248b"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1776666600000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "425a671d-a6a3-43dd-8feb-cdf6534b9092"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1779258600000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "4b1c0e1b-d0de-4a6d-82a7-8837ea907835"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1781937000000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "cf4bf4eb-6c24-4af9-af28-1d6bdfe8805d"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1784529000000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "397cfd89-f04f-4174-83f2-330f67a9fbc8"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1787207400000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "556cb34d-95ad-43f4-ab4a-0a1f4a236f32"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1789885800000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "e90335b8-bdcb-4f50-b5f8-6dac5fbbcbfa"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1792477800000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "1e12606b-7d73-4008-a433-f4ef17a8a449"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1795156200000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "eaa2b6a2-1d3b-4c6d-9a15-754023563e8d"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1797748200000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "8af8d297-1439-43b4-b1b2-acac9952db66"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1800426600000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "e19b835f-6b78-441b-88e1-cc843bdfd8a1"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1803105000000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "d98cea37-f573-4fd6-96ad-250adaecede7"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1805524200000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "e32cc121-1353-4290-9745-3901bf86c9a8"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1808202600000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "f93438ae-d261-4b54-8a3e-30bfce077d4a"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1810794600000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "57d84318-196e-45a1-980c-facacec0efc0"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1813473000000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "fd3863eb-605b-4a8c-9fcd-a5e4c3fa011f"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1816065000000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "aeab62d7-101e-425c-ba91-61b6e01dfc50"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1818743400000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "018adc0d-4226-41cd-9533-3297df90b826"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1821421800000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "04420515-492d-4237-84a9-549ed6b8f8cb"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1824013800000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "e965ffe4-53b5-4ab1-9ed1-5c1459cb99f5"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1826692200000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "90a9568f-3e1b-4a0a-8084-c3baf4db17c3"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1829284200000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "a9bf30e3-2cee-41d5-8d6d-7e748f1bb6a0"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1831962600000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "1e1a0df3-2462-4b61-9193-c7dbaf529305"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1834641000000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "9bcf623a-2621-41e1-aad4-35cc79d3f17d"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1837146600000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "941bbd7f-ee1e-4ed9-8012-eb33edb2b6e0"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1839825000000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "4beae8a5-33f0-434d-8cab-c4adecc0accc"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1842417000000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "6dc68145-bc12-4007-95f8-1f8152a0f840"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1845095400000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "a69646af-2a08-4197-be4b-1917d1a06a10"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1847687400000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "5c3d7c25-9db1-456e-b4ac-137e4367ac63"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1850365800000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "3fdb4e0a-57cf-4b9c-a223-b060be2d25b0"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1853044200000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "13d4773c-99d9-47d0-955c-55054375c8cf"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1855636200000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "67025f54-7154-4c4e-84bd-eced710ec4b6"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1858314600000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "d87eefae-9beb-4c87-a19a-484cf57da08f"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 10.0,
+            "title": "Bus",
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "dueDate": 1860906600000,
+            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "isSynced": true,
+            "id": "e87b9e1f-0af0-492d-9836-8cf5a8afeb71"
+        }
+    ],
+    "sharedPrefs": {
+        "transfers_as_inc_exp": "false",
+        "show_notifications": "true",
+        "hide_current_balance": "false",
+        "lock_app": "false"
+    }
+}
