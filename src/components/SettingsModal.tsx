@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { X, RotateCcw, Download, Upload, Cloud, LogOut, Zap } from 'lucide-react';
 import type { FinanceData } from '../types/finance.types';
 import { useAuth } from '../context/AuthContext';
+import { FreeWhiteBtn } from '../constants/TailwindClasses';
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -170,7 +171,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <h2 className="text-lg sm:text-xl font-bold text-gray-900">Settings</h2>
                     <button
                         onClick={onClose}
-                        className="p-1 hover:bg-white/20 rounded-lg transition-colors cursor-pointer"
+                        className={FreeWhiteBtn}
                     >
                         <X size={20} className="text-gray-600 hover:text-gray-900" />
                     </button>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Trash2 } from 'lucide-react';
 import type { Account, Category, TransactionType, Transaction } from '../types/finance.types';
 import { generateUUID } from '../utils/dateUtils';
+import { FreeBlueBtn, FreeWhiteBtn } from '../constants/TailwindClasses';
 
 interface CreateTransactionModalProps {
     isOpen: boolean;
@@ -221,7 +222,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex justify-between gap-3 pt-4">
                         {isEditing && onDelete && (
                             <button
                                 type="button"
@@ -232,19 +233,21 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                                 <Trash2 size={18} />
                             </button>
                         )}
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="flex-1 px-4 py-2 bg-white/30 hover:bg-white/40 border border-white/40 rounded-xl text-sm text-gray-900 transition duration-300 font-medium cursor-pointer backdrop-blur-sm hover:shadow-md"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm transition duration-300 font-medium cursor-pointer hover:shadow-md"
-                        >
-                            {isEditing ? 'Update' : 'Create'}
-                        </button>
+                        <div className='flex gap-3'>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className={FreeWhiteBtn}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className={FreeBlueBtn}
+                            >
+                                {isEditing ? 'Update' : 'Create'}
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>

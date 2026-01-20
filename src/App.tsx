@@ -7,7 +7,7 @@ import { DateRangeModal } from './components/DateRangeModal.tsx';
 import { DataSourceModal } from './components/DataSourceModal';
 import { TransactionCard } from './components/TransactionCard';
 import { ExpensePieChart } from './components/ExpensePieChart';
-import { SkeletonCard, SkeletonTransaction } from './components/SkeletonLoader';
+import { SkeletonApp } from './components/SkeletonLoader';
 import { LoginPage } from './pages/LoginPage';
 import { useAuth } from './context/AuthContext';
 import {
@@ -20,8 +20,20 @@ import { fetchFinanceDataFromFirebase, backupFinanceDataToFirebase } from './ser
 import financeDataJson from './data/finance-data.json';
 import './App.css';
 import { formatNumberWithCommas } from './utils/numberFormatterUtils.ts';
+import { BlueBtn } from './constants/TailwindClasses.tsx';
 
-function AppContent() {
+export const appHeader = (
+    <div className='flex flex-row items-center gap-4 mb-6 sm:mb-8 pt-5'>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png" alt="Finora Logo" className="h-24 w-24 mx-auto sm:mx-0" />
+        <div className="text-left">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">Finora</h1>
+            <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 sm:mt-2">Clear financial insights for better decisions</p>
+        </div>
+    </div>
+);
+
+function App() {
+    // const { user, isLoading } = useAuth();
     const { user, isLoading: authLoading } = useAuth();
     const [financeData, setFinanceData] = useState<FinanceData | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,6 +48,7 @@ function AppContent() {
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string | null>(null);
     const [selectedIncomeCategory, setSelectedIncomeCategory] = useState<string | null>(null);
+    const [animation, setAnimation] = useState(true);
 
     // Load data when user logs in
     useEffect(() => {
@@ -226,91 +239,24 @@ function AppContent() {
         .filter(t => t.type === 'EXPENSE')
         .reduce((sum, t) => sum + t.amount, 0);
 
-    const appHeader = (
-        <div className='flex flex-row items-center gap-4 mb-6 sm:mb-8 pt-5'>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png" alt="Finora Logo" className="h-24 w-24 mx-auto sm:mx-0" />
-            <div className="text-left">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900">Finora</h1>
-                <p className="text-xs sm:text-sm md:text-base text-gray-600 mt-1 sm:mt-2">Clear financial insights for better decisions</p>
-            </div>
-        </div>
-    );
+    useEffect(() => {
+        setTimeout(() => {
+            setAnimation(false);
+        }, 1500);
+    }, [])
 
-    if (!financeData) {
+    if (!user) {
+        return <LoginPage />;
+    }
+
+    if (!financeData || authLoading || animation) {
         return (
-            <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50">
-                <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
-                    {/* Header  */}
-                    {appHeader}
-
-
-                    {/* Controls Skeleton */}
-                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-6">
-                        <div className="flex gap-2 items-center">
-                            <div className="h-9 glass-card w-36 flex justify-center items-center">
-                                <div className="h-4 bg-white/20 rounded-full w-28 shimmer" style={{ minHeight: '1rem' }}></div>
-                            </div>
-                            <button
-                                className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 rounded-lg hover:bg-white transition-colors cursor-not-allowed">
-                                <CalendarDays size={16} />
-                            </button>
-                        </div>
-                        <div className="flex gap-3 sm:ml-auto w-full sm:w-auto">
-                            <button
-                                onClick={() => setIsSettingsOpen(true)}
-                                className="glass-button flex items-center justify-center gap-2 px-4 sm:px-6 py-2 text-sm text-gray-900 rounded-xl flex-1 sm:flex-none"
-                            >
-                                <Settings size={18} />
-                                Settings
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Summary Cards Skeleton */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-6">
-                        <SkeletonCard />
-                        <SkeletonCard />
-                        <SkeletonCard />
-                    </div>
-
-                    <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 xs:gap-4 mb-4">
-                        <div className="min-w-0">
-                            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
-                                Transactions
-                            </h2>
-                            <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">{filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''} this month</p>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                        {[...Array(7)].map((_, i) => (
-                            <SkeletonTransaction key={i} />
-                        ))}
-                    </div>
-                </div>
-
-                {/* Modals still accessible during loading */}
-                <SettingsModal
-                    isOpen={isSettingsOpen}
-                    onClose={() => setIsSettingsOpen(false)}
-                    onReset={handleResetData}
-                    onImport={handleImportData}
-                    financeData={financeData}
-                    onBackupToFirebase={user ? handleBackupToFirebase : undefined}
-                    onSyncFromFirebase={user ? handleFetchFromFirebase : undefined}
-                    onGetSampleData={handleGetSampleData}
-                />
-
-                <DataSourceModal
-                    isOpen={showDataSourceModal}
-                    onFetchFirebase={handleFetchFromFirebase}
-                    onGetDummyData={handleGetSampleData}
-                />
-            </div>
+            <SkeletonApp />
         );
     }
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50">
+        <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 fade-i">
             <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
 
                 <div className="flex flex-col sm:flex-row justify-between gap-3 md:gap-4 mb-6">
@@ -504,7 +450,7 @@ function AppContent() {
 
             <button
                 onClick={() => setIsModalOpen(true)}
-                className="fixed px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm transition duration-300 font-medium cursor-pointer hover:shadow-md bottom-3 right-3 sm:flex-none flex items-center justify-center gap-2">
+                className={BlueBtn}>
                 <Plus size={18} />
                 <span className="text-xs sm:text-sm">Add</span>
             </button>
@@ -512,25 +458,5 @@ function AppContent() {
     );
 }
 
-function App() {
-    const { user, isLoading } = useAuth();
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-gray-300 border-t-indigo-600 rounded-full animate-spin mx-auto"></div>
-                    <p className="text-gray-600 mt-4">Loading...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (!user) {
-        return <LoginPage />;
-    }
-
-    return <AppContent />;
-}
 
 export default App;

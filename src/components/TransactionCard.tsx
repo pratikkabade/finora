@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Edit2, X } from 'lucide-react';
 import type { Transaction, Account, Category } from '../types/finance.types';
+import { SmallBlueBtn } from '../constants/TailwindClasses';
+import { SkeletonCard2 } from './SkeletonLoader';
 
 interface TransactionCardProps {
     transaction: Transaction;
@@ -27,6 +29,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
     onEdit,
 }) => {
     const [isHovered, setIsHovered] = useState(false);
+    const [animation, setAnimation] = useState(true);
     const [hoveredButton, setHoveredButton] = useState<'account' | 'category' | null>(null);
 
     const formatDate = (timestamp: number) => {
@@ -44,10 +47,17 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
     const XClass = 'scale-100 group-hover:scale-125 duration-200';
     const btn2Class = 'px-2 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium truncate cursor-pointer transition-all border hover:brightness-75 duration-200 ease-in-out';
 
+    setTimeout(() => {
+        setAnimation(false);
+    }, 1000);
+
+    if (animation) return (
+        <SkeletonCard2 />
+    )
 
     return (
         <div
-            className="glass-card hover:bg-white p-3 sm:p-2 md:p-3 transition-all duration-300 relative rounded-2xl"
+            className="glass-card hover:bg-white p-3 sm:p-2 md:p-3 transition-all duration-300 relative rounded-2xl fade-in"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
@@ -55,7 +65,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
             {isHovered && (
                 <button
                     onClick={() => onEdit?.(transaction)}
-                    className="absolute top-3 right-3 w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg flex items-center justify-center transition-all duration-300 cursor-pointer z-10"
+                    className={SmallBlueBtn}
                     title="Edit transaction"
                 >
                     <Edit2 size={14} />

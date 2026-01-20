@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { X, Calendar } from 'lucide-react';
 import type { Transaction } from '../types/finance.types';
 import { generateMonthYearOptions } from '../utils/dateUtils';
+import { FreeBlueBtn, FreeWhiteBtn } from '../constants/TailwindClasses';
 
 interface DateRangeModalProps {
     isOpen: boolean;
@@ -56,9 +57,9 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-1 hover:bg-white/20 rounded-lg transition-colors cursor-pointer"
+                        className={FreeWhiteBtn}
                     >
-                        <X size={20} className="text-gray-600 hover:text-gray-900" />
+                        <X size={20} />
                     </button>
                 </div>
 
@@ -103,16 +104,16 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-3 p-4 sm:p-6 border-t border-white/20">
+                <div className="flex justify-end gap-3 p-4 sm:p-6 border-t border-white/20">
                     <button
                         onClick={onClose}
-                        className="flex-1 px-4 py-2 bg-white/30 hover:bg-white/40 border border-white/40 rounded-xl text-sm text-gray-900 transition duration-300 font-medium cursor-pointer backdrop-blur-sm hover:shadow-md"
+                        className={FreeWhiteBtn}
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleApply}
-                        className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm transition duration-300 font-medium cursor-pointer hover:shadow-md"
+                        className={FreeBlueBtn}
                     >
                         Apply
                     </button>
