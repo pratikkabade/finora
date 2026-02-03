@@ -1,7 +1,7 @@
 import React from 'react';
 import { appHeader } from '../App';
 import { Calendar1, ChartPie, Plus, Settings } from 'lucide-react';
-import { BlueBtn } from '../constants/TailwindClasses';
+import { AppChartBtn, AppDateBtn, BlueBtn, FreeWhiteBtn } from '../constants/TailwindClasses';
 import { SettingsModal } from './SettingsModal';
 
 const shimmerStyle = `
@@ -145,7 +145,7 @@ export const SkeletonApp: React.FC<SkeletonAppProps> = ({
                 <div className="flex gap-2 items-center">
 
                     <button
-                        className="glass-card p-4 sm:p-5 md:p-3 hover:bg-white dark:hover:bg-gray-700/50 transition-colors text-left rounded-xl w-64 cursor-pointer group">
+                        className={AppChartBtn}>
                         <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium mb-1 sm:mb-2 flex flex-row justify-between items-center">
                             Net Balance
                             <ChartPie size={16} className='scale-100 group-hover:scale-110 transition-all duration-300 ease-in-out' />
@@ -159,13 +159,13 @@ export const SkeletonApp: React.FC<SkeletonAppProps> = ({
 
                         <div className='flex justify-between gap-2'>
                             <button
-                                className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 rounded-lg hover:bg-white dark:hover:bg-gray-700/50 transition-colors cursor-not-allowed"
+                                className={AppDateBtn}
                                 title="Clear date range">
                                 <Calendar1 size={16} className='text-red-600 dark:text-red-400' />
                             </button>
                             <button
                                 onClick={() => setIsSettingsOpen(true)}
-                                className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-100 rounded-lg hover:bg-white dark:hover:bg-gray-700/50 transition-colors"
+                                className={FreeWhiteBtn}
                             >
                                 <Settings size={18} />
                                 Settings

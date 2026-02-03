@@ -55,7 +55,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
 
     return (
         <div
-            className="glass-card hover:bg-white dark:hover:bg-gray-800 p-3 sm:p-2 md:p-3 transition-all duration-300 relative rounded-2xl fade-in"
+            className="glass-card hover:bg-white dark:hover:bg-gray-800 active:bg-white/30 dark:active:bg-gray-800 active:scale-[0.97] p-3 sm:p-2 md:p-3 transition-all duration-300 relative rounded-2xl fade-in"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >

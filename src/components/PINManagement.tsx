@@ -77,7 +77,7 @@ export const PINManagement: React.FC<PINManagementProps> = ({ userId, onSuccess 
                         <Lock size={18} />
                         <div className="flex flex-col items-start">
                             <span>{status.isPINSet ? 'PIN is set' : 'Set PIN'}</span>
-                            <span className={`${settingBtnDetailTextClass} text-green-600`}>PIN protection is enabled</span>
+                            <span className={`${settingBtnDetailTextClass} text-green-600`}>PIN enabled</span>
                         </div>
                     </div>
                     :

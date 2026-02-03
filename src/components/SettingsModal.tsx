@@ -271,10 +271,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     ? 'Backup failed'
                                                     : 'Backup to Cloud'}
                                     </span>
-                                    <span className={settingBtnDetailTextClass}>Securely back up your data to the cloud</span>
+                                    <SyncStatusIndicator isSynced={cloudSyncStatus.isSynced} lastSyncTime={cloudSyncStatus.lastSyncTime} />
                                 </div>
                             </button>
-                            <SyncStatusIndicator isSynced={cloudSyncStatus.isSynced} lastSyncTime={cloudSyncStatus.lastSyncTime} />
                         </div>
                     )}
 
@@ -304,7 +303,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 ? 'Sync failed'
                                                 : 'Restore from Cloud'}
                                 </span>
-                                <span className={settingBtnDetailTextClass}>Load your previously backed-up data from the cloud</span>
+                                <span className={settingBtnDetailTextClass}>Load your previously backed-up data</span>
                             </div>
                         </button>
                     )}
@@ -323,7 +322,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             <span>{importStatus === 'success'
                                 ? 'Import successful!' : importStatus === 'error'
                                     ? 'Import failed' : 'Import from File'}</span>
-                            <span className={settingBtnDetailTextClass}>Upload data from a file stored on your device</span>
+                            <span className={settingBtnDetailTextClass}>Upload data file from your device</span>
                         </div>
                     </button>
                     <input
@@ -357,7 +356,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                         ? 'Failed to load sample data'
                                         : 'Use Sample Data'}
                             </span>
-                            <span className={settingBtnDetailTextClass}>Load sample data to explore or test the app</span>
+                            <span className={settingBtnDetailTextClass}>Load sample data to explore the app</span>
                         </div>
                     </button>
 
@@ -373,7 +372,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <RotateCcw size={18} />
                         <div className='flex flex-col items-start'>
                             <span>Reset All Data</span>
-                            <span className={settingBtnDetailTextClass}>Reset all data and settings to their default values</span>
+                            <span className={settingBtnDetailTextClass}>Reset all data to their default values</span>
                         </div>
                     </button>
 

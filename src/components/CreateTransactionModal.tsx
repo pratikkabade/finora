@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Trash2 } from 'lucide-react';
 import type { Account, Category, TransactionType, Transaction } from '../types/finance.types';
 import { generateUUID } from '../utils/dateUtils';
-import { FreeBlueBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
+import { FreeBlueBtn, FreeRedBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
 
 interface CreateTransactionModalProps {
     isOpen: boolean;
@@ -237,7 +237,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                             <button
                                 type="button"
                                 onClick={handleDelete}
-                                className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-600 rounded-lg transition duration-300 cursor-pointer border border-red-200/50"
+                                className={FreeRedBtn}
                                 title="Delete transaction"
                             >
                                 <Trash2 size={18} />

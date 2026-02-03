@@ -24,7 +24,7 @@ import { fetchFinanceDataFromFirebase, backupFinanceDataToFirebase } from './ser
 import financeDataJson from './data/finance-data.json';
 import './App.css';
 import { formatNumberWithCommas } from './utils/numberFormatterUtils.ts';
-import { BlueBtn } from './constants/TailwindClasses';
+import { AppChartBtn, AppDateBtn, BlueBtn, FreeWhiteBtn } from './constants/TailwindClasses';
 
 export const appHeader = (
     <div className='flex flex-row items-center gap-4 mb-6 sm:mb-8 pt-5'>
@@ -367,7 +367,7 @@ function App() {
                     <div className="flex gap-2 items-center">
                         <button
                             onClick={() => setShowPieChart(!showPieChart)}
-                            className="glass-card p-4 sm:p-5 md:p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors text-left rounded-xl w-64 cursor-pointer group">
+                            className={AppChartBtn}>
                             <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium mb-1 sm:mb-2 flex flex-row justify-between items-center">
                                 Net Balance
                                 {showPieChart ?
@@ -391,7 +391,7 @@ function App() {
                                     setDateRange(null);
                                 }}
                                 disabled={dateRange !== null}
-                                className={`glass-input px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg disabled:opacity-50 hover:bg-white dark:hover:bg-gray-800 ${dateRange ? 'text-red-600 cursor-not-allowed' : ''}`}
+                                className={`${AppDateBtn} ${dateRange ? 'text-red-600 cursor-not-allowed' : ''}`}
                             >
                                 {monthYearOptions.map((option) => (
                                     <option key={option.value} value={option.value}>
@@ -404,14 +404,14 @@ function App() {
                                 {dateRange ? (
                                     <button
                                         onClick={() => setDateRange(null)}
-                                        className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-50 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                                        className={FreeWhiteBtn}
                                         title="Clear date range">
                                         <Calendar1 size={16} className='text-red-600' />
                                     </button>
                                 ) : (
                                     <button
                                         onClick={() => setIsDateRangeOpen(true)}
-                                        className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-50 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                                        className={FreeWhiteBtn}
                                         title="Select custom date range"
                                     >
                                         <CalendarDays size={16} />
@@ -419,7 +419,7 @@ function App() {
                                 )}
                                 <button
                                     onClick={() => setIsSettingsOpen(true)}
-                                    className="glass-button flex items-center justify-center gap-2 px-3 py-2.5 text-sm text-gray-900 dark:text-gray-50 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                                    className={FreeWhiteBtn}
                                 >
                                     <Settings size={18} />
                                     Settings
