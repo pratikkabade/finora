@@ -11,9 +11,9 @@ import { TransactionCard } from './components/TransactionCard';
 import { ExpensePieChart } from './components/ExpensePieChart';
 import { SkeletonApp } from './components/SkeletonLoader';
 import { LoginPage } from './pages/LoginPage';
-import { PINVerificationModal } from './components/PINVerificationModal';
+// import { PINVerificationModal } from './components/PINVerificationModal';
 import { useAuth } from './context/AuthContext';
-import { getPINStatus } from './services/pinService';
+// import { getPINStatus } from './services/pinService';
 import {
     generateMonthYearOptions,
     filterTransactionsByMonth,
@@ -55,22 +55,22 @@ function App() {
     const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string | null>(null);
     const [selectedIncomeCategory, setSelectedIncomeCategory] = useState<string | null>(null);
     const [animation, setAnimation] = useState(true);
-    const [isPINVerified, setIsPINVerified] = useState(false);
-    const [showPINModal, setShowPINModal] = useState(false);
+    // const [isPINVerified, setIsPINVerified] = useState(false);
+    // const [showPINModal, setShowPINModal] = useState(false);
 
-    // Check if PIN is required for homepage
-    useEffect(() => {
-        if (!user || authLoading) return;
+    // // Check if PIN is required for homepage
+    // useEffect(() => {
+    //     if (!user || authLoading) return;
 
-        const isHomePage = location.pathname === '/';
-        const pinStatus = getPINStatus(user.uid);
+    //     const isHomePage = location.pathname === '/';
+    //     const pinStatus = getPINStatus(user.uid);
 
-        if (isHomePage && pinStatus.isPINSet && !isPINVerified) {
-            setShowPINModal(true);
-        } else {
-            setShowPINModal(false);
-        }
-    }, [location.pathname, user, authLoading, isPINVerified]);
+    //     if (isHomePage && pinStatus.isPINSet && !isPINVerified) {
+    //         setShowPINModal(true);
+    //     } else {
+    //         setShowPINModal(false);
+    //     }
+    // }, [location.pathname, user, authLoading, isPINVerified]);
 
     // Load data when user logs in
     useEffect(() => {
@@ -263,7 +263,7 @@ function App() {
 
     // Prevent background scroll when any modal is open
     useEffect(() => {
-        const isAnyModalOpen = isModalOpen || isSettingsOpen || isDateRangeOpen || showDataSourceModal || showPINModal || !!editingTransaction;
+        const isAnyModalOpen = isModalOpen || isSettingsOpen || isDateRangeOpen || showDataSourceModal || !!editingTransaction;
 
         if (isAnyModalOpen) {
             document.body.style.overflow = 'hidden';
@@ -274,7 +274,7 @@ function App() {
         return () => {
             document.body.style.overflow = '';
         };
-    }, [isModalOpen, isSettingsOpen, isDateRangeOpen, showDataSourceModal, showPINModal, editingTransaction]);
+    }, [isModalOpen, isSettingsOpen, isDateRangeOpen, showDataSourceModal, editingTransaction]);
 
     useEffect(() => {
         setTimeout(() => {
@@ -294,12 +294,12 @@ function App() {
                     financeData={financeData}
                     onSave={handleCreateTransaction}
                 />
-                <PINVerificationModal
+                {/* <PINVerificationModal
                     isOpen={showPINModal}
                     onClose={() => navigate('/')}
                     onVerified={() => setIsPINVerified(true)}
                     userId={user.uid}
-                />
+                /> */}
             </>
         );
     }
@@ -318,7 +318,7 @@ function App() {
                     onSyncFromFirebase={user ? handleFetchFromFirebase : undefined}
                     onGetSampleData={handleGetSampleData}
                 />
-                <PINVerificationModal
+                {/* <PINVerificationModal
                     isOpen={showPINModal}
                     onClose={() => {
                         setIsPINVerified(false);
@@ -328,7 +328,7 @@ function App() {
                         setIsPINVerified(true);
                     }}
                     userId={user.uid}
-                />
+                /> */}
             </>
         );
     }
@@ -510,7 +510,7 @@ function App() {
             </div>
 
 
-            {showPINModal && (
+            {/* {showPINModal && (
                 <PINVerificationModal
                     isOpen={showPINModal}
                     onClose={() => {
@@ -523,7 +523,7 @@ function App() {
                     }}
                     userId={user.uid}
                 />
-            )}
+            )} */}
 
             <CreateTransactionModal
                 isOpen={isModalOpen || !!editingTransaction}

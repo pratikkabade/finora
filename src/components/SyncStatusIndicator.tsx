@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CloudOff, Check } from 'lucide-react';
+import { CloudOff, Check, X } from 'lucide-react';
 import { updateTime } from '../utils/dateUtils';
 import { settingBtnDetailTextClass } from '../constants/TailwindClasses';
 
@@ -14,6 +14,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
 }) => {
     const [displayTime, setDisplayTime] = useState('');
     const [needSync, setNeedSync] = useState(false);
+    const outOfSync = localStorage.getItem('outOfSync') === 'true';
 
     useEffect(() => {
         if (!lastSyncTime) return;
@@ -32,8 +33,13 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
             //     }`}
             className={settingBtnDetailTextClass}
         >
-            {isSynced ? (
-                <div className={`flex flex-row gap-2 ${(isSynced && !needSync && displayTime) ? 'text-green-700 dark:text-green-300': 'text-yellow-700 dark:text-yellow-300'}`}>
+            {outOfSync ? (
+                <div className='flex flex-row gap-2 text-red-700 dark:text-red-400'>
+                    <X size={14} />
+                    <span>Out of Sync</span>
+                </div>
+            ) : isSynced ? (
+                <div className={`flex flex-row gap-2 ${(!needSync && displayTime) ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
                     <Check size={14} />
                     <div className='flex flex-row gap-1'>
                         <span>Synced</span>
@@ -43,7 +49,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
                     </div>
                 </div>
             ) : (
-                <div className='flex flex-row gap-2 text-yellow-700 dark:text-yellow-300'>
+                <div className='flex flex-row gap-2 text-yellow-700 dark:text-yellow-400'>
                     <CloudOff size={14} />
                     <span>Local only</span>
                 </div>

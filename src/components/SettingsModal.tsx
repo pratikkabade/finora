@@ -4,7 +4,7 @@ import type { FinanceData } from '../types/finance.types';
 import { useAuth } from '../context/AuthContext';
 // import { useDarkMode } from '../context/DarkModeContext';
 import { FreeWhiteBtn, ModalHeader, settingBtnDangerClass, settingBtnDetailTextClass, settingBtnPlainClass } from '../constants/TailwindClasses';
-import { PINManagement } from './PINManagement';
+// import { PINManagement } from './PINManagement';
 import { SyncStatusIndicator } from './SyncStatusIndicator';
 
 interface SettingsModalProps {
@@ -59,6 +59,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             setTimeout(() => setBackupStatus('idle'), 3000);
             setCloudSyncStatus({ isSynced: true, lastSyncTime: Date.now() });
             localStorage.setItem('lastCloudBackup', Date.now().toString());
+            localStorage.setItem('outOfSync', 'false');
         } catch (error: any) {
             console.error('Backup error:', error);
             setBackupStatus('error');
@@ -94,6 +95,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             setTimeout(() => setSyncStatus('idle'), 3000);
             setCloudSyncStatus({ isSynced: true, lastSyncTime: Date.now() });
             localStorage.setItem('lastCloudBackup', Date.now().toString());
+            localStorage.setItem('outOfSync', 'false');
         } catch (error: any) {
             console.error('Sync error:', error);
             setSyncStatus('error');
@@ -217,7 +219,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <span className="text-sm text-gray-800 dark:text-gray-300">Security</span>
                     </div>
 
-                    {user && <PINManagement userId={user.uid} onSuccess={() => { }} />}
+                    {/* {user && <PINManagement userId={user.uid} onSuccess={() => { }} />} */}
 
 
                     {/* <div className="px-4 pt-4">

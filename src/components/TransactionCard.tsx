@@ -30,7 +30,6 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
     onEdit,
 }) => {
     const { isDarkMode } = useDarkMode();
-    const [isHovered, setIsHovered] = useState(false);
     const [animation, setAnimation] = useState(true);
     const [hoveredButton, setHoveredButton] = useState<'account' | 'category' | null>(null);
 
@@ -54,21 +53,15 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
     )
 
     return (
-        <div
-            className="glass-card hover:bg-white dark:hover:bg-gray-800 active:bg-white/30 dark:active:bg-gray-800 active:scale-[0.97] p-3 sm:p-2 md:p-3 transition-all duration-300 relative rounded-2xl fade-in"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-        >
+        <div className="glass-card hover:bg-white dark:hover:bg-gray-800 active:bg-white/30 dark:active:bg-gray-800 active:scale-[0.97] p-3 sm:p-2 md:p-3 transition-all duration-300 relative rounded-2xl fade-in">
             {/* Edit Button - Top Right Corner (Floating Circle) */}
-            {isHovered && (
-                <button
-                    onClick={() => onEdit?.(transaction)}
-                    className={SmallBlueBtn}
-                    title="Edit transaction"
-                >
-                    <Edit2 size={14} />
-                </button>
-            )}
+            <button
+                onClick={() => onEdit?.(transaction)}
+                className={SmallBlueBtn}
+                title="Edit transaction"
+            >
+                <Edit2 size={14} />
+            </button>
 
             <div className="flex flex-col xs:flex-row xs:justify-between xs:items-start gap-2 xs:gap-3 mb-2 xs:mb-3">
                 <div className="flex-1 min-w-0">

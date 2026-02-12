@@ -84,6 +84,8 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
             isSynced: false,
         };
 
+        localStorage.setItem('outOfSync', 'true')
+
         onSave(transaction);
 
         // Reset form
