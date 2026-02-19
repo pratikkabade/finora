@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Settings, CircleX, CalendarDays, Calendar1, ChartPie } from 'lucide-react';
-import type { FinanceData, Transaction } from './types/finance.types';
+import type { Category, FinanceData, Transaction } from './types/finance.types';
 import { CreateTransactionModal } from './components/CreateTransactionModal';
 import { AddTransactionPage } from './pages/AddTransactionPage';
 import { SettingsModal } from './components/SettingsModal';
@@ -18,6 +18,7 @@ import {
     generateMonthYearOptions,
     filterTransactionsByMonth,
     getCurrentOrPastTransactions,
+    generateUUID,
 } from './utils/dateUtils';
 import {
     saveToLocalStorage,
@@ -25,6 +26,7 @@ import {
     loadBalanceSummaryFromLocalStorage,
     clearUserData,
     calculateBalanceSummary,
+    getIncludedNetBalanceAccountIds,
     NET_BALANCE_ACCOUNT_IDS_PREF_KEY,
     type BalanceSummary,
 } from './services/storageService';
@@ -32,19 +34,37 @@ import { fetchFinanceDataFromFirebase, backupFinanceDataToFirebase } from './ser
 import financeDataJson from './data/finance-data.json';
 import './App.css';
 import { formatNumberWithCommas } from './utils/numberFormatterUtils.ts';
-import { AppChartBtn, BlueBtn, FreeWhiteBtn } from './constants/TailwindClasses';
+import { AppChartBtn, FreeBlueBtn, FreeWhiteBtn } from './constants/TailwindClasses';
 
 const GUEST_USER_ID = '__guest__';
 
-export const appHeader = (
-    <div className='flex flex-row items-center gap-4 mb-6 sm:mb-8 pt-5'>
-        <img src="/finora-icon.svg" alt="Finora Logo" className="h-24 w-24 mx-auto sm:mx-0" />
-        <div className="text-left">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-50">Finora</h1>
-            <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">Clear financial insights for better decisions</p>
+interface AppHeaderProps {
+    onLogoClick?: () => void;
+}
+
+export const AppHeader = ({ onLogoClick }: AppHeaderProps) => {
+    const logo = <img src="/finora-icon.svg" alt="Finora Logo" className="h-24 w-24 mx-auto sm:mx-0" />;
+
+    return (
+        <div className='flex flex-row items-center gap-4 mb-6 sm:mb-8 pt-5'>
+            {onLogoClick ? (
+                <button
+                    type="button"
+                    onClick={onLogoClick}
+                    className="rounded-full focus-visible:outline-2 focus-visible:outline-blue-500 cursor-pointer"
+                    title="Refresh homepage"
+                    aria-label="Refresh homepage"
+                >
+                    {logo}
+                </button>
+            ) : logo}
+            <div className="text-left">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-50">Finora</h1>
+                <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">Clear financial insights for better decisions</p>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 function App() {
     // const { user, isLoading } = useAuth();
@@ -263,6 +283,45 @@ function App() {
         localStorage.setItem('outOfSync', 'true');
     };
 
+    const handleAddCategory = (categoryName: string, color: number): boolean => {
+        if (!financeData) return false;
+
+        const trimmedCategoryName = categoryName.trim();
+        if (!trimmedCategoryName) {
+            alert('Category name is required.');
+            return false;
+        }
+
+        const isDuplicateCategory = financeData.categories.some(
+            (category) => category.name.trim().toLowerCase() === trimmedCategoryName.toLowerCase(),
+        );
+
+        if (isDuplicateCategory) {
+            alert('A category with this name already exists.');
+            return false;
+        }
+
+        const nextOrderNum = financeData.categories.reduce((maxOrderNum, category) => {
+            return Math.max(maxOrderNum, Number(category.orderNum) || 0);
+        }, 0) + 1;
+
+        const newCategory: Category = {
+            id: generateUUID(),
+            name: trimmedCategoryName,
+            color,
+            icon: 'category',
+            orderNum: nextOrderNum,
+            isSynced: false,
+        };
+
+        setFinanceData({
+            ...financeData,
+            categories: [...financeData.categories, newCategory],
+        });
+        localStorage.setItem('outOfSync', 'true');
+        return true;
+    };
+
     const applyFirebaseData = (firebaseData: FinanceData) => {
         setFinanceData(firebaseData);
         setShowDataSourceModal(false);
@@ -339,11 +398,16 @@ function App() {
 
     const lifetimeSummary = balanceSummary ?? fallbackLifetimeSummary;
     const isHomeDataReady = isSessionActive && !!financeData && !authLoading;
+    const isAnyModalOpen = isModalOpen || isSettingsOpen || isDateRangeOpen || showDataSourceModal || !!editingTransaction;
+    const netBalanceAccountIds = useMemo(() => {
+        if (!financeData) return [];
+        return getIncludedNetBalanceAccountIds(financeData);
+    }, [financeData]);
+    const defaultTransactionAccountId = netBalanceAccountIds[0] ?? financeData?.accounts?.[0]?.id ?? '';
+    const lockDefaultTransactionAccount = netBalanceAccountIds.length === 1;
 
     // Prevent background scroll when any modal is open
     useEffect(() => {
-        const isAnyModalOpen = isModalOpen || isSettingsOpen || isDateRangeOpen || showDataSourceModal || !!editingTransaction;
-
         if (isAnyModalOpen) {
             document.body.style.overflow = 'hidden';
         } else {
@@ -353,7 +417,57 @@ function App() {
         return () => {
             document.body.style.overflow = '';
         };
-    }, [isModalOpen, isSettingsOpen, isDateRangeOpen, showDataSourceModal, editingTransaction]);
+    }, [isAnyModalOpen]);
+
+    // Prevent iOS pull-to-refresh on homepage while keeping regular scrolling.
+    useEffect(() => {
+        if (location.pathname !== '/' || isAnyModalOpen) {
+            return;
+        }
+
+        const html = document.documentElement;
+        const body = document.body;
+        const previousHtmlOverscroll = html.style.overscrollBehaviorY;
+        const previousBodyOverscroll = body.style.overscrollBehaviorY;
+        let touchStartY = 0;
+
+        const handleTouchStart = (event: TouchEvent) => {
+            if (event.touches.length === 1) {
+                touchStartY = event.touches[0].clientY;
+            }
+        };
+
+        const handleTouchMove = (event: TouchEvent) => {
+            if (event.touches.length !== 1) return;
+
+            const currentTouchY = event.touches[0].clientY;
+            const isPullingDown = currentTouchY > touchStartY;
+            const isPageAtTop = window.scrollY <= 0;
+
+            if (isPageAtTop && isPullingDown && event.cancelable) {
+                event.preventDefault();
+            }
+        };
+
+        html.style.overscrollBehaviorY = 'none';
+        body.style.overscrollBehaviorY = 'none';
+
+        document.addEventListener('touchstart', handleTouchStart, { passive: true });
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+        return () => {
+            html.style.overscrollBehaviorY = previousHtmlOverscroll;
+            body.style.overscrollBehaviorY = previousBodyOverscroll;
+            document.removeEventListener('touchstart', handleTouchStart);
+            document.removeEventListener('touchmove', handleTouchMove);
+        };
+    }, [location.pathname, isAnyModalOpen]);
+
+    const handleHomeLogoRefresh = useCallback(() => {
+        if (window.confirm('Refresh homepage now?')) {
+            window.location.reload();
+        }
+    }, []);
 
     useEffect(() => {
         const timerId = window.setTimeout(() => {
@@ -385,22 +499,6 @@ function App() {
         };
     }, [isHomeDataReady, animation]);
 
-    if (authLoading) {
-        return (
-            <SkeletonApp
-                handleResetData={handleResetData}
-                handleImportData={handleImportData}
-                financeData={financeData}
-                user={user}
-                handleBackupToFirebase={handleBackupToFirebase}
-                handleFetchFromFirebase={handleFetchFromFirebase}
-                handleGetSampleData={handleGetSampleData}
-                isSettingsOpen={isSettingsOpen}
-                setIsSettingsOpen={setIsSettingsOpen}
-            />
-        );
-    }
-
     if (!isSessionActive) {
         return <LoginPage />;
     }
@@ -412,6 +510,8 @@ function App() {
                 <AddTransactionPage
                     financeData={financeData}
                     onSave={handleCreateTransaction}
+                    defaultAccountId={defaultTransactionAccountId}
+                    lockAccountSelection={lockDefaultTransactionAccount}
                 />
                 {/* <PINVerificationModal
                     isOpen={showPINModal}
@@ -433,6 +533,7 @@ function App() {
                     onReset={handleResetData}
                     onImport={handleImportData}
                     onUpdateNetBalanceAccounts={handleUpdateNetBalanceAccounts}
+                    onAddCategory={handleAddCategory}
                     financeData={financeData}
                     onBackupToFirebase={user ? handleBackupToFirebase : undefined}
                     onSyncFromFirebase={user ? handleSyncFromFirebase : undefined}
@@ -482,7 +583,7 @@ function App() {
             <div className={`max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 fade-in transition-opacity duration-500 ease-out ${isContentVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <div className="flex flex-col sm:flex-row justify-between gap-3 md:gap-4 mb-6">
                     {/* Header */}
-                    {appHeader}
+                    <AppHeader onLogoClick={handleHomeLogoRefresh} />
 
                     {/* Controls */}
                     <div className="flex gap-2 items-center">
@@ -594,12 +695,11 @@ function App() {
                                     })
                                     .map((transaction) => (
                                         <TransactionCard
-                                            key={transaction.id}
+                                            key={`${transaction.id}-${filterType ?? 'all'}-${filterId ?? 'all'}`}
                                             transaction={transaction}
                                             account={financeData.accounts.find(a => a.id === transaction.accountId)}
                                             category={financeData.categories.find(c => c.id === transaction.categoryId)}
                                             filterType={filterType}
-                                            filterId={filterId}
                                             onFilterChange={(type, id) => {
                                                 setFilterType(type);
                                                 setFilterId(id);
@@ -657,6 +757,8 @@ function App() {
                 accounts={financeData.accounts}
                 categories={financeData.categories}
                 editingTransaction={editingTransaction}
+                defaultAccountId={defaultTransactionAccountId}
+                lockAccountSelection={lockDefaultTransactionAccount}
             />
 
             <SettingsModal
@@ -665,6 +767,7 @@ function App() {
                 onReset={handleResetData}
                 onImport={handleImportData}
                 onUpdateNetBalanceAccounts={handleUpdateNetBalanceAccounts}
+                onAddCategory={handleAddCategory}
                 financeData={financeData}
                 onBackupToFirebase={user ? handleBackupToFirebase : undefined}
                 onSyncFromFirebase={user ? handleSyncFromFirebase : undefined}
@@ -691,7 +794,7 @@ function App() {
 
             <button
                 onClick={() => setIsModalOpen(true)}
-                className={BlueBtn}>
+                className={`${FreeBlueBtn} fixed bottom-3 right-3`}>
                 <Plus size={18} />
                 <span>Add</span>
             </button>

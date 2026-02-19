@@ -6,9 +6,16 @@ import { CreateTransactionModal } from '../components/CreateTransactionModal';
 interface AddTransactionPageProps {
     financeData: FinanceData | null;
     onSave: (transaction: Transaction) => void;
+    defaultAccountId?: string;
+    lockAccountSelection?: boolean;
 }
 
-export const AddTransactionPage: React.FC<AddTransactionPageProps> = ({ financeData, onSave }) => {
+export const AddTransactionPage: React.FC<AddTransactionPageProps> = ({
+    financeData,
+    onSave,
+    defaultAccountId,
+    lockAccountSelection,
+}) => {
     const navigate = useNavigate();
 
     const handleClose = () => {
@@ -38,6 +45,8 @@ export const AddTransactionPage: React.FC<AddTransactionPageProps> = ({ financeD
                 onSave={handleSave}
                 accounts={financeData.accounts}
                 categories={financeData.categories}
+                defaultAccountId={defaultAccountId}
+                lockAccountSelection={lockAccountSelection}
             />
         </div>
     );

@@ -1,23 +1,39 @@
 import React, { useState } from 'react';
-import { Edit2, X } from 'lucide-react';
+import type { CSSProperties } from 'react';
+import { X } from 'lucide-react';
 import type { Transaction, Account, Category } from '../types/finance.types';
-import { useDarkMode } from '../context/DarkModeContext';
-import { btn1Class, btn2Class, SmallBlueBtn, XClass } from '../constants/TailwindClasses';
+import { hexToRgba, intToHex } from '../utils/colorUtils';
+import { SkeletonCard2 } from './SkeletonLoader';
 
 interface TransactionCardProps {
     transaction: Transaction;
     account: Account | undefined;
     category: Category | undefined;
     filterType?: 'account' | 'category' | 'type' | null;
-    filterId?: string | null;
     onFilterChange?: (type: 'account' | 'category' | 'type' | null, id: string | null) => void;
     onEdit?: (transaction: Transaction) => void;
 }
 
-const intToHex = (num: number): string => {
-    const unsigned = num >>> 0; // Convert to unsigned 32-bit integer (ARGB format)
-    const hex = (unsigned & 0xFFFFFF).toString(16); // Extract RGB part (last 6 digits)
-    return '#' + ('000000' + hex).slice(-6).toUpperCase();
+interface FilterChipConfig {
+    name: string;
+    color: number;
+    isActive: boolean;
+    onClick: () => void;
+}
+
+const FILTER_CHIP_BASE_CLASS = 'inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border text-xs font-semibold text-gray-900 dark:text-gray-100 transition-all duration-200 active:scale-[0.9] select-none';
+const FILTER_CHIP_ACTIVE_CLASS = 'cursor-pointer shadow-sm hover:scale-[1.03]';
+const FILTER_CHIP_INACTIVE_CLASS = 'cursor-pointer hover:scale-[0.97]';
+// const FILTER_CHIP_DOT_CLASS = 'h-2.5 w-2.5 rounded-full shrink-0 border border-black/10 dark:border-white/20';
+const FILTER_CHIP_CLEAR_ICON_CLASS = 'transition-transform duration-200 group-hover:scale-110';
+
+const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
 };
 
 export const TransactionCard: React.FC<TransactionCardProps> = ({
@@ -28,32 +44,57 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
     onFilterChange,
     onEdit,
 }) => {
-    const { isDarkMode } = useDarkMode();
-    const [hoveredButton, setHoveredButton] = useState<'account' | 'category' | null>(null);
+    const [animation, setAnimation] = useState(true);
 
-    const formatDate = (timestamp: number) => {
-        const date = new Date(timestamp);
-        return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
-    };
+    setTimeout(() => {
+        setAnimation(false);
+    }, 1000);
+
+    if (animation) return (
+        <SkeletonCard2 />
+    )
 
     const isIncome = transaction.type === 'INCOME';
 
+    const getFilterChipStyle = (hexColor: string, isActive: boolean): CSSProperties => ({
+        backgroundColor: isActive ? hexToRgba(hexColor, 0.28) : hexToRgba(hexColor, 0.20),
+        borderColor: isActive ? hexToRgba(hexColor, 0.95) : hexToRgba(hexColor, 0.75),
+        boxShadow: isActive
+            ? `0 0 0 1px ${hexToRgba(hexColor, 0.28)}`
+            : `0 1px 0 ${hexToRgba(hexColor, 0.18)}`,
+    });
+
+    const renderFilterChip = ({ name, color, isActive, onClick }: FilterChipConfig) => {
+        const hexColor = intToHex(color);
+
+        return (
+            <button
+                type="button"
+                onClick={onClick}
+                className={`${FILTER_CHIP_BASE_CLASS} ${isActive ? FILTER_CHIP_ACTIVE_CLASS : FILTER_CHIP_INACTIVE_CLASS} group`}
+                style={getFilterChipStyle(hexColor, isActive)}
+            // title={isActive ? `Clear ${name} filter` : `Filter by ${name}`}
+            >
+                {/* <span className={FILTER_CHIP_DOT_CLASS} style={{ backgroundColor: hexColor }} /> */}
+                <span className="truncate">{name}</span>
+                {isActive && <X size={12} className={FILTER_CHIP_CLEAR_ICON_CLASS} />}
+            </button>
+        );
+    };
+
     return (
         <div className="glass-card hover:bg-white dark:hover:bg-gray-800 active:bg-white/30 dark:active:bg-gray-800 active:scale-[0.97] p-3 sm:p-2 md:p-3 transition-all duration-300 relative rounded-2xl fade-in">
-            {/* Edit Button - Top Right Corner (Floating Circle) */}
-            <button
+            {/* <button
                 onClick={() => onEdit?.(transaction)}
                 className={SmallBlueBtn}
                 title="Edit transaction"
             >
                 <Edit2 size={14} />
-            </button>
+            </button> */}
 
-            <div className="flex flex-col xs:flex-row xs:justify-between xs:items-start gap-2 xs:gap-3 mb-2 xs:mb-3">
+            <div
+                onClick={() => onEdit?.(transaction)}
+                className="flex flex-col xs:flex-row xs:justify-between xs:items-start gap-2 xs:gap-3 mb-2 xs:mb-3 cursor-pointer">
                 <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-lg xs:text-md text-gray-900 dark:text-gray-50 truncate">{transaction.title || 'No title'}</h3>
                     <p className="text-xs xs:text-sm text-gray-600 dark:text-gray-400">
@@ -67,74 +108,32 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
 
             <div className="flex flex-wrap justify-around gap-1.5 sm:gap-2 text-xs max-sm:text-sm">
                 {account && (
-                    filterType === 'account' ? (
-                        <div className=''>
-                            <span
-                                onClick={() => onFilterChange?.(null, null)}
-                                className={btn1Class}
-                                style={{
-                                    backgroundColor: `${intToHex(account.color)}20`,
-                                    borderColor: intToHex(account.color),
-                                    color: isDarkMode ? `${intToHex(account.color)}CC` : intToHex(account.color)
-                                }}
-                            >
-                                {account.name}
-                                <X size={12} className={XClass} />
-                            </span>
-                        </div>
-                    ) : (
-                        <button
-                            onClick={() => onFilterChange?.('account', transaction.accountId)}
-                            onMouseEnter={() => setHoveredButton('account')}
-                            onMouseLeave={() => setHoveredButton(null)}
-                            className={`${btn2Class} transition-colors duration-300`}
-                            style={{
-                                backgroundColor: `${intToHex(account.color)}10`,
-                                borderColor: hoveredButton === 'account' ? intToHex(account.color) : isDarkMode ? `${intToHex(account.color)}40` : `${intToHex(account.color)}80`,
-                                color: hoveredButton === 'account' ? intToHex(account.color) : isDarkMode ? `${intToHex(account.color)}CC` : intToHex(account.color),
-                                transition: 'border-color 300ms ease-in-out, color 300ms ease-in-out'
-                            }}
-                        >
-                            <div className={`flex items-center gap-1.5 ${isDarkMode ? 'brightness-125' : 'saturate-200 contrast-200'}`}>
-                                {account.name}
-                            </div>
-                        </button>
-                    )
+                    renderFilterChip({
+                        name: account.name,
+                        color: account.color,
+                        isActive: filterType === 'account',
+                        onClick: () => {
+                            if (filterType === 'account') {
+                                onFilterChange?.(null, null);
+                                return;
+                            }
+                            onFilterChange?.('account', transaction.accountId);
+                        },
+                    })
                 )}
                 {category && (
-                    filterType === 'category' ? (
-                        <div className=''>
-                            <span
-                                onClick={() => onFilterChange?.(null, null)}
-                                className={btn1Class}
-                                style={{
-                                    backgroundColor: `${intToHex(category.color)}20`,
-                                    borderColor: intToHex(category.color),
-                                    color: isDarkMode ? `${intToHex(category.color)}CC` : intToHex(category.color)
-                                }}
-                            >
-                                {category.name}
-                                <X size={12} className={XClass} />
-                            </span>
-                        </div>
-                    ) : (
-                        <button
-                            onClick={() => onFilterChange?.('category', transaction.categoryId || '')}
-                            onMouseEnter={() => setHoveredButton('category')}
-                            onMouseLeave={() => setHoveredButton(null)}
-                            className={`${btn2Class} transition-colors duration-300`}
-                            style={{
-                                backgroundColor: `${intToHex(category.color)}10`,
-                                borderColor: hoveredButton === 'category' ? intToHex(category.color) : isDarkMode ? `${intToHex(category.color)}40` : `${intToHex(category.color)}80`,
-                                color: hoveredButton === 'category' ? intToHex(category.color) : isDarkMode ? `${intToHex(category.color)}CC` : intToHex(category.color),
-                                transition: 'border-color 300ms ease-in-out, color 300ms ease-in-out'
-                            }}
-                        >
-                            <div className={`flex items-center gap-1.5 ${isDarkMode ? 'brightness-125' : 'saturate-200 contrast-200'}`}>
-                                {category.name}
-                            </div>
-                        </button>
-                    )
+                    renderFilterChip({
+                        name: category.name,
+                        color: category.color,
+                        isActive: filterType === 'category',
+                        onClick: () => {
+                            if (filterType === 'category') {
+                                onFilterChange?.(null, null);
+                                return;
+                            }
+                            onFilterChange?.('category', transaction.categoryId || '');
+                        },
+                    })
                 )}
             </div>
         </div>

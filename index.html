@@ -17,15 +17,13 @@
     <script>
         (() => {
             try {
-                const saved = localStorage.getItem('darkMode');
-                const isDarkMode = saved !== null
-                    ? JSON.parse(saved)
-                    : window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 const themeColor = isDarkMode ? '#030712' : '#f8fafc';
                 const themeColorMeta = document.getElementById('theme-color-meta');
                 if (themeColorMeta) {
                     themeColorMeta.setAttribute('content', themeColor);
                 }
+                document.documentElement.classList.toggle('dark', isDarkMode);
                 document.documentElement.style.backgroundColor = themeColor;
                 document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
             } catch {

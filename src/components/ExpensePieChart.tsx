@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import type { Transaction, Category } from '../types/finance.types';
 import { CategoryBreakdownTable } from './CategoryBreakdownTable';
+import { intToHex } from '../utils/colorUtils';
 
 interface ExpensePieChartProps {
     transactions: Transaction[];
@@ -13,12 +14,6 @@ interface ExpensePieChartProps {
     onSetShowPieChart: (show: boolean) => void;
     onFilterChange: (type: 'account' | 'category' | 'type' | null, id: string | null) => void;
 }
-
-const intToHex = (num: number): string => {
-    const unsigned = num >>> 0; // Convert to unsigned 32-bit integer (ARGB format)
-    const hex = (unsigned & 0xFFFFFF).toString(16); // Extract RGB part (last 6 digits)
-    return '#' + ('000000' + hex).slice(-6).toUpperCase();
-};
 
 const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {

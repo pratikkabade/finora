@@ -11,7 +11,7 @@ import type { FinanceData } from '../types/finance.types';
 
 const FIREBASE_COLLECTION = 'users';
 const FIREBASE_READ_TIMEOUT_MS = 5000;
-const FIREBASE_WRITE_TIMEOUT_MS = 5000;
+const FIREBASE_WRITE_TIMEOUT_MS = 20000;
 const FIREBASE_FETCH_MAX_RETRIES = 1;
 const FIREBASE_RETRY_DELAY_MS = 350;
 const TRANSIENT_FIREBASE_ERROR_CODES = new Set(['unavailable', 'deadline-exceeded']);

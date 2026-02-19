@@ -1,15 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { X, RotateCcw, Download, Upload, Cloud, LogOut, Zap, Landmark } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { X, RotateCcw, Download, Upload, Cloud, LogOut, Zap, Landmark, Tags, Plus } from 'lucide-react';
 import type { FinanceData } from '../types/finance.types';
 import { useAuth } from '../context/AuthContext';
 // import { useDarkMode } from '../context/DarkModeContext';
-import { FreeWhiteBtn, ModalHeader, settingBtnDangerClass, settingBtnDetailTextClass, settingBtnPlainClass, settingBtnPlainNoHoverClass1, settingBtnPlainNoHoverClass2 } from '../constants/TailwindClasses';
+import { FreeBlueBtn, FreeWhiteBtn, ModalHeader, settingBtnDangerClass, settingBtnDetailTextClass, settingBtnPlainClass, settingBtnPlainNoHoverClass1, settingBtnPlainNoHoverClass2 } from '../constants/TailwindClasses';
 // import { PINManagement } from './PINManagement';
 import { SyncStatusIndicator } from './SyncStatusIndicator';
 import { getIncludedNetBalanceAccountIds } from '../services/storageService';
+import { intToHex } from '../utils/colorUtils';
 
 type ActionStatus = 'idle' | 'success' | 'error';
-type ActionStatusKey = 'backup' | 'sync' | 'import' | 'sample';
+type ActionStatusKey = 'backup' | 'sync' | 'import' | 'sample' | 'category';
 
 const ACTION_STATUS_RESET_MS = 2000;
 const ACTION_SUCCESS_CLASSES = 'bg-green-50/50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/50 dark:border-green-800/50';
@@ -23,6 +24,7 @@ interface SettingsModalProps {
     onReset: () => void;
     onImport: (data: FinanceData) => void;
     onUpdateNetBalanceAccounts?: (accountIds: string[]) => void;
+    onAddCategory?: (categoryName: string, color: number) => boolean;
     financeData: FinanceData | null;
     onBackupToFirebase?: () => Promise<void>;
     onSyncFromFirebase?: () => Promise<void>;
@@ -36,6 +38,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onReset,
     onImport,
     onUpdateNetBalanceAccounts,
+    onAddCategory,
     financeData,
     onBackupToFirebase,
     onSyncFromFirebase,
@@ -51,7 +54,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const [syncStatus, setSyncStatus] = useState<ActionStatus>('idle');
     const [importStatus, setImportStatus] = useState<ActionStatus>('idle');
     const [sampleDataStatus, setSampleDataStatus] = useState<ActionStatus>('idle');
+    const [categoryStatus, setCategoryStatus] = useState<ActionStatus>('idle');
     const [selectedNetBalanceAccountIds, setSelectedNetBalanceAccountIds] = useState<string[]>([]);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [newCategoryColorHex, setNewCategoryColorHex] = useState('#3B82F6');
     const { user, isGuest, logout } = useAuth();
     // const { isDarkMode, toggleDarkMode } = useDarkMode();
     const [localUser, setLocalUser] = useState<string>('');
@@ -64,6 +70,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             setSelectedNetBalanceAccountIds([]);
         }
     }, [financeData]);
+
+    const orderedCategories = useMemo(() => {
+        if (!financeData?.categories) return [];
+
+        return [...financeData.categories].sort((categoryA, categoryB) => {
+            const orderA = Number(categoryA.orderNum) || 0;
+            const orderB = Number(categoryB.orderNum) || 0;
+            if (orderA !== orderB) {
+                return orderA - orderB;
+            }
+
+            return categoryA.name.localeCompare(categoryB.name);
+        });
+    }, [financeData?.categories]);
 
     useEffect(() => {
         return () => {
@@ -130,6 +150,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         setSelectedNetBalanceAccountIds(nextSelectedAccountIds);
         onUpdateNetBalanceAccounts(nextSelectedAccountIds);
+    };
+
+    const hexToColorNumber = (hexColor: string): number => {
+        const sanitized = hexColor.replace('#', '');
+        return Number.parseInt(sanitized, 16);
+    };
+
+    const handleAddCategory = (event: React.FormEvent) => {
+        event.preventDefault();
+        if (!onAddCategory) return;
+
+        const trimmedCategoryName = newCategoryName.trim();
+        if (!trimmedCategoryName) {
+            alert('Category name is required.');
+            setActionStatus('category', setCategoryStatus, 'error');
+            return;
+        }
+
+        const didAddCategory = onAddCategory(trimmedCategoryName, hexToColorNumber(newCategoryColorHex));
+        if (!didAddCategory) {
+            setActionStatus('category', setCategoryStatus, 'error');
+            return;
+        }
+
+        setNewCategoryName('');
+        setNewCategoryColorHex('#3B82F6');
+        setActionStatus('category', setCategoryStatus, 'success');
+        markCloudAsOutOfSync();
     };
 
     const handleBackupToFirebase = async () => {
@@ -358,6 +406,81 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 <span className={settingBtnDetailTextClass}>No accounts available.</span>
                             )}
                         </div>
+                    </div>
+
+                    <div className="px-4 pt-4">
+                        <span className="text-sm text-gray-800 dark:text-gray-300">Categories</span>
+                    </div>
+
+                    <div className={`${settingBtnPlainNoHoverClass1} flex flex-col items-start`}>
+                        <div className={settingBtnPlainNoHoverClass2}>
+                            <Tags size={18} />
+                            <div className="flex flex-col gap-1">
+                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Manage Categories
+                                </span>
+                                <span className={settingBtnDetailTextClass}>
+                                    Add new categories and review your current list.
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="w-full mt-3 space-y-2">
+                            {orderedCategories.length ? (
+                                <div className="max-h-44 overflow-y-auto pr-1 space-y-2">
+                                    {orderedCategories.map((category) => (
+                                        <div
+                                            key={category.id}
+                                            className="flex items-center gap-2 rounded-lg border border-white/30 dark:border-gray-700/40 bg-white/10 dark:bg-gray-900/20 px-3 py-2"
+                                        >
+                                            <span
+                                                className="h-3 w-3 rounded-full border border-black/10 dark:border-white/20"
+                                                style={{ backgroundColor: intToHex(category.color) }}
+                                            />
+                                            <span className="text-sm text-gray-900 dark:text-gray-100 truncate">{category.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <span className={settingBtnDetailTextClass}>No categories available.</span>
+                            )}
+                        </div>
+
+                        <form onSubmit={handleAddCategory} className="w-full mt-3 flex flex-col gap-2">
+                            <div className="flex flex-row items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={newCategoryName}
+                                    onChange={(event) => setNewCategoryName(event.target.value)}
+                                    placeholder="Category name"
+                                    className="glass-input w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg"
+                                    disabled={!onAddCategory}
+                                />
+                                <label
+                                    className="h-10 w-12 shrink-0 overflow-hidden rounded-lg border border-white/30 dark:border-gray-700/40"
+                                    title="Choose category color"
+                                >
+                                    <input
+                                        type="color"
+                                        value={newCategoryColorHex}
+                                        onChange={(event) => setNewCategoryColorHex(event.target.value)}
+                                        className="h-full w-full cursor-pointer border-0 bg-transparent p-0"
+                                        aria-label="Category color"
+                                        disabled={!onAddCategory}
+                                    />
+                                </label>
+                                <button type="submit" disabled={!onAddCategory} className={`${FreeBlueBtn} px-3! py-2! disabled:cursor-not-allowed disabled:opacity-50`}>
+                                    <Plus size={16} />
+                                </button>
+                            </div>
+                            <span className={settingBtnDetailTextClass}>
+                                {categoryStatus === 'success'
+                                    ? 'Category added.'
+                                    : categoryStatus === 'error'
+                                        ? 'Could not add category.'
+                                        : 'Use this when you need a new category option in transactions.'}
+                            </span>
+                        </form>
                     </div>
 
 
