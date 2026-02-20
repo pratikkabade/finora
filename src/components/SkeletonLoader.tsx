@@ -1,7 +1,7 @@
 import React from 'react';
-import { appHeader } from '../App';
+import { AppHeader } from '../App';
 import { CalendarDays, ChartPie, Plus, Settings } from 'lucide-react';
-import { AppChartBtn, BlueBtn, FreeWhiteBtn } from '../constants/TailwindClasses';
+import { AppChartBtn, FreeBlueBtn, FreeWhiteBtn, pieChartCard, transactionCard } from '../constants/TailwindClasses';
 import { SettingsModal } from './SettingsModal';
 
 const shimmerStyle = `
@@ -38,7 +38,7 @@ export const SkeletonCard: React.FC = () => (
 export const SkeletonChart: React.FC = () => (
     <>
         <style>{shimmerStyle}</style>
-        <div className="glass-card p-3 sm:p-4 md:p-6 w-full">
+        <div className={pieChartCard}>
             <div>
                 <div className="h-6 bg-white/20 dark:bg-gray-700/30 rounded w-32 mb-6 shimmer" style={{ minHeight: '1.5rem' }}></div>
                 <div className="h-64 bg-white/10 dark:bg-gray-700/20 rounded shimmer" style={{ minHeight: '16rem' }}></div>
@@ -50,7 +50,7 @@ export const SkeletonChart: React.FC = () => (
 export const SkeletonTable: React.FC = () => (
     <>
         <style>{shimmerStyle}</style>
-        <div className="glass-card p-3 sm:p-4 md:p-6 w-full">
+        <div className={pieChartCard}>
             <div>
                 <div className="h-6 bg-white/20 dark:bg-gray-700/30 rounded w-48 mb-6 shimmer" style={{ minHeight: '1.5rem' }}></div>
                 <div className="space-y-3">
@@ -63,29 +63,8 @@ export const SkeletonTable: React.FC = () => (
     </>
 );
 
-export const SkeletonTransaction: React.FC = () => (
-    <>
-        <style>{shimmerStyle}</style>
-        <div className="glass-card p-3 sm:p-4 md:p-5 rounded-2xl">
-            <div>
-                <div className="flex flex-col xs:flex-row xs:justify-between gap-3 mb-3">
-                    <div className="flex-1">
-                        <div className="h-5 bg-white/20 dark:bg-gray-700/30 rounded w-40 mb-2 shimmer" style={{ minHeight: '1.25rem' }}></div>
-                        <div className="h-3 bg-white/10 dark:bg-gray-700/20 rounded w-24 shimmer" style={{ minHeight: '0.75rem', animationDelay: '0.1s' }}></div>
-                    </div>
-                    <div className="h-6 bg-white/20 dark:bg-gray-700/30 rounded w-28 shimmer" style={{ minHeight: '1.5rem', animationDelay: '0.2s' }}></div>
-                </div>
-                <div className="flex gap-2">
-                    <div className="h-8 bg-white/15 dark:bg-gray-700/25 rounded-lg w-24 shimmer" style={{ minHeight: '2rem', animationDelay: '0.3s' }}></div>
-                    <div className="h-8 bg-white/15 dark:bg-gray-700/25 rounded-lg w-24 shimmer" style={{ minHeight: '2rem', animationDelay: '0.4s' }}></div>
-                </div>
-            </div>
-        </div>
-    </>
-);
-
 export const SkeletonCard2: React.FC = () => (
-    <div className="glass-card hover:bg-white dark:hover:bg-gray-700/50 p-3 sm:p-2 md:p-3 transition-all duration-300 relative rounded-2xl fade-in2">
+    <div className={transactionCard}>
         <div className="flex flex-col xs:flex-row xs:justify-between xs:items-start gap-2 xs:gap-3 mb-2 xs:mb-3">
             <div className="flex-1 min-w-0">
                 <div className='h-7 bg-slate-400 dark:bg-slate-600 rounded-sm w-3/4 animate-pulse mb-2'></div>
@@ -139,7 +118,7 @@ export const SkeletonApp: React.FC<SkeletonAppProps> = ({
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 fade-in">
             <div className="flex flex-col sm:flex-row justify-between gap-3 md:gap-4 mb-6">
                 {/* Header */}
-                {appHeader}
+                <AppHeader />
 
                 {/* Controls */}
                 <div className="flex gap-2 items-center">
@@ -192,7 +171,7 @@ export const SkeletonApp: React.FC<SkeletonAppProps> = ({
 
 
         <button
-            className={BlueBtn}>
+            className={`${FreeBlueBtn} fixed bottom-3 right-3`}>
             <Plus size={18} />
             <span className="text-xs sm:text-sm">Add</span>
         </button>

@@ -7,7 +7,7 @@ import { AddTransactionPage } from './pages/AddTransactionPage';
 import { SettingsModal } from './components/SettingsModal';
 import { DateRangeModal } from './components/DateRangeModal';
 import { DataSourceModal } from './components/DataSourceModal';
-import { TransactionCard } from './components/TransactionCard';
+import { TransactionCard, renderFilterChip } from './components/TransactionCard';
 import { ExpensePieChart } from './components/ExpensePieChart';
 import { SkeletonApp } from './components/SkeletonLoader';
 import { LoginPage } from './pages/LoginPage';
@@ -34,7 +34,7 @@ import { fetchFinanceDataFromFirebase, backupFinanceDataToFirebase } from './ser
 import financeDataJson from './data/finance-data.json';
 import './App.css';
 import { formatNumberWithCommas } from './utils/numberFormatterUtils.ts';
-import { AppChartBtn, FreeBlueBtn, FreeWhiteBtn } from './constants/TailwindClasses';
+import { amountCard, AppChartBtn, FreeBlueBtn, FreeWhiteBtn } from './constants/TailwindClasses';
 
 const GUEST_USER_ID = '__guest__';
 
@@ -638,15 +638,11 @@ function App() {
                 {/* Summary Cards */}
                 {showPieChart && (
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-6">
-                        <div
-                            className="glass-card p-4 sm:p-5 md:p-6 hover:bg-white dark:hover:bg-gray-800 transition-colors text-left rounded-xl"
-                        >
+                        <div className={amountCard}>
                             <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium mb-1 sm:mb-2">Total Expense</p>
                             <p className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600">₹ {formatNumberWithCommas(totalExpense.toFixed(2))}</p>
                         </div>
-                        <div
-                            className="glass-card p-4 sm:p-5 md:p-6 hover:bg-white dark:hover:bg-gray-800 transition-colors text-left rounded-xl"
-                        >
+                        <div className={amountCard}>
                             <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium mb-1 sm:mb-2">Total Income</p>
                             <p className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600">₹ {formatNumberWithCommas(totalIncome.toFixed(2))}</p>
                         </div>
@@ -681,8 +677,63 @@ function App() {
                                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">Showing {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}</p>
                             </div>
                         </div>
+
+                        {(filterType || dateRange) && (
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {filterType && filterId && (
+                                    <>
+                                        {filterType === 'account' && financeData.accounts.find(a => a.id === filterId) && (
+                                            (() => {
+                                                const account = financeData.accounts.find(a => a.id === filterId);
+                                                return renderFilterChip({
+                                                    name: account?.name || '',
+                                                    color: account?.color || 0,
+                                                    isActive: true,
+                                                    onClick: () => {
+                                                        setFilterType(null);
+                                                        setFilterId(null);
+                                                    },
+                                                });
+                                            })()
+                                        )}
+                                        {filterType === 'category' && financeData.categories.find(c => c.id === filterId) && (
+                                            (() => {
+                                                const category = financeData.categories.find(c => c.id === filterId);
+                                                return renderFilterChip({
+                                                    name: category?.name || '',
+                                                    color: category?.color || 0,
+                                                    isActive: true,
+                                                    onClick: () => {
+                                                        setFilterType(null);
+                                                        setFilterId(null);
+                                                    },
+                                                });
+                                            })()
+                                        )}
+                                    </>
+                                )}
+                                {dateRange && (
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-white bg-blue-500">
+                                        <span>
+                                            {new Date(dateRange.start).toLocaleDateString()} - {new Date(dateRange.end).toLocaleDateString()}
+                                        </span>
+                                        <button
+                                            onClick={() => {
+                                                setDateRange(null);
+                                                setSelectedMonthYear('');
+                                            }}
+                                            className="hover:opacity-75 transition-opacity"
+                                            title="Remove date filter"
+                                        >
+                                            <CircleX size={16} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         {filteredTransactions.length === 0 ? (
-                            <div className="glass-card p-6 sm:p-8 text-center">
+                            <div className={AppChartBtn}>
                                 <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">No transactions found</p>
                             </div>
                         ) : (

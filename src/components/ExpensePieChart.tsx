@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 import type { Transaction, Category } from '../types/finance.types';
 import { CategoryBreakdownTable } from './CategoryBreakdownTable';
 import { intToHex } from '../utils/colorUtils';
+import { pieChartCard } from '../constants/TailwindClasses';
 
 interface ExpensePieChartProps {
     transactions: Transaction[];
@@ -110,7 +111,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
         <div className="flex flex-col gap-3 sm:gap-4 md:gap-6">
             <div className="flex flex-col md:flex-row gap-3 sm:gap-4 md:gap-6 h-full">
                 {expenseChartData.length > 0 && (
-                    <div className="glass-card p-3 sm:p-4 md:p-6 w-full md:flex-1">
+                    <div className={pieChartCard}>
                         <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-50 mb-3 sm:mb-4 md:mb-6">Expense Breakdown</h2>
                         <ResponsiveContainer width="100%" height={chartHeight}>
                             <PieChart>
@@ -135,7 +136,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                 )}
 
                 {incomeChartData.length > 0 && (
-                    <div className="glass-card p-3 sm:p-4 md:p-6 w-full md:flex-1">
+                    <div className={pieChartCard}>
                         <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-50 mb-3 sm:mb-4 md:mb-6">Income Breakdown</h2>
                         <ResponsiveContainer width="100%" height={chartHeight}>
                             <PieChart>
@@ -160,7 +161,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                 )}
 
                 {expenseChartData.length === 0 && incomeChartData.length === 0 && (
-                    <div className="glass-card p-6 w-full">
+                    <div className={pieChartCard}>
                         <p className="text-gray-600 dark:text-gray-400 text-center py-6 sm:py-8">No breakdown data available</p>
                     </div>
                 )}

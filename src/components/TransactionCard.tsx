@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import type { Transaction, Account, Category } from '../types/finance.types';
 import { hexToRgba, intToHex } from '../utils/colorUtils';
 import { SkeletonCard2 } from './SkeletonLoader';
+import { transactionCard } from '../constants/TailwindClasses';
 
 interface TransactionCardProps {
     transaction: Transaction;
@@ -36,6 +37,33 @@ const formatDate = (timestamp: number) => {
     });
 };
 
+export const getFilterChipStyle = (hexColor: string, isActive: boolean): CSSProperties => ({
+    backgroundColor: isActive ? hexToRgba(hexColor, 0.28) : hexToRgba(hexColor, 0.20),
+    borderColor: isActive ? hexToRgba(hexColor, 0.95) : hexToRgba(hexColor, 0.75),
+    boxShadow: isActive
+        ? `0 0 0 1px ${hexToRgba(hexColor, 0.28)}`
+        : `0 1px 0 ${hexToRgba(hexColor, 0.18)}`,
+});
+
+export const renderFilterChip = ({ name, color, isActive, onClick }: FilterChipConfig) => {
+    const hexColor = intToHex(color);
+
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`${FILTER_CHIP_BASE_CLASS} ${isActive ? FILTER_CHIP_ACTIVE_CLASS : FILTER_CHIP_INACTIVE_CLASS} group`}
+            style={getFilterChipStyle(hexColor, isActive)}
+        // title={isActive ? `Clear ${name} filter` : `Filter by ${name}`}
+        >
+            {/* <span className={FILTER_CHIP_DOT_CLASS} style={{ backgroundColor: hexColor }} /> */}
+            <span className="truncate">{name}</span>
+            {isActive && <X size={12} className={FILTER_CHIP_CLEAR_ICON_CLASS} />}
+        </button>
+    );
+};
+
+
 export const TransactionCard: React.FC<TransactionCardProps> = ({
     transaction,
     account,
@@ -48,7 +76,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
 
     setTimeout(() => {
         setAnimation(false);
-    }, 1000);
+    }, 500);
 
     if (animation) return (
         <SkeletonCard2 />
@@ -56,37 +84,11 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
 
     const isIncome = transaction.type === 'INCOME';
 
-    const getFilterChipStyle = (hexColor: string, isActive: boolean): CSSProperties => ({
-        backgroundColor: isActive ? hexToRgba(hexColor, 0.28) : hexToRgba(hexColor, 0.20),
-        borderColor: isActive ? hexToRgba(hexColor, 0.95) : hexToRgba(hexColor, 0.75),
-        boxShadow: isActive
-            ? `0 0 0 1px ${hexToRgba(hexColor, 0.28)}`
-            : `0 1px 0 ${hexToRgba(hexColor, 0.18)}`,
-    });
-
-    const renderFilterChip = ({ name, color, isActive, onClick }: FilterChipConfig) => {
-        const hexColor = intToHex(color);
-
-        return (
-            <button
-                type="button"
-                onClick={onClick}
-                className={`${FILTER_CHIP_BASE_CLASS} ${isActive ? FILTER_CHIP_ACTIVE_CLASS : FILTER_CHIP_INACTIVE_CLASS} group`}
-                style={getFilterChipStyle(hexColor, isActive)}
-            // title={isActive ? `Clear ${name} filter` : `Filter by ${name}`}
-            >
-                {/* <span className={FILTER_CHIP_DOT_CLASS} style={{ backgroundColor: hexColor }} /> */}
-                <span className="truncate">{name}</span>
-                {isActive && <X size={12} className={FILTER_CHIP_CLEAR_ICON_CLASS} />}
-            </button>
-        );
-    };
-
     return (
-        <div className="glass-card hover:bg-white dark:hover:bg-gray-800 active:bg-white/30 dark:active:bg-gray-800 active:scale-[0.97] p-3 sm:p-2 md:p-3 transition-all duration-300 relative rounded-2xl fade-in">
+        <div className={transactionCard}>
             {/* <button
                 onClick={() => onEdit?.(transaction)}
-                className={SmallBlueBtn}
+                className={`${freebluebutton} absolute top-3 right-3 w-8 h-8 rounded-full`}
                 title="Edit transaction"
             >
                 <Edit2 size={14} />
