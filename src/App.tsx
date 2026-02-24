@@ -28,7 +28,7 @@ import { AppChartBtn, AppDateBtn, BlueBtn, FreeWhiteBtn } from './constants/Tail
 
 export const appHeader = (
     <div className='flex flex-row items-center gap-4 mb-6 sm:mb-8 pt-5'>
-        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png" alt="Finora Logo" className="h-24 w-24 mx-auto sm:mx-0" />
+        <img src="/finora-icon.svg" alt="Finora Logo" className="h-24 w-24 mx-auto sm:mx-0" />
         <div className="text-left">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-50">Finora</h1>
             <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">Clear financial insights for better decisions</p>
