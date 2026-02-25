@@ -4,6 +4,7 @@ export interface Account {
   currency: string;
   color: number;
   icon: string;
+  includeInBalance?: boolean;
   orderNum?: number;
   isSynced: boolean;
 }

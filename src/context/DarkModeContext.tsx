@@ -20,11 +20,22 @@ export const DarkModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     useEffect(() => {
         localStorage.setItem('darkMode', JSON.stringify(isDarkMode));
+        const themeColor = isDarkMode ? '#030712' : '#f8fafc';
+        const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+
         if (isDarkMode) {
             document.documentElement.classList.add('dark');
         } else {
             document.documentElement.classList.remove('dark');
         }
+
+        if (themeColorMeta) {
+            themeColorMeta.setAttribute('content', themeColor);
+        }
+
+        document.documentElement.style.backgroundColor = themeColor;
+        document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
+        document.body.style.backgroundColor = themeColor;
     }, [isDarkMode]);
 
     const toggleDarkMode = () => {

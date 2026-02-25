@@ -39,7 +39,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
                     <span>Out of Sync</span>
                 </div>
             ) : isSynced ? (
-                <div className={`flex flex-row gap-2 ${(!needSync && displayTime) ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
+                <div className={`flex flex-row gap-2 ${!needSync ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
                     <Check size={14} />
                     <div className='flex flex-row gap-1'>
                         <span>Synced</span>

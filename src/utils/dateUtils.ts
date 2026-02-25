@@ -20,10 +20,13 @@ export const updateTime = (lastSyncTime: number, setDisplayTime: (time: string) 
 
     if (seconds < 60) {
         setDisplayTime('just now');
+        setNeedSync(false);
     } else if (minutes < 60) {
         setDisplayTime(`${minutes}m ago`);
+        setNeedSync(false);
     } else if (hours < 24) {
         setDisplayTime(`${hours}h ago`);
+        setNeedSync(false);
     } else {
         setDisplayTime(`${days}d ago`);
         setNeedSync(true);

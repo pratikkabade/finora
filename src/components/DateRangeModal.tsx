@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { X, Calendar } from 'lucide-react';
 import type { Transaction } from '../types/finance.types';
 import { generateMonthYearOptions } from '../utils/dateUtils';
@@ -8,6 +8,8 @@ interface DateRangeModalProps {
     isOpen: boolean;
     onClose: () => void;
     onApply: (startDate: number, endDate: number) => void;
+    onApplyMonth: (monthYear: string) => void;
+    selectedMonthYear: string;
     transactions: Transaction[];
 }
 
@@ -15,32 +17,48 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
     isOpen,
     onClose,
     onApply,
+    onApplyMonth,
+    selectedMonthYear,
     transactions,
 }) => {
     const monthYearOptions = useMemo(() => {
         return generateMonthYearOptions(transactions);
     }, [transactions]);
 
-    const [startMonth, setStartMonth] = useState<string>(
-        monthYearOptions.length > 0 ? monthYearOptions[monthYearOptions.length - 1].value : ''
-    );
-    const [endMonth, setEndMonth] = useState<string>(
-        monthYearOptions.length > 0 ? monthYearOptions[0].value : ''
-    );
+    const [singleMonth, setSingleMonth] = useState<string>('');
+    const [startMonth, setStartMonth] = useState<string>('');
+    const [endMonth, setEndMonth] = useState<string>('');
 
-    const handleApply = () => {
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const newestMonth = monthYearOptions[0]?.value ?? '';
+        const oldestMonth = monthYearOptions[monthYearOptions.length - 1]?.value ?? '';
+        const isSelectedMonthValid = monthYearOptions.some(option => option.value === selectedMonthYear);
+
+        setSingleMonth(isSelectedMonthValid ? selectedMonthYear : newestMonth);
+        setStartMonth(oldestMonth);
+        setEndMonth(newestMonth);
+    }, [isOpen, monthYearOptions, selectedMonthYear]);
+
+    const handleApplySingleMonth = () => {
+        if (!singleMonth) return;
+        onApplyMonth(singleMonth);
+        onClose();
+    };
+
+    const handleApplyRange = () => {
         if (!startMonth || !endMonth) return;
 
         const [startYear, startMonthNum] = startMonth.split('-').map(Number);
         const [endYear, endMonthNum] = endMonth.split('-').map(Number);
 
-        // Start of start month (00:00:00)
-        const startDate = new Date(startYear, startMonthNum - 1, 1).getTime();
+        const startDate = new Date(startYear, startMonthNum, 1).getTime();
+        const endDate = new Date(endYear, endMonthNum + 1, 0, 23, 59, 59, 999).getTime();
+        const normalizedStart = Math.min(startDate, endDate);
+        const normalizedEnd = Math.max(startDate, endDate);
 
-        // End of end month (23:59:59)
-        const endDate = new Date(endYear, endMonthNum, 0, 23, 59, 59, 999).getTime();
-
-        onApply(startDate, endDate);
+        onApply(normalizedStart, normalizedEnd);
         onClose();
     };
 
@@ -53,7 +71,7 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
                 <div className={ModalHeader}>
                     <div className="flex items-center gap-2">
                         <Calendar size={20} className="text-gray-600 dark:text-gray-400" />
-                        <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-50">Select Date Range</h2>
+                        <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-50">Select Date Filter</h2>
                     </div>
                     <button
                         onClick={onClose}
@@ -65,8 +83,31 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
 
                 {/* Content */}
                 <div className="p-4 sm:p-6 space-y-4">
-                    {/* Start Month */}
                     <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Month</label>
+                        <select
+                            value={singleMonth}
+                            onChange={(e) => setSingleMonth(e.target.value)}
+                            className="glass-input w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg border border-white/20 dark:border-gray-700/30 focus:border-blue-400 focus:outline-none"
+                        >
+                            {monthYearOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        <button
+                            onClick={handleApplySingleMonth}
+                            disabled={monthYearOptions.length === 0}
+                            className={`${FreeBlueBtn} mt-3 w-full disabled:opacity-60 disabled:cursor-not-allowed`}
+                        >
+                            Apply Month
+                        </button>
+                    </div>
+
+                    <div className="border-t border-white/20 dark:border-gray-700/30 pt-4 space-y-4">
+                        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Or use a month range</h3>
+
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Start Month</label>
                         <select
                             value={startMonth}
@@ -79,10 +120,6 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
                                 </option>
                             ))}
                         </select>
-                    </div>
-
-                    {/* End Month */}
-                    <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">End Month</label>
                         <select
                             value={endMonth}
@@ -95,12 +132,10 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
                                 </option>
                             ))}
                         </select>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-4">
+                            This shows transactions from the first day of the start month to the last day of the end month.
+                        </p>
                     </div>
-
-                    {/* Info text */}
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-4">
-                        This will show all transactions from the first day of the start month to the last day of the end month.
-                    </p>
                 </div>
 
                 {/* Actions */}
@@ -112,10 +147,11 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
                         Cancel
                     </button>
                     <button
-                        onClick={handleApply}
+                        onClick={handleApplyRange}
+                        disabled={monthYearOptions.length === 0}
                         className={FreeBlueBtn}
                     >
-                        Apply
+                        Apply Range
                     </button>
                 </div>
             </div>

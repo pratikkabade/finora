@@ -1,17 +1,28 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, RotateCcw, Download, Upload, Cloud, LogOut, Zap } from 'lucide-react';
+import { X, RotateCcw, Download, Upload, Cloud, LogOut, Zap, Landmark } from 'lucide-react';
 import type { FinanceData } from '../types/finance.types';
 import { useAuth } from '../context/AuthContext';
 // import { useDarkMode } from '../context/DarkModeContext';
-import { FreeWhiteBtn, ModalHeader, settingBtnDangerClass, settingBtnDetailTextClass, settingBtnPlainClass } from '../constants/TailwindClasses';
+import { FreeWhiteBtn, ModalHeader, settingBtnDangerClass, settingBtnDetailTextClass, settingBtnPlainClass, settingBtnPlainNoHoverClass1, settingBtnPlainNoHoverClass2 } from '../constants/TailwindClasses';
 // import { PINManagement } from './PINManagement';
 import { SyncStatusIndicator } from './SyncStatusIndicator';
+import { getIncludedNetBalanceAccountIds } from '../services/storageService';
+
+type ActionStatus = 'idle' | 'success' | 'error';
+type ActionStatusKey = 'backup' | 'sync' | 'import' | 'sample';
+
+const ACTION_STATUS_RESET_MS = 2000;
+const ACTION_SUCCESS_CLASSES = 'bg-green-50/50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/50 dark:border-green-800/50';
+const ACTION_ERROR_CLASSES = 'bg-red-50/50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-800/50';
+const ACTION_IDLE_CLASSES = 'text-gray-900 dark:text-gray-50 hover:bg-white/40 dark:hover:bg-gray-700/40';
+const ACTION_BASE_CLASSES = 'disabled:opacity-50 disabled:cursor-not-allowed';
 
 interface SettingsModalProps {
     isOpen: boolean;
     onClose: () => void;
     onReset: () => void;
     onImport: (data: FinanceData) => void;
+    onUpdateNetBalanceAccounts?: (accountIds: string[]) => void;
     financeData: FinanceData | null;
     onBackupToFirebase?: () => Promise<void>;
     onSyncFromFirebase?: () => Promise<void>;
@@ -24,6 +35,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onClose,
     onReset,
     onImport,
+    onUpdateNetBalanceAccounts,
     financeData,
     onBackupToFirebase,
     onSyncFromFirebase,
@@ -31,49 +43,121 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onResetClick,
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const actionStatusTimersRef = useRef<Partial<Record<ActionStatusKey, number>>>({});
     const [cloudSyncStatus, setCloudSyncStatus] = useState({ isSynced: true, lastSyncTime: localStorage.getItem('lastCloudBackup') ? parseInt(localStorage.getItem('lastCloudBackup') as string, 10) : 0 });
     const [isBackingUp, setIsBackingUp] = useState(false);
-    const [backupStatus, setBackupStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [backupStatus, setBackupStatus] = useState<ActionStatus>('idle');
     const [isSyncing, setIsSyncing] = useState(false);
-    const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle');
-    const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
-    const [sampleDataStatus, setSampleDataStatus] = useState<'idle' | 'success' | 'error'>('idle');
-    const { user, logout } = useAuth();
+    const [syncStatus, setSyncStatus] = useState<ActionStatus>('idle');
+    const [importStatus, setImportStatus] = useState<ActionStatus>('idle');
+    const [sampleDataStatus, setSampleDataStatus] = useState<ActionStatus>('idle');
+    const [selectedNetBalanceAccountIds, setSelectedNetBalanceAccountIds] = useState<string[]>([]);
+    const { user, isGuest, logout } = useAuth();
     // const { isDarkMode, toggleDarkMode } = useDarkMode();
     const [localUser, setLocalUser] = useState<string>('');
 
     useEffect(() => {
         if (financeData) {
             setLocalUser(financeData.settings?.[0]?.name || '');
+            setSelectedNetBalanceAccountIds(getIncludedNetBalanceAccountIds(financeData));
+        } else {
+            setSelectedNetBalanceAccountIds([]);
         }
+    }, [financeData]);
+
+    useEffect(() => {
+        return () => {
+            Object.values(actionStatusTimersRef.current).forEach((timeoutId) => {
+                if (timeoutId) {
+                    window.clearTimeout(timeoutId);
+                }
+            });
+        };
     }, []);
+
+    const setActionStatus = (
+        key: ActionStatusKey,
+        setStatus: React.Dispatch<React.SetStateAction<ActionStatus>>,
+        status: ActionStatus,
+    ) => {
+        const existingTimeoutId = actionStatusTimersRef.current[key];
+        if (existingTimeoutId) {
+            window.clearTimeout(existingTimeoutId);
+        }
+
+        setStatus(status);
+
+        if (status === 'idle') {
+            delete actionStatusTimersRef.current[key];
+            return;
+        }
+
+        actionStatusTimersRef.current[key] = window.setTimeout(() => {
+            setStatus('idle');
+            delete actionStatusTimersRef.current[key];
+        }, ACTION_STATUS_RESET_MS);
+    };
+
+    const getActionButtonClasses = (status: ActionStatus) => {
+        if (status === 'success') return `${settingBtnPlainClass} ${ACTION_SUCCESS_CLASSES} ${ACTION_BASE_CLASSES}`;
+        if (status === 'error') return `${settingBtnPlainClass} ${ACTION_ERROR_CLASSES} ${ACTION_BASE_CLASSES}`;
+        return `${settingBtnPlainClass} ${ACTION_IDLE_CLASSES} ${ACTION_BASE_CLASSES}`;
+    };
+
+    const markCloudAsSynced = () => {
+        const now = Date.now();
+        setCloudSyncStatus({ isSynced: true, lastSyncTime: now });
+        localStorage.setItem('lastCloudBackup', now.toString());
+        localStorage.setItem('outOfSync', 'false');
+    };
+
+    const markCloudAsOutOfSync = () => {
+        setCloudSyncStatus({ isSynced: false, lastSyncTime: Date.now() });
+    };
+
+    const handleToggleNetBalanceAccount = (accountId: string) => {
+        if (!onUpdateNetBalanceAccounts) return;
+
+        const isSelected = selectedNetBalanceAccountIds.includes(accountId);
+        const nextSelectedAccountIds = isSelected
+            ? selectedNetBalanceAccountIds.filter(id => id !== accountId)
+            : [...selectedNetBalanceAccountIds, accountId];
+
+        if (nextSelectedAccountIds.length === 0) {
+            alert('Please keep at least one account selected for net balance.');
+            return;
+        }
+
+        setSelectedNetBalanceAccountIds(nextSelectedAccountIds);
+        onUpdateNetBalanceAccounts(nextSelectedAccountIds);
+    };
 
     const handleBackupToFirebase = async () => {
         if (!onBackupToFirebase) return;
+        if (!window.confirm('Back up your current local data to Firebase now?')) return;
 
         setIsBackingUp(true);
-        setBackupStatus('idle');
+        setActionStatus('backup', setBackupStatus, 'idle');
         try {
             await onBackupToFirebase();
-            setBackupStatus('success');
-            setTimeout(() => setBackupStatus('idle'), 3000);
-            setCloudSyncStatus({ isSynced: true, lastSyncTime: Date.now() });
-            localStorage.setItem('lastCloudBackup', Date.now().toString());
-            localStorage.setItem('outOfSync', 'false');
+            setActionStatus('backup', setBackupStatus, 'success');
+            markCloudAsSynced();
         } catch (error: any) {
             console.error('Backup error:', error);
-            setBackupStatus('error');
-            // Show detailed error to user
+            setActionStatus('backup', setBackupStatus, 'error');
             const errorMessage = error?.message || 'An unknown error occurred during backup.';
             alert('Backup Failed:\n\n' + errorMessage);
-            setTimeout(() => setBackupStatus('idle'), 3000);
         } finally {
             setIsBackingUp(false);
         }
     };
 
     const handleLogout = async () => {
-        if (window.confirm('Are you sure you want to logout?')) {
+        const confirmationMessage = isGuest
+            ? 'Exit guest session and return to sign in?'
+            : 'Are you sure you want to logout?';
+
+        if (window.confirm(confirmationMessage)) {
             try {
                 await logout();
                 onClose();
@@ -86,37 +170,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     const handleSyncFromFirebase = async () => {
         if (!onSyncFromFirebase) return;
+        if (!window.confirm('Restore local data from Firebase backup now? This replaces current local data.')) return;
 
         setIsSyncing(true);
-        setSyncStatus('idle');
+        setActionStatus('sync', setSyncStatus, 'idle');
         try {
             await onSyncFromFirebase();
-            setSyncStatus('success');
-            setTimeout(() => setSyncStatus('idle'), 3000);
-            setCloudSyncStatus({ isSynced: true, lastSyncTime: Date.now() });
-            localStorage.setItem('lastCloudBackup', Date.now().toString());
-            localStorage.setItem('outOfSync', 'false');
+            setActionStatus('sync', setSyncStatus, 'success');
+            markCloudAsSynced();
         } catch (error: any) {
             console.error('Sync error:', error);
-            setSyncStatus('error');
+            setActionStatus('sync', setSyncStatus, 'error');
             const errorMessage = error?.message || 'An unknown error occurred during sync.';
             alert('Sync Failed:\n\n' + errorMessage);
-            setTimeout(() => setSyncStatus('idle'), 3000);
         } finally {
             setIsSyncing(false);
         }
     };
 
-    const handleGetSampleData = () => {
-        if (onGetSampleData) {
-            if (window.confirm('Replace your current data with sample data?')) {
-                onGetSampleData();
-            }
-        }
+    const handleGetSampleData = (): boolean => {
+        if (!onGetSampleData) return false;
+        if (!window.confirm('Replace your current data with sample data?')) return false;
+        onGetSampleData();
+        return true;
     };
 
     const handleDownload = () => {
         if (!financeData) return;
+        if (!window.confirm('Download a backup file of your current data?')) return;
 
         let dataStr = JSON.stringify(financeData, null, 2);
 
@@ -137,6 +218,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         URL.revokeObjectURL(url);
     };
 
+    const triggerImportFlow = () => {
+        if (!window.confirm('Import data from a JSON file? This will replace your current local data.')) {
+            return;
+        }
+        fileInputRef.current?.click();
+    };
+
     const handleReset = () => {
         if (window.confirm('Are you sure you want to reset all data? This will clear your local data only - your Firebase backup (if any) will remain safe.')) {
             onReset();
@@ -148,7 +236,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     };
 
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setImportStatus('idle');
+        setActionStatus('import', setImportStatus, 'idle');
 
         const file = event.target.files?.[0];
         if (!file) return;
@@ -162,22 +250,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 // Validate the imported data structure
                 if (importedData && importedData.accounts && importedData.categories && importedData.transactions) {
                     onImport(importedData);
-                    // onClose();
-                    // Reset file input
                     if (fileInputRef.current) {
                         fileInputRef.current.value = '';
                     }
-                    setImportStatus('success');
-                    setCloudSyncStatus({ isSynced: false, lastSyncTime: Date.now() });
-                    setTimeout(() => setImportStatus('idle'), 3000);
+                    setActionStatus('import', setImportStatus, 'success');
+                    markCloudAsOutOfSync();
                 } else {
-                    setImportStatus('error');
+                    setActionStatus('import', setImportStatus, 'error');
                     alert('Invalid data format in the imported file.');
-                    setTimeout(() => setImportStatus('idle'), 3000);
                 }
             } catch (error) {
                 console.error('Import error:', error);
-                setImportStatus('error');
+                setActionStatus('import', setImportStatus, 'error');
                 alert('Error importing file. Please make sure it\'s a valid JSON file.');
             }
         };
@@ -187,16 +271,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className='fixed inset-0 overflow-y-hidden flex items-center justify-center z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full fade-in'>
+        <div className='fixed inset-0 overflow-y-hidden flex items-center justify-center z-50 bg-white dark:bg-gray-900 rounded-none shadow-xl w-full fade-in'>
             <div className='w-full max-w-xl'>
                 {/* Header */}
                 <div className={ModalHeader}>
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-50">Settings</h2>
+                    <h2 className="text-lg sm:text-xl font-bold">Settings</h2>
                     <button
                         onClick={onClose}
                         className={FreeWhiteBtn}
                     >
-                        <X size={20} className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-50" />
+                        <X size={20} />
                     </button>
                 </div>
 
@@ -215,9 +299,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                     }
 
-                    <div className="px-4 pt-4">
+                    {/* <div className="px-4 pt-4">
                         <span className="text-sm text-gray-800 dark:text-gray-300">Security</span>
-                    </div>
+                    </div> */}
 
                     {/* {user && <PINManagement userId={user.uid} onSuccess={() => { }} />} */}
 
@@ -235,8 +319,52 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </button> */}
 
                     <div className="px-4 pt-4">
+                        <span className="text-sm text-gray-800 dark:text-gray-300">Optimization</span>
+                    </div>
+
+                    <div className={`${settingBtnPlainNoHoverClass1} flex flex-col items-start`}>
+                        <div className={settingBtnPlainNoHoverClass2}>
+                            <Landmark size={18} />
+                            <div className="flex flex-col gap-1">
+                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    Net Balance Accounts
+                                </span>
+                                <span className={settingBtnDetailTextClass}>
+                                    Only selected accounts are included in top net balance calculations.
+                                </span>
+                            </div>
+                        </div>
+                        <div className="flex flex-row flex-wrap gap-2">
+                            {financeData?.accounts?.length ? (
+                                financeData.accounts.map((account) => (
+                                    <label
+                                        key={account.id}
+                                        className={`${settingBtnPlainClass} w-fit!`}
+                                    >
+                                        <button
+                                            role="switch"
+                                            aria-checked={selectedNetBalanceAccountIds.includes(account.id)}
+                                            onClick={() => handleToggleNetBalanceAccount(account.id)}
+                                            className={`relative inline-flex h-5.5 w-9.5 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${selectedNetBalanceAccountIds.includes(account.id) ? 'bg-blue-500' : 'bg-gray-300/40'
+                                                }`}
+                                        >
+                                            <span className={`pointer-events-none inline-block h-4.5 w-4.5 transform rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200 ease-in-out ${selectedNetBalanceAccountIds.includes(account.id) ? 'translate-x-4' : 'translate-x-0'
+                                                }`} />
+                                        </button>
+                                        <span>{account.name}</span>
+                                    </label>
+                                ))
+                            ) : (
+                                <span className={settingBtnDetailTextClass}>No accounts available.</span>
+                            )}
+                        </div>
+                    </div>
+
+
+                    <div className="px-4 pt-4">
                         <span className="text-sm text-gray-800 dark:text-gray-300">Safeguard data</span>
                     </div>
+
 
                     <button
                         onClick={handleDownload}
@@ -255,12 +383,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             <button
                                 onClick={handleBackupToFirebase}
                                 disabled={isBackingUp}
-                                className={`${settingBtnPlainClass} ${backupStatus === 'success'
-                                    ? 'bg-green-50/50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/50 dark:border-green-800/50'
-                                    : backupStatus === 'error'
-                                        ? 'bg-red-50/50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-800/50'
-                                        : 'text-gray-900 dark:text-gray-50 hover:bg-white/40 dark:hover:bg-gray-700/40'
-                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                className={getActionButtonClasses(backupStatus)}
                             >
                                 <Cloud size={18} />
                                 <div className='flex flex-col items-start'>
@@ -287,12 +410,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <button
                             onClick={handleSyncFromFirebase}
                             disabled={isSyncing}
-                            className={`${settingBtnPlainClass} ${syncStatus === 'success'
-                                ? 'bg-green-50/50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/50 dark:border-green-800/50'
-                                : syncStatus === 'error'
-                                    ? 'bg-red-50/50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-800/50'
-                                    : 'text-gray-900 dark:text-gray-50 hover:bg-white/40 dark:hover:bg-gray-700/40'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className={getActionButtonClasses(syncStatus)}
                         >
                             <Cloud size={18} />
                             <div className='flex flex-col items-start'>
@@ -311,13 +429,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     )}
 
                     <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className={`${settingBtnPlainClass} ${importStatus === 'success'
-                            ? 'bg-green-50/50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/50 dark:border-green-800/50'
-                            : importStatus === 'error'
-                                ? 'bg-red-50/50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-800/50'
-                                : 'text-gray-900 dark:text-gray-50 hover:bg-white/40 dark:hover:bg-gray-700/40'
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        onClick={triggerImportFlow}
+                        className={getActionButtonClasses(importStatus)}
                     >
                         <Upload size={18} />
                         <div className='flex flex-col items-start'>
@@ -337,17 +450,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                     <button
                         onClick={() => {
-                            handleGetSampleData();
-                            setSampleDataStatus('success');
-                            setCloudSyncStatus({ isSynced: false, lastSyncTime: Date.now() });
-                            setTimeout(() => setSampleDataStatus('idle'), 3000);
+                            if (!handleGetSampleData()) return;
+                            setActionStatus('sample', setSampleDataStatus, 'success');
+                            markCloudAsOutOfSync();
                         }}
-                        className={`${settingBtnPlainClass} ${sampleDataStatus === 'success'
-                            ? 'bg-green-50/50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/50 dark:border-green-800/50'
-                            : sampleDataStatus === 'error'
-                                ? 'bg-red-50/50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/50 dark:border-red-800/50'
-                                : 'text-gray-900 dark:text-gray-50 hover:bg-white/40 dark:hover:bg-gray-700/40'
-                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        className={getActionButtonClasses(sampleDataStatus)}
                     >
                         <Zap size={18} />
                         <div className='flex flex-col items-start'>
@@ -378,15 +485,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                     </button>
 
-                    {user && (
+                    {(user || isGuest) && (
                         <button
                             onClick={handleLogout}
                             className={settingBtnDangerClass}
                         >
                             <LogOut size={18} />
                             <div className='flex flex-col items-start'>
-                                <span>Logout</span>
-                                <span className={settingBtnDetailTextClass}>Sign out of your account</span>
+                                <span>{isGuest ? 'Exit Guest Session' : 'Logout'}</span>
+                                <span className={settingBtnDetailTextClass}>
+                                    {isGuest ? 'Return to sign-in screen' : 'Sign out of your account'}
+                                </span>
                             </div>
                         </button>
                     )}

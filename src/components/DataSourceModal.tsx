@@ -3,18 +3,21 @@ import { Cloud, Zap } from 'lucide-react';
 
 interface DataSourceModalProps {
     isOpen: boolean;
-    onFetchFirebase: () => Promise<void>;
+    onFetchFirebase?: () => Promise<void>;
     onGetDummyData: () => void;
+    showCloudOption?: boolean;
 }
 
 export const DataSourceModal: React.FC<DataSourceModalProps> = ({
     isOpen,
     onFetchFirebase,
     onGetDummyData,
+    showCloudOption = true,
 }) => {
     const [isLoadingFirebase, setIsLoadingFirebase] = React.useState(false);
 
     const handleFetchFirebase = async () => {
+        if (!onFetchFirebase) return;
         setIsLoadingFirebase(true);
         try {
             await onFetchFirebase();
@@ -34,25 +37,29 @@ export const DataSourceModal: React.FC<DataSourceModalProps> = ({
                     How would you like to start?
                 </p>
 
-                {/* Option 1: Firebase Data */}
-                <button
-                    onClick={handleFetchFirebase}
-                    disabled={isLoadingFirebase}
-                    className="w-full bg-linear-to-r from-blue-500 to-blue-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-4 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                    <Cloud size={20} />
-                    {isLoadingFirebase ? 'Fetching...' : 'Fetch from Cloud'}
-                </button>
-                <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
-                    Load your previously backed up data from the cloud
-                </p>
+                {showCloudOption && (
+                    <>
+                        {/* Option 1: Firebase Data */}
+                        <button
+                            onClick={handleFetchFirebase}
+                            disabled={isLoadingFirebase}
+                            className="w-full bg-linear-to-r from-blue-500 to-blue-600 text-white font-semibold py-4 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-4 flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                            <Cloud size={20} />
+                            {isLoadingFirebase ? 'Fetching...' : 'Fetch from Cloud'}
+                        </button>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
+                            Load your previously backed up data from the cloud
+                        </p>
 
-                {/* Divider */}
-                <div className="flex items-center gap-3 mb-4">
-                    <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700"></div>
-                    <span className="text-gray-500 dark:text-gray-400 text-sm">or</span>
-                    <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700"></div>
-                </div>
+                        {/* Divider */}
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700"></div>
+                            <span className="text-gray-500 dark:text-gray-400 text-sm">or</span>
+                            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-700"></div>
+                        </div>
+                    </>
+                )}
 
                 {/* Option 2: Dummy Data */}
                 <button

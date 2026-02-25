@@ -19,12 +19,22 @@ import {
     filterTransactionsByMonth,
     getCurrentOrPastTransactions,
 } from './utils/dateUtils';
-import { saveToLocalStorage, loadFromLocalStorage, clearUserData } from './services/storageService';
+import {
+    saveToLocalStorage,
+    loadFromLocalStorage,
+    loadBalanceSummaryFromLocalStorage,
+    clearUserData,
+    calculateBalanceSummary,
+    NET_BALANCE_ACCOUNT_IDS_PREF_KEY,
+    type BalanceSummary,
+} from './services/storageService';
 import { fetchFinanceDataFromFirebase, backupFinanceDataToFirebase } from './services/firebaseService';
 import financeDataJson from './data/finance-data.json';
 import './App.css';
 import { formatNumberWithCommas } from './utils/numberFormatterUtils.ts';
-import { AppChartBtn, AppDateBtn, BlueBtn, FreeWhiteBtn } from './constants/TailwindClasses';
+import { AppChartBtn, BlueBtn, FreeWhiteBtn } from './constants/TailwindClasses';
+
+const GUEST_USER_ID = '__guest__';
 
 export const appHeader = (
     <div className='flex flex-row items-center gap-4 mb-6 sm:mb-8 pt-5'>
@@ -38,7 +48,7 @@ export const appHeader = (
 
 function App() {
     // const { user, isLoading } = useAuth();
-    const { user, isLoading: authLoading } = useAuth();
+    const { user, isLoading: authLoading, isGuest } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
     const [financeData, setFinanceData] = useState<FinanceData | null>(null);
@@ -54,7 +64,12 @@ function App() {
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string | null>(null);
     const [selectedIncomeCategory, setSelectedIncomeCategory] = useState<string | null>(null);
+    const [balanceSummary, setBalanceSummary] = useState<BalanceSummary | null>(null);
     const [animation, setAnimation] = useState(true);
+    const [isContentVisible, setIsContentVisible] = useState(false);
+    const [showSkeletonOverlay, setShowSkeletonOverlay] = useState(true);
+    const isSessionActive = !!user || isGuest;
+    const storageUserId = user?.uid ?? (isGuest ? GUEST_USER_ID : null);
     // const [isPINVerified, setIsPINVerified] = useState(false);
     // const [showPINModal, setShowPINModal] = useState(false);
 
@@ -78,20 +93,25 @@ function App() {
 
         const loadData = async () => {
             try {
-                if (!user) {
+                if (!storageUserId) {
                     // User not logged in, will show login page
                     setFinanceData(null);
+                    setBalanceSummary(null);
+                    setShowDataSourceModal(false);
                     return;
                 }
 
                 // First try to load from localStorage (local cache)
-                const localData = loadFromLocalStorage(user.uid);
+                const localData = loadFromLocalStorage(storageUserId);
                 if (localData) {
                     setFinanceData(localData);
+                    setBalanceSummary(loadBalanceSummaryFromLocalStorage(storageUserId));
+                    setShowDataSourceModal(false);
                     // Optionally fetch from Firebase in background to sync if needed
                     return;
                 }
 
+                setBalanceSummary(null);
                 // No local data, show data source selection modal on first login
                 setShowDataSourceModal(true);
             } finally {
@@ -100,14 +120,17 @@ function App() {
         };
 
         loadData();
-    }, [user, authLoading]);
+    }, [storageUserId, authLoading]);
 
     // Save data to localStorage whenever financeData changes
     useEffect(() => {
-        if (financeData && user) {
-            saveToLocalStorage(user.uid, financeData);
+        if (financeData && storageUserId) {
+            const summary = saveToLocalStorage(storageUserId, financeData);
+            setBalanceSummary(summary);
+            return;
         }
-    }, [financeData, user]);
+        setBalanceSummary(null);
+    }, [financeData, storageUserId]);
 
     const handleBackupToFirebase = async () => {
         if (!user || !financeData) {
@@ -125,14 +148,20 @@ function App() {
         return generateMonthYearOptions(validTransactions);
     }, [validTransactions]);
 
-    useEffect(() => {
-        if (monthYearOptions.length > 0 && !selectedMonthYear) {
-            setSelectedMonthYear(monthYearOptions[0].value);
+    const activeMonthYear = useMemo(() => {
+        if (dateRange) {
+            return '';
         }
-    }, [monthYearOptions, selectedMonthYear]);
+
+        if (selectedMonthYear && monthYearOptions.some(option => option.value === selectedMonthYear)) {
+            return selectedMonthYear;
+        }
+
+        return monthYearOptions[0]?.value ?? '';
+    }, [dateRange, selectedMonthYear, monthYearOptions]);
 
     const filteredTransactions = useMemo(() => {
-        if (!selectedMonthYear && !dateRange) return [];
+        if (!activeMonthYear && !dateRange) return [];
 
         let transactions = validTransactions;
 
@@ -142,9 +171,9 @@ function App() {
                 const txDate = t.dateTime || t.dueDate || 0;
                 return txDate >= dateRange.start && txDate <= dateRange.end;
             });
-        } else if (selectedMonthYear) {
+        } else if (activeMonthYear) {
             // Use month year selection
-            const [year, month] = selectedMonthYear.split('-').map(Number);
+            const [year, month] = activeMonthYear.split('-').map(Number);
             transactions = filterTransactionsByMonth(validTransactions, month, year);
         }
 
@@ -160,7 +189,7 @@ function App() {
         }
 
         return transactions;
-    }, [validTransactions, selectedMonthYear, dateRange, filterType, filterId]);
+    }, [validTransactions, activeMonthYear, dateRange, filterType, filterId]);
 
     const handleCreateTransaction = (transaction: Transaction) => {
         if (!financeData) return;
@@ -191,9 +220,9 @@ function App() {
     };
 
     const handleResetData = () => {
-        if (user) {
+        if (storageUserId) {
             // Only clear local storage, preserve Firebase data
-            clearUserData(user.uid);
+            clearUserData(storageUserId);
             setFinanceData(null);
             setSelectedMonthYear('');
             setDateRange(null);
@@ -203,6 +232,7 @@ function App() {
             setShowPieChart(false);
             setSelectedExpenseCategory(null);
             setSelectedIncomeCategory(null);
+            setBalanceSummary(null);
             // Show data source modal to let user choose how to start fresh
             setShowDataSourceModal(true);
         }
@@ -220,18 +250,35 @@ function App() {
         setSelectedIncomeCategory(null);
     };
 
+    const handleUpdateNetBalanceAccounts = (accountIds: string[]) => {
+        if (!financeData) return;
+
+        setFinanceData({
+            ...financeData,
+            sharedPrefs: {
+                ...(financeData.sharedPrefs || {}),
+                [NET_BALANCE_ACCOUNT_IDS_PREF_KEY]: JSON.stringify(accountIds),
+            },
+        });
+        localStorage.setItem('outOfSync', 'true');
+    };
+
+    const applyFirebaseData = (firebaseData: FinanceData) => {
+        setFinanceData(firebaseData);
+        setShowDataSourceModal(false);
+    };
+
     const handleFetchFromFirebase = async () => {
         if (!user) return;
         try {
             const firebaseData = await fetchFinanceDataFromFirebase(user.uid);
             if (firebaseData) {
-                setFinanceData(firebaseData);
-                saveToLocalStorage(user.uid, firebaseData);
-                setShowDataSourceModal(false);
-            } else {
-                alert('No data found in Firebase. Starting with sample data instead.');
-                handleGetSampleData();
+                applyFirebaseData(firebaseData);
+                return;
             }
+
+            alert('No data found in Firebase. Starting with sample data instead.');
+            handleGetSampleData();
         } catch (error: any) {
             console.error('Error fetching from Firebase:', error);
             alert('Failed to fetch data from Firebase. Starting with sample data instead.');
@@ -239,18 +286,33 @@ function App() {
         }
     };
 
+    const handleSyncFromFirebase = async () => {
+        if (!user) {
+            throw new Error('User is not authenticated');
+        }
+
+        const firebaseData = await fetchFinanceDataFromFirebase(user.uid, { throwOnTransientError: true });
+        if (!firebaseData) {
+            throw new Error('No data found in Firebase backup for this account.');
+        }
+
+        applyFirebaseData(firebaseData);
+    };
+
     const handleGetSampleData = () => {
         const sampleData = financeDataJson as FinanceData;
         setFinanceData(sampleData);
-        if (user) {
-            saveToLocalStorage(user.uid, sampleData);
-        }
         setShowDataSourceModal(false);
     };
 
     const handleApplyDateRange = (startDate: number, endDate: number) => {
         setDateRange({ start: startDate, end: endDate });
         setSelectedMonthYear(''); // Clear month selection when using date range
+    };
+
+    const handleApplyMonthSelection = (monthYear: string) => {
+        setSelectedMonthYear(monthYear);
+        setDateRange(null);
     };
 
     const totalIncome = filteredTransactions
@@ -260,6 +322,23 @@ function App() {
     const totalExpense = filteredTransactions
         .filter(t => t.type === 'EXPENSE')
         .reduce((sum, t) => sum + t.amount, 0);
+
+    const fallbackLifetimeSummary = useMemo(() => {
+        if (!financeData) {
+            return {
+                totalIncome: 0,
+                totalExpense: 0,
+                netBalance: 0,
+                transactionCount: 0,
+                lastCalculatedAt: '',
+            };
+        }
+
+        return calculateBalanceSummary(financeData);
+    }, [financeData]);
+
+    const lifetimeSummary = balanceSummary ?? fallbackLifetimeSummary;
+    const isHomeDataReady = isSessionActive && !!financeData && !authLoading;
 
     // Prevent background scroll when any modal is open
     useEffect(() => {
@@ -277,12 +356,52 @@ function App() {
     }, [isModalOpen, isSettingsOpen, isDateRangeOpen, showDataSourceModal, editingTransaction]);
 
     useEffect(() => {
-        setTimeout(() => {
+        const timerId = window.setTimeout(() => {
             setAnimation(false);
         }, 1500);
-    }, [])
 
-    if (!user) {
+        return () => {
+            window.clearTimeout(timerId);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isHomeDataReady || animation) {
+            setIsContentVisible(false);
+            setShowSkeletonOverlay(true);
+            return;
+        }
+
+        const rafId = window.requestAnimationFrame(() => {
+            setIsContentVisible(true);
+        });
+        const timerId = window.setTimeout(() => {
+            setShowSkeletonOverlay(false);
+        }, 500);
+
+        return () => {
+            window.cancelAnimationFrame(rafId);
+            window.clearTimeout(timerId);
+        };
+    }, [isHomeDataReady, animation]);
+
+    if (authLoading) {
+        return (
+            <SkeletonApp
+                handleResetData={handleResetData}
+                handleImportData={handleImportData}
+                financeData={financeData}
+                user={user}
+                handleBackupToFirebase={handleBackupToFirebase}
+                handleFetchFromFirebase={handleFetchFromFirebase}
+                handleGetSampleData={handleGetSampleData}
+                isSettingsOpen={isSettingsOpen}
+                setIsSettingsOpen={setIsSettingsOpen}
+            />
+        );
+    }
+
+    if (!isSessionActive) {
         return <LoginPage />;
     }
 
@@ -313,9 +432,10 @@ function App() {
                     onClose={() => navigate('/')}
                     onReset={handleResetData}
                     onImport={handleImportData}
+                    onUpdateNetBalanceAccounts={handleUpdateNetBalanceAccounts}
                     financeData={financeData}
                     onBackupToFirebase={user ? handleBackupToFirebase : undefined}
-                    onSyncFromFirebase={user ? handleFetchFromFirebase : undefined}
+                    onSyncFromFirebase={user ? handleSyncFromFirebase : undefined}
                     onGetSampleData={handleGetSampleData}
                 />
                 {/* <PINVerificationModal
@@ -333,7 +453,7 @@ function App() {
         );
     }
 
-    if (!financeData || authLoading || animation) {
+    if (!isHomeDataReady) {
         return (
             <>
                 <SkeletonApp
@@ -351,14 +471,15 @@ function App() {
                     isOpen={showDataSourceModal}
                     onFetchFirebase={handleFetchFromFirebase}
                     onGetDummyData={handleGetSampleData}
+                    showCloudOption={!!user}
                 />
             </>
         );
     }
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 fade-in">
+        <div className="relative min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 overflow-hidden">
+            <div className={`max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 fade-in transition-opacity duration-500 ease-out ${isContentVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <div className="flex flex-col sm:flex-row justify-between gap-3 md:gap-4 mb-6">
                     {/* Header */}
                     {appHeader}
@@ -378,53 +499,37 @@ function App() {
                                     :
                                     <ChartPie size={16} className='scale-100 group-hover:scale-110 transition-all duration-300 ease-in-out' />}
                             </p>
-                            <p className={`text-xl sm:text-2xl md:text-3xl font-bold ${totalIncome - totalExpense >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                ₹ {formatNumberWithCommas((totalIncome - totalExpense))}
+                            <p className={`text-xl sm:text-2xl md:text-3xl font-bold ${lifetimeSummary.netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                ₹ {formatNumberWithCommas((lifetimeSummary.netBalance))}
                             </p>
                         </button>
 
                         <div className='flex flex-col gap-2'>
-                            <select
-                                value={selectedMonthYear}
-                                onChange={(e) => {
-                                    setSelectedMonthYear(e.target.value);
-                                    setDateRange(null);
-                                }}
-                                disabled={dateRange !== null}
-                                className={`${AppDateBtn} ${dateRange ? 'text-red-600 cursor-not-allowed' : ''}`}
-                            >
-                                {monthYearOptions.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-
-                            <div className='flex justify-between gap-2'>
-                                {dateRange ? (
-                                    <button
-                                        onClick={() => setDateRange(null)}
-                                        className={FreeWhiteBtn}
-                                        title="Clear date range">
-                                        <Calendar1 size={16} className='text-red-600' />
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={() => setIsDateRangeOpen(true)}
-                                        className={FreeWhiteBtn}
-                                        title="Select custom date range"
-                                    >
-                                        <CalendarDays size={16} />
-                                    </button>
-                                )}
+                            {dateRange ? (
                                 <button
-                                    onClick={() => setIsSettingsOpen(true)}
-                                    className={FreeWhiteBtn}
-                                >
-                                    <Settings size={18} />
-                                    Settings
+                                    onClick={() => setDateRange(null)}
+                                    className={`${FreeWhiteBtn} w-36!`}
+                                    title="Clear date range">
+                                    <Calendar1 size={16} className='text-red-600' />
+                                    Clear Dates
                                 </button>
-                            </div>
+                            ) : (
+                                <button
+                                    onClick={() => setIsDateRangeOpen(true)}
+                                    className={`${FreeWhiteBtn} w-36!`}
+                                    title="Select month or custom date range"
+                                >
+                                    <CalendarDays size={16} />
+                                    Date Range
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setIsSettingsOpen(true)}
+                                className={`${FreeWhiteBtn} w-36!`}
+                            >
+                                <Settings size={18} />
+                                Settings
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -509,6 +614,22 @@ function App() {
                 )}
             </div>
 
+            {showSkeletonOverlay && (
+                <div className={`absolute inset-0 z-20 pointer-events-none transition-opacity duration-500 ease-out ${isContentVisible ? 'opacity-0' : 'opacity-100'}`}>
+                    <SkeletonApp
+                        handleResetData={handleResetData}
+                        handleImportData={handleImportData}
+                        financeData={financeData}
+                        user={user}
+                        handleBackupToFirebase={handleBackupToFirebase}
+                        handleFetchFromFirebase={handleFetchFromFirebase}
+                        handleGetSampleData={handleGetSampleData}
+                        isSettingsOpen={isSettingsOpen}
+                        setIsSettingsOpen={setIsSettingsOpen}
+                    />
+                </div>
+            )}
+
 
             {/* {showPINModal && (
                 <PINVerificationModal
@@ -543,9 +664,10 @@ function App() {
                 onClose={() => setIsSettingsOpen(false)}
                 onReset={handleResetData}
                 onImport={handleImportData}
+                onUpdateNetBalanceAccounts={handleUpdateNetBalanceAccounts}
                 financeData={financeData}
                 onBackupToFirebase={user ? handleBackupToFirebase : undefined}
-                onSyncFromFirebase={user ? handleFetchFromFirebase : undefined}
+                onSyncFromFirebase={user ? handleSyncFromFirebase : undefined}
                 onGetSampleData={handleGetSampleData}
                 onResetClick={() => setShowDataSourceModal(true)}
             />
@@ -554,6 +676,8 @@ function App() {
                 isOpen={isDateRangeOpen}
                 onClose={() => setIsDateRangeOpen(false)}
                 onApply={handleApplyDateRange}
+                onApplyMonth={handleApplyMonthSelection}
+                selectedMonthYear={activeMonthYear}
                 transactions={validTransactions}
             />
 
@@ -561,6 +685,7 @@ function App() {
                 isOpen={showDataSourceModal}
                 onFetchFirebase={handleFetchFromFirebase}
                 onGetDummyData={handleGetSampleData}
+                showCloudOption={!!user}
             />
 
 
@@ -568,7 +693,7 @@ function App() {
                 onClick={() => setIsModalOpen(true)}
                 className={BlueBtn}>
                 <Plus size={18} />
-                <span className="text-xs sm:text-sm">Add</span>
+                <span>Add</span>
             </button>
         </div>
     );

@@ -1,7 +1,7 @@
 import { useAuth } from '../context/AuthContext';
 
 export function LoginPage() {
-    const { loginWithGoogle, isLoading } = useAuth();
+    const { loginWithGoogle, continueAsGuest, isLoading } = useAuth();
 
     const handleGoogleLogin = async () => {
         try {
@@ -9,6 +9,15 @@ export function LoginPage() {
         } catch (error) {
             console.error('Failed to login:', error);
             alert('Failed to login. Please try again.');
+        }
+    };
+
+    const handleGuestLogin = async () => {
+        try {
+            await continueAsGuest();
+        } catch (error) {
+            console.error('Failed to continue as guest:', error);
+            alert('Failed to continue as guest. Please try again.');
         }
     };
 
@@ -26,14 +35,20 @@ export function LoginPage() {
                 <button
                     className="flex flex-row items-center bg-white dark:bg-gray-700 hover:brightness-95 dark:hover:brightness-110 hover:shadow-md text-gray-900 dark:text-gray-50 font-bold py-2 px-4 rounded-full cursor-pointer my-20 mb-36"
                     onClick={handleGoogleLogin} disabled={isLoading}>
-                    <img src="https://raw.githubusercontent.com/dependabot-pr/Static-Files/main/Assets/Logo/Google.svg"
-                        className="h-6 w-6 mr-2"
-                        alt="google logo" />
-                    {isLoading ? 'Signing in...' : 'Sign in with Google'}
+                    <span className="h-6 w-6 mr-2 rounded-full bg-white border border-gray-300 text-sm flex items-center justify-center">G</span>
+                    {isLoading ? 'Signing in...' : 'Continue with Google'}
+                </button>
+
+                <button
+                    className="w-full bg-gray-900 dark:bg-gray-100 hover:brightness-110 text-white dark:text-gray-900 font-semibold py-3 px-4 rounded-xl transition-all cursor-pointer -mt-28 mb-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleGuestLogin}
+                    disabled={isLoading}
+                >
+                    Continue as Guest
                 </button>
 
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                    Secure login powered by Google. <br />Your data will be encrypted and stored safely.
+                    Sign in with Google for cloud backup and sync. <br />Guest mode stores data only on this device.
                 </p>
             </div>
         </div>

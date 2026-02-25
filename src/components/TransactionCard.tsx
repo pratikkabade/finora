@@ -3,7 +3,6 @@ import { Edit2, X } from 'lucide-react';
 import type { Transaction, Account, Category } from '../types/finance.types';
 import { useDarkMode } from '../context/DarkModeContext';
 import { btn1Class, btn2Class, SmallBlueBtn, XClass } from '../constants/TailwindClasses';
-import { SkeletonCard2 } from './SkeletonLoader';
 
 interface TransactionCardProps {
     transaction: Transaction;
@@ -30,7 +29,6 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
     onEdit,
 }) => {
     const { isDarkMode } = useDarkMode();
-    const [animation, setAnimation] = useState(true);
     const [hoveredButton, setHoveredButton] = useState<'account' | 'category' | null>(null);
 
     const formatDate = (timestamp: number) => {
@@ -43,14 +41,6 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
     };
 
     const isIncome = transaction.type === 'INCOME';
-
-    setTimeout(() => {
-        setAnimation(false);
-    }, 1000);
-
-    if (animation) return (
-        <SkeletonCard2 />
-    )
 
     return (
         <div className="glass-card hover:bg-white dark:hover:bg-gray-800 active:bg-white/30 dark:active:bg-gray-800 active:scale-[0.97] p-3 sm:p-2 md:p-3 transition-all duration-300 relative rounded-2xl fade-in">

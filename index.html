@@ -3,17 +3,36 @@
 
 <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png" />
+    <link rel="icon" href="/finora-icon.svg" />
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
     <meta name="description" content="Clear financial insights for better decisions" />
-    <meta name="theme-color" content="#3b82f6" />
+    <meta name="theme-color" id="theme-color-meta" content="#f8fafc" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Finora" />
-    <link rel="apple-touch-icon"
-        href="https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png" />
+    <link rel="apple-touch-icon" href="/finora-icon.svg" />
     <link rel="manifest" href="/manifest.json" />
+    <script>
+        (() => {
+            try {
+                const saved = localStorage.getItem('darkMode');
+                const isDarkMode = saved !== null
+                    ? JSON.parse(saved)
+                    : window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const themeColor = isDarkMode ? '#030712' : '#f8fafc';
+                const themeColorMeta = document.getElementById('theme-color-meta');
+                if (themeColorMeta) {
+                    themeColorMeta.setAttribute('content', themeColor);
+                }
+                document.documentElement.style.backgroundColor = themeColor;
+                document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
+            } catch {
+                // Ignore theme-color bootstrap failures and continue rendering.
+            }
+        })();
+    </script>
     <title>Finora</title>
 </head>
 

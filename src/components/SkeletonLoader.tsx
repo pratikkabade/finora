@@ -1,7 +1,7 @@
 import React from 'react';
 import { appHeader } from '../App';
-import { Calendar1, ChartPie, Plus, Settings } from 'lucide-react';
-import { AppChartBtn, AppDateBtn, BlueBtn, FreeWhiteBtn } from '../constants/TailwindClasses';
+import { CalendarDays, ChartPie, Plus, Settings } from 'lucide-react';
+import { AppChartBtn, BlueBtn, FreeWhiteBtn } from '../constants/TailwindClasses';
 import { SettingsModal } from './SettingsModal';
 
 const shimmerStyle = `
@@ -155,22 +155,19 @@ export const SkeletonApp: React.FC<SkeletonAppProps> = ({
                     </button>
 
                     <div className='flex flex-col gap-2'>
-                        <div className='h-9 bg-slate-300 dark:bg-slate-600 rounded-lg animate-pulse' style={{ "width": "10rem" }}></div>
-
-                        <div className='flex justify-between gap-2'>
-                            <button
-                                className={AppDateBtn}
-                                title="Clear date range">
-                                <Calendar1 size={16} className='text-red-600 dark:text-red-400' />
-                            </button>
-                            <button
-                                onClick={() => setIsSettingsOpen(true)}
-                                className={FreeWhiteBtn}
-                            >
-                                <Settings size={18} />
-                                Settings
-                            </button>
-                        </div>
+                        <button
+                            className={`${FreeWhiteBtn} w-36!`}
+                            title="Select month or custom date range">
+                            <CalendarDays size={16} />
+                            Date Range
+                        </button>
+                        <button
+                            onClick={() => setIsSettingsOpen(true)}
+                            className={`${FreeWhiteBtn} w-36!`}
+                        >
+                            <Settings size={18} />
+                            Settings
+                        </button>
                     </div>
                 </div>
             </div>
