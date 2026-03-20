@@ -1,13 +1,13 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Settings, CircleX, CalendarDays, Calendar1, ChartPie } from 'lucide-react';
+import { Plus, CalendarDays, Calendar1 } from 'lucide-react';
 import type { Category, FinanceData, Transaction } from './types/finance.types';
 import { CreateTransactionModal } from './components/CreateTransactionModal';
 import { AddTransactionPage } from './pages/AddTransactionPage';
 import { SettingsModal } from './components/SettingsModal';
 import { DateRangeModal } from './components/DateRangeModal';
 import { DataSourceModal } from './components/DataSourceModal';
-import { TransactionCard, renderFilterChip } from './components/TransactionCard';
+import { TransactionCard } from './components/TransactionCard';
 import { ExpensePieChart } from './components/ExpensePieChart';
 import { SkeletonApp } from './components/SkeletonLoader';
 import { LoginPage } from './pages/LoginPage';
@@ -35,6 +35,7 @@ import financeDataJson from './data/finance-data.json';
 import './App.css';
 import { formatNumberWithCommas } from './utils/numberFormatterUtils.ts';
 import { amountCard, AppChartBtn, FreeBlueBtn, FreeWhiteBtn } from './constants/TailwindClasses';
+import { AppShell } from './components/AppShell';
 
 const GUEST_USER_ID = '__guest__';
 
@@ -43,15 +44,15 @@ interface AppHeaderProps {
 }
 
 export const AppHeader = ({ onLogoClick }: AppHeaderProps) => {
-    const logo = <img src="/finora-icon.svg" alt="Finora Logo" className="h-24 w-24 mx-auto sm:mx-0" />;
+    const logo = <img src="/finora-icon.svg" alt="Finora Logo" className="mx-auto h-24 w-24 sm:mx-0" />;
 
     return (
-        <div className='flex flex-row items-center gap-4 mb-6 sm:mb-8 pt-5'>
+        <div className="mb-6 flex flex-row items-center gap-4 pt-5 sm:mb-8">
             {onLogoClick ? (
                 <button
                     type="button"
                     onClick={onLogoClick}
-                    className="rounded-full focus-visible:outline-2 focus-visible:outline-blue-500 cursor-pointer"
+                    className="cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-blue-500"
                     title="Refresh homepage"
                     aria-label="Refresh homepage"
                 >
@@ -59,8 +60,8 @@ export const AppHeader = ({ onLogoClick }: AppHeaderProps) => {
                 </button>
             ) : logo}
             <div className="text-left">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-50">Finora</h1>
-                <p className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1 sm:mt-2">Clear financial insights for better decisions</p>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50 sm:text-4xl md:text-5xl">Finora</h1>
+                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400 sm:mt-2 sm:text-sm md:text-base">Clear financial insights for better decisions</p>
             </div>
         </div>
     );
@@ -73,17 +74,14 @@ function App() {
     const navigate = useNavigate();
     const [financeData, setFinanceData] = useState<FinanceData | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
-    const [showPieChart, setShowPieChart] = useState(false);
     const [showDataSourceModal, setShowDataSourceModal] = useState(false);
     const [selectedMonthYear, setSelectedMonthYear] = useState<string>('');
     const [dateRange, setDateRange] = useState<{ start: number; end: number } | null>(null);
-    const [filterType, setFilterType] = useState<'account' | 'category' | 'type' | null>(null);
-    const [filterId, setFilterId] = useState<string | null>(null);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-    const [selectedExpenseCategory, setSelectedExpenseCategory] = useState<string | null>(null);
+    const [selectedExpenseCategories, setSelectedExpenseCategories] = useState<string[]>([]);
     const [selectedIncomeCategory, setSelectedIncomeCategory] = useState<string | null>(null);
+    const [homeVisibleCount, setHomeVisibleCount] = useState(20);
     const [balanceSummary, setBalanceSummary] = useState<BalanceSummary | null>(null);
     const [animation, setAnimation] = useState(true);
     const [isContentVisible, setIsContentVisible] = useState(false);
@@ -107,48 +105,43 @@ function App() {
     //     }
     // }, [location.pathname, user, authLoading, isPINVerified]);
 
-    // Load data when user logs in
     useEffect(() => {
         if (authLoading) return;
 
         const loadData = async () => {
             try {
                 if (!storageUserId) {
-                    // User not logged in, will show login page
                     setFinanceData(null);
                     setBalanceSummary(null);
                     setShowDataSourceModal(false);
                     return;
                 }
 
-                // First try to load from localStorage (local cache)
                 const localData = loadFromLocalStorage(storageUserId);
                 if (localData) {
                     setFinanceData(localData);
                     setBalanceSummary(loadBalanceSummaryFromLocalStorage(storageUserId));
                     setShowDataSourceModal(false);
-                    // Optionally fetch from Firebase in background to sync if needed
                     return;
                 }
 
                 setBalanceSummary(null);
-                // No local data, show data source selection modal on first login
                 setShowDataSourceModal(true);
             } finally {
-                // Data loading complete
+                // Data loading complete.
             }
         };
 
         loadData();
     }, [storageUserId, authLoading]);
 
-    // Save data to localStorage whenever financeData changes
     useEffect(() => {
         if (financeData && storageUserId) {
             const summary = saveToLocalStorage(storageUserId, financeData);
             setBalanceSummary(summary);
             return;
         }
+
         setBalanceSummary(null);
     }, [financeData, storageUserId]);
 
@@ -156,6 +149,7 @@ function App() {
         if (!user || !financeData) {
             throw new Error('User not authenticated or no data to backup');
         }
+
         await backupFinanceDataToFirebase(user.uid, financeData);
     };
 
@@ -185,49 +179,57 @@ function App() {
 
         let transactions = validTransactions;
 
-        // Apply date range if set
         if (dateRange) {
-            transactions = transactions.filter(t => {
-                const txDate = t.dateTime || t.dueDate || 0;
+            transactions = transactions.filter((transaction) => {
+                const txDate = transaction.dateTime || transaction.dueDate || 0;
                 return txDate >= dateRange.start && txDate <= dateRange.end;
             });
         } else if (activeMonthYear) {
-            // Use month year selection
             const [year, month] = activeMonthYear.split('-').map(Number);
             transactions = filterTransactionsByMonth(validTransactions, month, year);
         }
 
-        // Apply additional filters
-        if (filterType && filterId) {
-            if (filterType === 'account') {
-                transactions = transactions.filter(t => t.accountId === filterId);
-            } else if (filterType === 'category') {
-                transactions = transactions.filter(t => t.categoryId === filterId);
-            } else if (filterType === 'type') {
-                transactions = transactions.filter(t => t.type === filterId);
-            }
-        }
-
         return transactions;
-    }, [validTransactions, activeMonthYear, dateRange, filterType, filterId]);
+    }, [validTransactions, activeMonthYear, dateRange]);
+
+    const homeTransactions = useMemo(() => {
+        const baseTransactions = dateRange || selectedMonthYear ? filteredTransactions : validTransactions;
+
+        return [...baseTransactions].sort((transactionA, transactionB) => {
+            const dateA = transactionA.dateTime || transactionA.dueDate || 0;
+            const dateB = transactionB.dateTime || transactionB.dueDate || 0;
+            return dateB - dateA;
+        });
+    }, [filteredTransactions, validTransactions, dateRange, selectedMonthYear]);
+
+    const reportTotalExpense = useMemo(() => {
+        return filteredTransactions
+            .filter(transaction => transaction.type === 'EXPENSE')
+            .reduce((sum, transaction) => sum + transaction.amount, 0);
+    }, [filteredTransactions]);
+
+    const reportTotalIncome = useMemo(() => {
+        return filteredTransactions
+            .filter(transaction => transaction.type === 'INCOME')
+            .reduce((sum, transaction) => sum + transaction.amount, 0);
+    }, [filteredTransactions]);
 
     const handleCreateTransaction = (transaction: Transaction) => {
         if (!financeData) return;
 
         if (editingTransaction) {
-            // Update existing transaction
             setFinanceData({
                 ...financeData,
-                transactions: financeData.transactions.map(t => t.id === transaction.id ? transaction : t),
+                transactions: financeData.transactions.map((item) => item.id === transaction.id ? transaction : item),
             });
             setEditingTransaction(null);
-        } else {
-            // Create new transaction
-            setFinanceData({
-                ...financeData,
-                transactions: [...financeData.transactions, transaction],
-            });
+            return;
         }
+
+        setFinanceData({
+            ...financeData,
+            transactions: [...financeData.transactions, transaction],
+        });
     };
 
     const handleDeleteTransaction = (transactionId: string) => {
@@ -235,38 +237,30 @@ function App() {
 
         setFinanceData({
             ...financeData,
-            transactions: financeData.transactions.filter(t => t.id !== transactionId),
+            transactions: financeData.transactions.filter(transaction => transaction.id !== transactionId),
         });
     };
 
     const handleResetData = () => {
-        if (storageUserId) {
-            // Only clear local storage, preserve Firebase data
-            clearUserData(storageUserId);
-            setFinanceData(null);
-            setSelectedMonthYear('');
-            setDateRange(null);
-            setFilterType(null);
-            setFilterId(null);
-            setEditingTransaction(null);
-            setShowPieChart(false);
-            setSelectedExpenseCategory(null);
-            setSelectedIncomeCategory(null);
-            setBalanceSummary(null);
-            // Show data source modal to let user choose how to start fresh
-            setShowDataSourceModal(true);
-        }
+        if (!storageUserId) return;
+
+        clearUserData(storageUserId);
+        setFinanceData(null);
+        setSelectedMonthYear('');
+        setDateRange(null);
+        setEditingTransaction(null);
+        setSelectedExpenseCategories([]);
+        setSelectedIncomeCategory(null);
+        setBalanceSummary(null);
+        setShowDataSourceModal(true);
     };
 
     const handleImportData = (importedData: FinanceData) => {
         setFinanceData(importedData);
         setSelectedMonthYear('');
         setDateRange(null);
-        setFilterType(null);
-        setFilterId(null);
         setEditingTransaction(null);
-        setShowPieChart(false);
-        setSelectedExpenseCategory(null);
+        setSelectedExpenseCategories([]);
         setSelectedIncomeCategory(null);
     };
 
@@ -329,6 +323,7 @@ function App() {
 
     const handleFetchFromFirebase = async () => {
         if (!user) return;
+
         try {
             const firebaseData = await fetchFinanceDataFromFirebase(user.uid);
             if (firebaseData) {
@@ -366,21 +361,13 @@ function App() {
 
     const handleApplyDateRange = (startDate: number, endDate: number) => {
         setDateRange({ start: startDate, end: endDate });
-        setSelectedMonthYear(''); // Clear month selection when using date range
+        setSelectedMonthYear('');
     };
 
     const handleApplyMonthSelection = (monthYear: string) => {
         setSelectedMonthYear(monthYear);
         setDateRange(null);
     };
-
-    const totalIncome = filteredTransactions
-        .filter(t => t.type === 'INCOME')
-        .reduce((sum, t) => sum + t.amount, 0);
-
-    const totalExpense = filteredTransactions
-        .filter(t => t.type === 'EXPENSE')
-        .reduce((sum, t) => sum + t.amount, 0);
 
     const fallbackLifetimeSummary = useMemo(() => {
         if (!financeData) {
@@ -398,15 +385,152 @@ function App() {
 
     const lifetimeSummary = balanceSummary ?? fallbackLifetimeSummary;
     const isHomeDataReady = isSessionActive && !!financeData && !authLoading;
-    const isAnyModalOpen = isModalOpen || isSettingsOpen || isDateRangeOpen || showDataSourceModal || !!editingTransaction;
+    const isAnyModalOpen = isModalOpen || isDateRangeOpen || showDataSourceModal || !!editingTransaction;
     const netBalanceAccountIds = useMemo(() => {
         if (!financeData) return [];
         return getIncludedNetBalanceAccountIds(financeData);
     }, [financeData]);
     const defaultTransactionAccountId = netBalanceAccountIds[0] ?? financeData?.accounts?.[0]?.id ?? '';
     const lockDefaultTransactionAccount = netBalanceAccountIds.length === 1;
+    const loadingView = location.pathname === '/report' ? 'report' : 'home';
+    const visibleHomeTransactions = useMemo(() => {
+        return homeTransactions.slice(0, homeVisibleCount);
+    }, [homeTransactions, homeVisibleCount]);
+    const canLoadMoreHomeTransactions = homeVisibleCount < homeTransactions.length;
+    const selectedReportCategoryIds = useMemo(() => {
+        if (selectedExpenseCategories.length > 0) {
+            return selectedExpenseCategories;
+        }
 
-    // Prevent background scroll when any modal is open
+        return selectedIncomeCategory ? [selectedIncomeCategory] : [];
+    }, [selectedExpenseCategories, selectedIncomeCategory]);
+    const selectedReportCategoryType = selectedExpenseCategories.length > 0 ? 'EXPENSE' : selectedIncomeCategory ? 'INCOME' : null;
+    const selectedReportCategoryNames = useMemo(() => {
+        if (selectedReportCategoryIds.length === 0 || !financeData) return [];
+
+        return selectedReportCategoryIds.map((categoryId) => {
+            return financeData.categories.find(category => category.id === categoryId)?.name || 'Uncategorized';
+        });
+    }, [selectedReportCategoryIds, financeData]);
+    const selectedReportCategoryName = useMemo(() => {
+        if (selectedReportCategoryNames.length === 0) return '';
+        if (selectedReportCategoryNames.length === 1) return selectedReportCategoryNames[0];
+        if (selectedReportCategoryNames.length === 2) return selectedReportCategoryNames.join(' & ');
+        return `${selectedReportCategoryNames.slice(0, 2).join(', ')} +${selectedReportCategoryNames.length - 2} more`;
+    }, [selectedReportCategoryNames]);
+    const selectedReportHeading = useMemo(() => {
+        if (selectedReportCategoryIds.length <= 1) {
+            return selectedReportCategoryName;
+        }
+
+        return `${selectedReportCategoryIds.length} ${selectedReportCategoryType === 'EXPENSE' ? 'Expense' : 'Income'} Categories`;
+    }, [selectedReportCategoryIds.length, selectedReportCategoryName, selectedReportCategoryType]);
+    const selectedReportTransactions = useMemo(() => {
+        if (selectedReportCategoryIds.length === 0 || !selectedReportCategoryType) return [];
+
+        const selectedCategoryIds = new Set(selectedReportCategoryIds);
+
+        return filteredTransactions
+            .filter((transaction) => {
+                return selectedCategoryIds.has(transaction.categoryId || '') && transaction.type === selectedReportCategoryType;
+            })
+            .sort((transactionA, transactionB) => {
+                const dateA = transactionA.dateTime || transactionA.dueDate || 0;
+                const dateB = transactionB.dateTime || transactionB.dueDate || 0;
+                return dateB - dateA;
+            });
+    }, [filteredTransactions, selectedReportCategoryIds, selectedReportCategoryType]);
+
+    const renderTransactionGrid = (transactions: Transaction[]) => {
+        if (!financeData) return null;
+
+        if (transactions.length === 0) {
+            return (
+                <div className={AppChartBtn}>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 sm:text-base">No transactions found</p>
+                </div>
+            );
+        }
+
+        return (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+                {transactions.map((transaction) => (
+                    <TransactionCard
+                        key={transaction.id}
+                        transaction={transaction}
+                        account={financeData.accounts.find(account => account.id === transaction.accountId)}
+                        category={financeData.categories.find(category => category.id === transaction.categoryId)}
+                        onEdit={(transactionToEdit) => setEditingTransaction(transactionToEdit)}
+                    />
+                ))}
+            </div>
+        );
+    };
+
+    const handleSelectExpenseReportCategory = (categoryId: string) => {
+        setSelectedExpenseCategories((currentCategories) => {
+            if (currentCategories.includes(categoryId)) {
+                return currentCategories.filter((currentCategoryId) => currentCategoryId !== categoryId);
+            }
+
+            return [...currentCategories, categoryId];
+        });
+        setSelectedIncomeCategory(null);
+    };
+
+    const handleSelectIncomeReportCategory = (categoryId: string) => {
+        setSelectedIncomeCategory((currentCategory) => currentCategory === categoryId ? null : categoryId);
+        setSelectedExpenseCategories([]);
+    };
+
+    const renderSharedFloatingUi = () => {
+        if (!financeData) return null;
+
+        return (
+            <>
+                <CreateTransactionModal
+                    isOpen={isModalOpen || !!editingTransaction}
+                    onClose={() => {
+                        setIsModalOpen(false);
+                        setEditingTransaction(null);
+                    }}
+                    onSave={handleCreateTransaction}
+                    onDelete={handleDeleteTransaction}
+                    accounts={financeData.accounts}
+                    categories={financeData.categories}
+                    editingTransaction={editingTransaction}
+                    defaultAccountId={defaultTransactionAccountId}
+                    lockAccountSelection={lockDefaultTransactionAccount}
+                />
+
+                <DateRangeModal
+                    isOpen={isDateRangeOpen}
+                    onClose={() => setIsDateRangeOpen(false)}
+                    onApply={handleApplyDateRange}
+                    onApplyMonth={handleApplyMonthSelection}
+                    activeDateRange={dateRange}
+                    selectedMonthYear={activeMonthYear}
+                    transactions={validTransactions}
+                />
+
+                <DataSourceModal
+                    isOpen={showDataSourceModal}
+                    onFetchFirebase={handleFetchFromFirebase}
+                    onGetDummyData={handleGetSampleData}
+                    showCloudOption={!!user}
+                />
+
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    className={`${FreeBlueBtn} fixed bottom-24 right-4 md:bottom-4 md:right-4`}
+                >
+                    <Plus size={18} />
+                    <span>Add</span>
+                </button>
+            </>
+        );
+    };
+
     useEffect(() => {
         if (isAnyModalOpen) {
             document.body.style.overflow = 'hidden';
@@ -419,7 +543,6 @@ function App() {
         };
     }, [isAnyModalOpen]);
 
-    // Prevent iOS pull-to-refresh on homepage while keeping regular scrolling.
     useEffect(() => {
         if (location.pathname !== '/' || isAnyModalOpen) {
             return;
@@ -463,6 +586,27 @@ function App() {
         };
     }, [location.pathname, isAnyModalOpen]);
 
+    useEffect(() => {
+        if (location.pathname !== '/report') {
+            setIsDateRangeOpen(false);
+        }
+    }, [location.pathname]);
+
+    useLayoutEffect(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+    }, [location.pathname]);
+
+    useEffect(() => {
+        setHomeVisibleCount(20);
+    }, [selectedMonthYear, dateRange?.start, dateRange?.end, homeTransactions.length]);
+
+    useEffect(() => {
+        setSelectedExpenseCategories([]);
+        setSelectedIncomeCategory(null);
+    }, [selectedMonthYear, dateRange?.start, dateRange?.end]);
+
     const handleHomeLogoRefresh = useCallback(() => {
         if (window.confirm('Refresh homepage now?')) {
             window.location.reload();
@@ -503,7 +647,6 @@ function App() {
         return <LoginPage />;
     }
 
-    // Handle /add route
     if (location.pathname === '/add') {
         return (
             <>
@@ -523,11 +666,11 @@ function App() {
         );
     }
 
-    // Handle /settings route
     if (location.pathname === '/settings') {
         return (
-            <>
+            <AppShell activeView="settings">
                 <SettingsModal
+                    variant="page"
                     isOpen={true}
                     onClose={() => navigate('/')}
                     onReset={handleResetData}
@@ -539,35 +682,23 @@ function App() {
                     onSyncFromFirebase={user ? handleSyncFromFirebase : undefined}
                     onGetSampleData={handleGetSampleData}
                 />
-                {/* <PINVerificationModal
-                    isOpen={showPINModal}
-                    onClose={() => {
-                        setIsPINVerified(false);
-                        navigate('/');
-                    }}
-                    onVerified={() => {
-                        setIsPINVerified(true);
-                    }}
-                    userId={user.uid}
-                /> */}
-            </>
+
+                <DataSourceModal
+                    isOpen={showDataSourceModal}
+                    onFetchFirebase={handleFetchFromFirebase}
+                    onGetDummyData={handleGetSampleData}
+                    showCloudOption={!!user}
+                />
+            </AppShell>
         );
     }
 
     if (!isHomeDataReady) {
         return (
             <>
-                <SkeletonApp
-                    handleResetData={handleResetData}
-                    handleImportData={handleImportData}
-                    financeData={financeData}
-                    user={user}
-                    handleBackupToFirebase={handleBackupToFirebase}
-                    handleFetchFromFirebase={handleFetchFromFirebase}
-                    handleGetSampleData={handleGetSampleData}
-                    isSettingsOpen={isSettingsOpen}
-                    setIsSettingsOpen={setIsSettingsOpen}
-                />
+                <AppShell activeView={loadingView}>
+                    <SkeletonApp variant={loadingView === 'report' ? 'report' : 'home'} />
+                </AppShell>
                 <DataSourceModal
                     isOpen={showDataSourceModal}
                     onFetchFirebase={handleFetchFromFirebase}
@@ -578,40 +709,31 @@ function App() {
         );
     }
 
-    return (
-        <div className="relative min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 overflow-hidden">
-            <div className={`max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 fade-in transition-opacity duration-500 ease-out ${isContentVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                <div className="flex flex-col sm:flex-row justify-between gap-3 md:gap-4 mb-6">
-                    {/* Header */}
-                    <AppHeader onLogoClick={handleHomeLogoRefresh} />
-
-                    {/* Controls */}
-                    <div className="flex gap-2 items-center">
-                        <button
-                            onClick={() => setShowPieChart(!showPieChart)}
-                            className={AppChartBtn}>
-                            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium mb-1 sm:mb-2 flex flex-row justify-between items-center">
-                                Net Balance
-                                {showPieChart ?
-                                    <div className='flex gap-2'>
-                                        {/* <X size={16} className='text-red-600' /> */}
-                                        <CircleX size={16} className='text-red-600' />
-                                    </div>
-                                    :
-                                    <ChartPie size={16} className='scale-100 group-hover:scale-110 transition-all duration-300 ease-in-out' />}
+    if (location.pathname === '/report') {
+        return (
+            <AppShell activeView="report">
+                <div className="">
+                    <div className="mb-6 flex flex-col justify-between gap-4 xl:flex-row xl:items-start">
+                        <div className="max-w-xl">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-sky-600/80 dark:text-sky-300/75">
+                                Insights
                             </p>
-                            <p className={`text-xl sm:text-2xl md:text-3xl font-bold ${lifetimeSummary.netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                ₹ {formatNumberWithCommas((lifetimeSummary.netBalance))}
+                            <h1 className="mt-2 text-3xl font-bold text-slate-900 dark:text-slate-50 sm:text-4xl">
+                                Reports
+                            </h1>
+                            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 sm:text-base">
+                                Review totals, explore category splits, and inspect matching transactions for the selected period.
                             </p>
-                        </button>
+                        </div>
 
-                        <div className='flex flex-col gap-2'>
+                        <div className="flex flex-col gap-2 self-start">
                             {dateRange ? (
                                 <button
                                     onClick={() => setDateRange(null)}
                                     className={`${FreeWhiteBtn} w-36!`}
-                                    title="Clear date range">
-                                    <Calendar1 size={16} className='text-red-600' />
+                                    title="Clear date range"
+                                >
+                                    <Calendar1 size={16} className="text-red-600" />
                                     Clear Dates
                                 </button>
                             ) : (
@@ -624,234 +746,105 @@ function App() {
                                     Date Range
                                 </button>
                             )}
-                            <button
-                                onClick={() => setIsSettingsOpen(true)}
-                                className={`${FreeWhiteBtn} w-36!`}
-                            >
-                                <Settings size={18} />
-                                Settings
-                            </button>
                         </div>
                     </div>
-                </div>
 
-                {/* Summary Cards */}
-                {showPieChart && (
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-6">
+                    <div className="mb-6 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 md:gap-6">
                         <div className={amountCard}>
-                            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium mb-1 sm:mb-2">Total Expense</p>
-                            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-red-600">₹ {formatNumberWithCommas(totalExpense.toFixed(2))}</p>
+                            <p className="mb-1 text-xs font-medium text-gray-700 dark:text-gray-300 sm:mb-2 sm:text-sm">Total Expense</p>
+                            <p className="text-xl font-bold text-red-600 sm:text-2xl md:text-3xl">₹ {formatNumberWithCommas(reportTotalExpense.toFixed(2))}</p>
                         </div>
                         <div className={amountCard}>
-                            <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 font-medium mb-1 sm:mb-2">Total Income</p>
-                            <p className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600">₹ {formatNumberWithCommas(totalIncome.toFixed(2))}</p>
+                            <p className="mb-1 text-xs font-medium text-gray-700 dark:text-gray-300 sm:mb-2 sm:text-sm">Total Income</p>
+                            <p className="text-xl font-bold text-green-600 sm:text-2xl md:text-3xl">₹ {formatNumberWithCommas(reportTotalIncome.toFixed(2))}</p>
                         </div>
                     </div>
-                )}
 
-                {/* Pie Chart */}
-                {showPieChart && (
                     <ExpensePieChart
                         transactions={filteredTransactions}
                         categories={financeData.categories}
-                        onSetShowPieChart={setShowPieChart}
-                        selectedExpenseCategory={selectedExpenseCategory}
+                        selectedExpenseCategories={selectedExpenseCategories}
                         selectedIncomeCategory={selectedIncomeCategory}
-                        onSelectExpenseCategory={setSelectedExpenseCategory}
-                        onSelectIncomeCategory={setSelectedIncomeCategory}
-                        onFilterChange={(type, id) => {
-                            setFilterType(type);
-                            setFilterId(id);
-                        }}
+                        onSelectExpenseCategory={handleSelectExpenseReportCategory}
+                        onSelectIncomeCategory={handleSelectIncomeReportCategory}
                     />
-                )}
 
-                {/* Transactions List */}
-                {!showPieChart && (
+                    {selectedReportCategoryIds.length > 0 && (
+                        <div className="mt-6">
+                            <div className="mb-4 flex flex-col gap-2 xs:flex-row xs:items-center xs:justify-between xs:gap-4">
+                                <div className="min-w-0">
+                                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl">
+                                        {selectedReportHeading} Transactions
+                                    </h2>
+                                    <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400 sm:mt-1 sm:text-sm">
+                                        Showing {selectedReportTransactions.length} {selectedReportCategoryType?.toLowerCase()} transaction{selectedReportTransactions.length !== 1 ? 's' : ''} for {selectedReportCategoryName} in this report period.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {renderTransactionGrid(selectedReportTransactions)}
+                        </div>
+                    )}
+                </div>
+
+                {renderSharedFloatingUi()}
+            </AppShell>
+        );
+    }
+
+    return (
+        <AppShell activeView="home">
+            <div className="relative">
+                <div className={`transition-opacity duration-500 ease-out ${isContentVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
+                    <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+                        <AppHeader onLogoClick={handleHomeLogoRefresh} />
+
+                        <div className={`${amountCard} w-full sm:max-w-xs`}>
+                            <p className="mb-1 text-xs font-medium text-gray-700 dark:text-gray-300 sm:mb-2 sm:text-sm">Net Balance</p>
+                            <p className={`text-xl font-bold sm:text-2xl md:text-3xl ${lifetimeSummary.netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                ₹ {formatNumberWithCommas(lifetimeSummary.netBalance)}
+                            </p>
+                        </div>
+                    </div>
+
                     <div>
-                        <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-2 xs:gap-4 mb-4">
+                        <div className="mb-4 flex flex-col gap-2 xs:flex-row xs:items-center xs:justify-between xs:gap-4">
                             <div className="min-w-0">
-                                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-50">
+                                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl">
                                     Recent Transactions
                                 </h2>
-                                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">Showing {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}</p>
+                                <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400 sm:mt-1 sm:text-sm">
+                                    Showing {Math.min(visibleHomeTransactions.length, homeTransactions.length)} of {homeTransactions.length} transaction{homeTransactions.length !== 1 ? 's' : ''}
+                                </p>
                             </div>
                         </div>
 
-                        {(filterType || dateRange) && (
-                            <div className="flex flex-wrap gap-2 mb-4">
-                                {filterType && filterId && (
-                                    <>
-                                        {filterType === 'account' && financeData.accounts.find(a => a.id === filterId) && (
-                                            (() => {
-                                                const account = financeData.accounts.find(a => a.id === filterId);
-                                                return renderFilterChip({
-                                                    name: account?.name || '',
-                                                    color: account?.color || 0,
-                                                    isActive: true,
-                                                    onClick: () => {
-                                                        setFilterType(null);
-                                                        setFilterId(null);
-                                                    },
-                                                });
-                                            })()
-                                        )}
-                                        {filterType === 'category' && financeData.categories.find(c => c.id === filterId) && (
-                                            (() => {
-                                                const category = financeData.categories.find(c => c.id === filterId);
-                                                return renderFilterChip({
-                                                    name: category?.name || '',
-                                                    color: category?.color || 0,
-                                                    isActive: true,
-                                                    onClick: () => {
-                                                        setFilterType(null);
-                                                        setFilterId(null);
-                                                    },
-                                                });
-                                            })()
-                                        )}
-                                    </>
-                                )}
-                                {dateRange && (
-                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-white bg-blue-500">
-                                        <span>
-                                            {new Date(dateRange.start).toLocaleDateString()} - {new Date(dateRange.end).toLocaleDateString()}
-                                        </span>
-                                        <button
-                                            onClick={() => {
-                                                setDateRange(null);
-                                                setSelectedMonthYear('');
-                                            }}
-                                            className="hover:opacity-75 transition-opacity"
-                                            title="Remove date filter"
-                                        >
-                                            <CircleX size={16} />
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        {renderTransactionGrid(visibleHomeTransactions)}
 
-                        {filteredTransactions.length === 0 ? (
-                            <div className={AppChartBtn}>
-                                <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300">No transactions found</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                                {filteredTransactions
-                                    .sort((a, b) => {
-                                        const dateA = a.dateTime || a.dueDate || 0;
-                                        const dateB = b.dateTime || b.dueDate || 0;
-                                        return dateB - dateA;
-                                    })
-                                    .map((transaction) => (
-                                        <TransactionCard
-                                            key={`${transaction.id}-${filterType ?? 'all'}-${filterId ?? 'all'}`}
-                                            transaction={transaction}
-                                            account={financeData.accounts.find(a => a.id === transaction.accountId)}
-                                            category={financeData.categories.find(c => c.id === transaction.categoryId)}
-                                            filterType={filterType}
-                                            onFilterChange={(type, id) => {
-                                                setFilterType(type);
-                                                setFilterId(id);
-                                            }}
-                                            onEdit={(trans) => setEditingTransaction(trans)}
-                                        />
-                                    ))
-                                }
+                        {canLoadMoreHomeTransactions && (
+                            <div className="mt-4 flex justify-center">
+                                <button
+                                    type="button"
+                                    onClick={() => setHomeVisibleCount(homeTransactions.length)}
+                                    className={FreeWhiteBtn}
+                                >
+                                    Load All
+                                </button>
                             </div>
                         )}
+                    </div>
+                </div>
+
+                {showSkeletonOverlay && (
+                    <div className={`absolute inset-0 z-20 pointer-events-none transition-opacity duration-500 ease-out ${isContentVisible ? 'opacity-0' : 'opacity-100'}`}>
+                        <SkeletonApp variant="home" />
                     </div>
                 )}
             </div>
 
-            {showSkeletonOverlay && (
-                <div className={`absolute inset-0 z-20 pointer-events-none transition-opacity duration-500 ease-out ${isContentVisible ? 'opacity-0' : 'opacity-100'}`}>
-                    <SkeletonApp
-                        handleResetData={handleResetData}
-                        handleImportData={handleImportData}
-                        financeData={financeData}
-                        user={user}
-                        handleBackupToFirebase={handleBackupToFirebase}
-                        handleFetchFromFirebase={handleFetchFromFirebase}
-                        handleGetSampleData={handleGetSampleData}
-                        isSettingsOpen={isSettingsOpen}
-                        setIsSettingsOpen={setIsSettingsOpen}
-                    />
-                </div>
-            )}
-
-
-            {/* {showPINModal && (
-                <PINVerificationModal
-                    isOpen={showPINModal}
-                    onClose={() => {
-                        setIsPINVerified(false);
-                        setShowPINModal(false);
-                    }}
-                    onVerified={() => {
-                        setIsPINVerified(true);
-                        setShowPINModal(false);
-                    }}
-                    userId={user.uid}
-                />
-            )} */}
-
-            <CreateTransactionModal
-                isOpen={isModalOpen || !!editingTransaction}
-                onClose={() => {
-                    setIsModalOpen(false);
-                    setEditingTransaction(null);
-                }}
-                onSave={handleCreateTransaction}
-                onDelete={handleDeleteTransaction}
-                accounts={financeData.accounts}
-                categories={financeData.categories}
-                editingTransaction={editingTransaction}
-                defaultAccountId={defaultTransactionAccountId}
-                lockAccountSelection={lockDefaultTransactionAccount}
-            />
-
-            <SettingsModal
-                isOpen={isSettingsOpen}
-                onClose={() => setIsSettingsOpen(false)}
-                onReset={handleResetData}
-                onImport={handleImportData}
-                onUpdateNetBalanceAccounts={handleUpdateNetBalanceAccounts}
-                onAddCategory={handleAddCategory}
-                financeData={financeData}
-                onBackupToFirebase={user ? handleBackupToFirebase : undefined}
-                onSyncFromFirebase={user ? handleSyncFromFirebase : undefined}
-                onGetSampleData={handleGetSampleData}
-                onResetClick={() => setShowDataSourceModal(true)}
-            />
-
-            <DateRangeModal
-                isOpen={isDateRangeOpen}
-                onClose={() => setIsDateRangeOpen(false)}
-                onApply={handleApplyDateRange}
-                onApplyMonth={handleApplyMonthSelection}
-                selectedMonthYear={activeMonthYear}
-                transactions={validTransactions}
-            />
-
-            <DataSourceModal
-                isOpen={showDataSourceModal}
-                onFetchFirebase={handleFetchFromFirebase}
-                onGetDummyData={handleGetSampleData}
-                showCloudOption={!!user}
-            />
-
-
-            <button
-                onClick={() => setIsModalOpen(true)}
-                className={`${FreeBlueBtn} fixed bottom-3 right-3`}>
-                <Plus size={18} />
-                <span>Add</span>
-            </button>
-        </div>
+            {renderSharedFloatingUi()}
+        </AppShell>
     );
 }
-
 
 export default App;

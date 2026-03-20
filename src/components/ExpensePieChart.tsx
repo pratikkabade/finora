@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { Transaction, Category } from '../types/finance.types';
 import { CategoryBreakdownTable } from './CategoryBreakdownTable';
 import { intToHex } from '../utils/colorUtils';
@@ -8,12 +8,10 @@ import { pieChartCard } from '../constants/TailwindClasses';
 interface ExpensePieChartProps {
     transactions: Transaction[];
     categories: Category[];
-    selectedExpenseCategory?: string | null;
+    selectedExpenseCategories?: string[];
     selectedIncomeCategory?: string | null;
-    onSelectExpenseCategory: (categoryId: string | null) => void;
-    onSelectIncomeCategory: (categoryId: string | null) => void;
-    onSetShowPieChart: (show: boolean) => void;
-    onFilterChange: (type: 'account' | 'category' | 'type' | null, id: string | null) => void;
+    onSelectExpenseCategory: (categoryId: string) => void;
+    onSelectIncomeCategory: (categoryId: string) => void;
 }
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -31,12 +29,10 @@ const CustomTooltip = ({ active, payload }: any) => {
 export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
     transactions,
     categories,
-    selectedExpenseCategory = null,
+    selectedExpenseCategories = [],
     selectedIncomeCategory = null,
     onSelectExpenseCategory,
     onSelectIncomeCategory,
-    onSetShowPieChart,
-    onFilterChange,
 }) => {
     const [chartHeight, setChartHeight] = useState(250);
 
@@ -107,6 +103,24 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
         color: getCategoryColor(data.categoryId),
     }));
 
+    const renderLegend = (data: typeof expenseChartData) => {
+        if (data.length === 0) return null;
+
+        return (
+            <div className="mt-4 grid max-h-28 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                {data.map((entry) => (
+                    <div key={entry.name} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <span
+                            className="h-3 w-3 shrink-0 rounded-full border border-black/10 dark:border-white/20"
+                            style={{ backgroundColor: entry.color }}
+                        />
+                        <span className="truncate">{entry.name}</span>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     return (
         <div className="flex flex-col gap-3 sm:gap-4 md:gap-6">
             <div className="flex flex-col md:flex-row gap-3 sm:gap-4 md:gap-6 h-full">
@@ -120,7 +134,8 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                                     cx="50%"
                                     cy="50%"
                                     labelLine={false}
-                                    outerRadius={65}
+                                    outerRadius={70}
+                                    innerRadius={38}
                                     fill="#8884d8"
                                     dataKey="value"
                                 >
@@ -129,9 +144,9 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                                     ))}
                                 </Pie>
                                 <Tooltip content={<CustomTooltip />} />
-                                <Legend />
                             </PieChart>
                         </ResponsiveContainer>
+                        {renderLegend(expenseChartData)}
                     </div>
                 )}
 
@@ -145,7 +160,8 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                                     cx="50%"
                                     cy="50%"
                                     labelLine={false}
-                                    outerRadius={65}
+                                    outerRadius={70}
+                                    innerRadius={38}
                                     fill="#8884d8"
                                     dataKey="value"
                                 >
@@ -154,9 +170,9 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                                     ))}
                                 </Pie>
                                 <Tooltip content={<CustomTooltip />} />
-                                <Legend />
                             </PieChart>
                         </ResponsiveContainer>
+                        {renderLegend(incomeChartData)}
                     </div>
                 )}
 
@@ -175,10 +191,9 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                         type="EXPENSE"
                         title="Expenses by Category"
                         getCategoryColor={getCategoryColor}
-                        selectedCategory={selectedExpenseCategory}
-                        onSelectCategory={onSelectExpenseCategory}
-                        onSetShowPieChart={onSetShowPieChart}
-                        onFilterChange={onFilterChange}
+                        selectedCategories={selectedExpenseCategories}
+                        onToggleCategory={onSelectExpenseCategory}
+                        allowMultiSelect
                     />
                 </div>
                 <div className="w-full md:flex-1">
@@ -188,10 +203,8 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                         type="INCOME"
                         title="Income by Category"
                         getCategoryColor={getCategoryColor}
-                        selectedCategory={selectedIncomeCategory}
-                        onSelectCategory={onSelectIncomeCategory}
-                        onSetShowPieChart={onSetShowPieChart}
-                        onFilterChange={onFilterChange}
+                        selectedCategories={selectedIncomeCategory ? [selectedIncomeCategory] : []}
+                        onToggleCategory={onSelectIncomeCategory}
                     />
                 </div>
             </div>

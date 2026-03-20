@@ -114,7 +114,7 @@ export const PINManagement: React.FC<PINManagementProps> = ({ userId, onSuccess 
 
     if (mode === 'set') {
         return (
-            <form onSubmit={handleSetPin} className="glass-card fade-in2 space-y-4 px-4 py-3">
+            <form onSubmit={handleSetPin} className="glass-card space-y-4 px-4 py-3">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-50">
                         Set PIN

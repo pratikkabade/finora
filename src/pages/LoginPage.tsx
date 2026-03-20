@@ -22,7 +22,7 @@ export function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-950 dark:to-gray-900 flex items-center justify-center p-4">
+        <div className="min-h-screen min-h-dvh bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-950 dark:to-gray-900 flex items-center justify-center p-4">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 max-w-md w-full flex flex-col items-center">
                 <div className="text-center">
                     <div className="flex items-center justify-center">

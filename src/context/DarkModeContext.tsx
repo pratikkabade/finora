@@ -6,6 +6,35 @@ interface DarkModeContextType {
 }
 
 const DarkModeContext = createContext<DarkModeContextType | undefined>(undefined);
+const LIGHT_THEME_COLOR = '#f8fafc';
+const DARK_THEME_COLOR = '#030712';
+
+const applyTheme = (isDarkMode: boolean) => {
+    const themeColor = isDarkMode ? DARK_THEME_COLOR : LIGHT_THEME_COLOR;
+    const themeColorMeta = document.getElementById('theme-color-meta');
+    const themeColorLightMeta = document.getElementById('theme-color-light-meta');
+    const themeColorDarkMeta = document.getElementById('theme-color-dark-meta');
+
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    document.documentElement.dataset.theme = isDarkMode ? 'dark' : 'light';
+
+    if (themeColorMeta) {
+        themeColorMeta.setAttribute('content', themeColor);
+    }
+
+    if (themeColorLightMeta) {
+        themeColorLightMeta.setAttribute('content', LIGHT_THEME_COLOR);
+    }
+
+    if (themeColorDarkMeta) {
+        themeColorDarkMeta.setAttribute('content', DARK_THEME_COLOR);
+    }
+
+    document.documentElement.style.backgroundColor = themeColor;
+    document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
+    document.body.style.backgroundColor = themeColor;
+    document.body.style.colorScheme = isDarkMode ? 'dark' : 'light';
+};
 
 export const DarkModeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
@@ -13,22 +42,7 @@ export const DarkModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     });
 
     useEffect(() => {
-        const themeColor = isDarkMode ? '#030712' : '#f8fafc';
-        const themeColorMeta = document.querySelector('meta[name="theme-color"]');
-
-        if (isDarkMode) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-
-        if (themeColorMeta) {
-            themeColorMeta.setAttribute('content', themeColor);
-        }
-
-        document.documentElement.style.backgroundColor = themeColor;
-        document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
-        document.body.style.backgroundColor = themeColor;
+        applyTheme(isDarkMode);
     }, [isDarkMode]);
 
     useEffect(() => {

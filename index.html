@@ -8,6 +8,8 @@
         content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
     <meta name="description" content="Clear financial insights for better decisions" />
     <meta name="theme-color" id="theme-color-meta" content="#f8fafc" />
+    <meta name="theme-color" id="theme-color-light-meta" media="(prefers-color-scheme: light)" content="#f8fafc" />
+    <meta name="theme-color" id="theme-color-dark-meta" media="(prefers-color-scheme: dark)" content="#030712" />
     <meta name="color-scheme" content="light dark" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -16,14 +18,26 @@
     <link rel="manifest" href="/manifest.json" />
     <script>
         (() => {
+            const LIGHT_THEME_COLOR = '#f8fafc';
+            const DARK_THEME_COLOR = '#030712';
+
             try {
                 const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const themeColor = isDarkMode ? '#030712' : '#f8fafc';
+                const themeColor = isDarkMode ? DARK_THEME_COLOR : LIGHT_THEME_COLOR;
                 const themeColorMeta = document.getElementById('theme-color-meta');
+                const themeColorLightMeta = document.getElementById('theme-color-light-meta');
+                const themeColorDarkMeta = document.getElementById('theme-color-dark-meta');
                 if (themeColorMeta) {
                     themeColorMeta.setAttribute('content', themeColor);
                 }
+                if (themeColorLightMeta) {
+                    themeColorLightMeta.setAttribute('content', LIGHT_THEME_COLOR);
+                }
+                if (themeColorDarkMeta) {
+                    themeColorDarkMeta.setAttribute('content', DARK_THEME_COLOR);
+                }
                 document.documentElement.classList.toggle('dark', isDarkMode);
+                document.documentElement.dataset.theme = isDarkMode ? 'dark' : 'light';
                 document.documentElement.style.backgroundColor = themeColor;
                 document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
             } catch {

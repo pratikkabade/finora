@@ -5,6 +5,7 @@
             "currency": "INR",
             "color": -15414114,
             "icon": "cash",
+            "orderNum": 0,
             "isSynced": true,
             "id": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc"
         },
@@ -13,9 +14,18 @@
             "currency": "INR",
             "color": -13293952,
             "icon": "bank",
-            "orderNum": 1.0,
+            "orderNum": 1,
             "isSynced": true,
             "id": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf"
+        },
+        {
+            "name": "Wallet",
+            "currency": "INR",
+            "color": 16098372,
+            "icon": "wallet",
+            "orderNum": 2,
+            "isSynced": true,
+            "id": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de"
         }
     ],
     "categories": [
@@ -23,7 +33,7 @@
             "name": "Food & Drinks",
             "color": -15414114,
             "icon": "fooddrink",
-            "orderNum": 1.0,
+            "orderNum": 1,
             "isSynced": true,
             "id": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b"
         },
@@ -31,7 +41,7 @@
             "name": "Travel",
             "color": -4987137,
             "icon": "travel",
-            "orderNum": 2.0,
+            "orderNum": 2,
             "isSynced": true,
             "id": "d10cb866-462c-4063-98c5-67aafacdf8c2"
         },
@@ -39,7 +49,7 @@
             "name": "Home",
             "color": -12196229,
             "icon": "house",
-            "orderNum": 3.0,
+            "orderNum": 3,
             "isSynced": true,
             "id": "3847911b-3487-412f-80f5-5606710ab9f0"
         },
@@ -47,7 +57,7 @@
             "name": "Car",
             "color": -12223514,
             "icon": "vehicle",
-            "orderNum": 4.0,
+            "orderNum": 4,
             "isSynced": true,
             "id": "9403f923-2022-407e-8d03-ee03227c824c"
         },
@@ -55,7 +65,7 @@
             "name": "Gifts",
             "color": -13099,
             "icon": "gift",
-            "orderNum": 5.0,
+            "orderNum": 5,
             "isSynced": true,
             "id": "11fecccd-4d08-409a-925d-5f2446cd5566"
         },
@@ -63,31 +73,50 @@
             "name": "Transport",
             "color": -2151,
             "icon": "transport",
-            "orderNum": 6.0,
+            "orderNum": 6,
             "isSynced": true,
             "id": "e3385498-975a-4ae7-8a38-e4ece0b03504"
-        }
-    ],
-    "plannedPaymentRules": [
+        },
         {
-            "startDate": 1768890600000,
-            "intervalN": 1,
-            "intervalType": "MONTH",
-            "oneTime": false,
-            "type": "EXPENSE",
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "amount": 10.0,
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "title": "Bus",
-            "id": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3"
+            "name": "Salary",
+            "color": 4504742,
+            "icon": "salary",
+            "orderNum": 7,
+            "isSynced": true,
+            "id": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007"
+        },
+        {
+            "name": "Freelance",
+            "color": 10976198,
+            "icon": "briefcase",
+            "orderNum": 8,
+            "isSynced": true,
+            "id": "0ccdc19e-65e6-48b1-b3d8-d11de9cc379d"
+        },
+        {
+            "name": "Shopping",
+            "color": 15277667,
+            "icon": "shopping",
+            "orderNum": 9,
+            "isSynced": true,
+            "id": "78e06a3a-bf7e-4535-8be5-1c3e8f818c58"
+        },
+        {
+            "name": "Health",
+            "color": 15548997,
+            "icon": "health",
+            "orderNum": 10,
+            "isSynced": true,
+            "id": "c9409484-c0ab-4f07-b9af-eb3e440145a2"
         }
     ],
+    "plannedPaymentRules": [],
     "settings": [
         {
             "theme": "LIGHT",
             "currency": "INR",
-            "bufferAmount": 1000.0,
-            "name": "Xuser",
+            "bufferAmount": 1000,
+            "name": "Finora Demo",
             "id": "5efc4549-93b5-4b3d-bd3c-6d75e4c8c0db",
             "settingName": "MyApp",
             "settingCurrency": "USD"
@@ -95,420 +124,764 @@
     ],
     "transactions": [
         {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
             "type": "INCOME",
-            "amount": 500.0,
-            "title": "Drink",
-            "dateTime": 1768667861401,
+            "amount": 82650,
+            "title": "Salary - January",
+            "dateTime": 1767335400000,
+            "categoryId": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007",
+            "isSynced": true,
+            "id": "sample-2026-0001"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 2270,
+            "title": "Groceries - January",
+            "dateTime": 1767594600000,
             "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
             "isSynced": true,
-            "id": "ed04dd95-0d29-4e38-8be1-53df7e4315f0"
+            "id": "sample-2026-0002"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 600.0,
-            "title": "Freebies",
-            "dateTime": 1768495075098,
+            "amount": 565,
+            "title": "Daily commute - January",
+            "dateTime": 1767940200000,
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "isSynced": true,
+            "id": "sample-2026-0003"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 4740,
+            "title": "Rent & utilities - January",
+            "dateTime": 1768199400000,
+            "categoryId": "3847911b-3487-412f-80f5-5606710ab9f0",
+            "isSynced": true,
+            "id": "sample-2026-0004"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 1880,
+            "title": "Weekend shopping - January",
+            "dateTime": 1768717800000,
+            "categoryId": "78e06a3a-bf7e-4535-8be5-1c3e8f818c58",
+            "isSynced": true,
+            "id": "sample-2026-0005"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 760,
+            "title": "Cafe & snacks - January",
+            "dateTime": 1769495400000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0006"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 83300,
+            "title": "Salary - February",
+            "dateTime": 1770013800000,
+            "categoryId": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007",
+            "isSynced": true,
+            "id": "sample-2026-0007"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 2390,
+            "title": "Groceries - February",
+            "dateTime": 1770273000000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0008"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 590,
+            "title": "Daily commute - February",
+            "dateTime": 1770618600000,
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "isSynced": true,
+            "id": "sample-2026-0009"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 4880,
+            "title": "Rent & utilities - February",
+            "dateTime": 1770877800000,
+            "categoryId": "3847911b-3487-412f-80f5-5606710ab9f0",
+            "isSynced": true,
+            "id": "sample-2026-0010"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 3260,
+            "title": "City getaway - February",
+            "dateTime": 1771396200000,
+            "categoryId": "d10cb866-462c-4063-98c5-67aafacdf8c2",
+            "isSynced": true,
+            "id": "sample-2026-0011"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 800,
+            "title": "Cafe & snacks - February",
+            "dateTime": 1772173800000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0012"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 83950,
+            "title": "Salary - March",
+            "dateTime": 1772433000000,
+            "categoryId": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007",
+            "isSynced": true,
+            "id": "sample-2026-0013"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 2510,
+            "title": "Groceries - March",
+            "dateTime": 1772692200000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0014"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 615,
+            "title": "Daily commute - March",
+            "dateTime": 1773037800000,
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "isSynced": true,
+            "id": "sample-2026-0015"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 5020,
+            "title": "Rent & utilities - March",
+            "dateTime": 1773297000000,
+            "categoryId": "3847911b-3487-412f-80f5-5606710ab9f0",
+            "isSynced": true,
+            "id": "sample-2026-0016"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 1070,
+            "title": "Pharmacy run - March",
+            "dateTime": 1773815400000,
+            "categoryId": "c9409484-c0ab-4f07-b9af-eb3e440145a2",
+            "isSynced": true,
+            "id": "sample-2026-0017"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 17640,
+            "title": "Freelance project - March",
+            "dateTime": 1774247400000,
+            "categoryId": "0ccdc19e-65e6-48b1-b3d8-d11de9cc379d",
+            "isSynced": true,
+            "id": "sample-2026-0019"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 840,
+            "title": "Cafe & snacks - March",
+            "dateTime": 1774593000000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0018"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 84600,
+            "title": "Salary - April",
+            "dateTime": 1775111400000,
+            "categoryId": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007",
+            "isSynced": true,
+            "id": "sample-2026-0020"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 2630,
+            "title": "Groceries - April",
+            "dateTime": 1775370600000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0021"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 640,
+            "title": "Daily commute - April",
+            "dateTime": 1775716200000,
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "isSynced": true,
+            "id": "sample-2026-0022"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 5160,
+            "title": "Rent & utilities - April",
+            "dateTime": 1775975400000,
+            "categoryId": "3847911b-3487-412f-80f5-5606710ab9f0",
+            "isSynced": true,
+            "id": "sample-2026-0023"
+        },
+        {
+            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
+            "type": "EXPENSE",
+            "amount": 1570,
+            "title": "Birthday gift - April",
+            "dateTime": 1776493800000,
             "categoryId": "11fecccd-4d08-409a-925d-5f2446cd5566",
             "isSynced": true,
-            "id": "db231c99-52ef-49ea-8871-fdca47ea4fdb"
+            "id": "sample-2026-0024"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1768890600000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "amount": 880,
+            "title": "Cafe & snacks - April",
+            "dateTime": 1777271400000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
             "isSynced": true,
-            "id": "7e89a964-624f-40bb-9ee8-e07ae28c55b7"
+            "id": "sample-2026-0025"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 85250,
+            "title": "Salary - May",
+            "dateTime": 1777703400000,
+            "categoryId": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007",
+            "isSynced": true,
+            "id": "sample-2026-0026"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 2750,
+            "title": "Groceries - May",
+            "dateTime": 1777962600000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0027"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
+            "amount": 665,
+            "title": "Daily commute - May",
+            "dateTime": 1778308200000,
             "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1771569000000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
             "isSynced": true,
-            "id": "52463b17-39d6-4090-b28f-66f3791b95d0"
+            "id": "sample-2026-0028"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 5300,
+            "title": "Rent & utilities - May",
+            "dateTime": 1778567400000,
+            "categoryId": "3847911b-3487-412f-80f5-5606710ab9f0",
+            "isSynced": true,
+            "id": "sample-2026-0029"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 2450,
+            "title": "Fuel refill - May",
+            "dateTime": 1779085800000,
+            "categoryId": "9403f923-2022-407e-8d03-ee03227c824c",
+            "isSynced": true,
+            "id": "sample-2026-0030"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 920,
+            "title": "Cafe & snacks - May",
+            "dateTime": 1779863400000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0031"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 85900,
+            "title": "Salary - June",
+            "dateTime": 1780381800000,
+            "categoryId": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007",
+            "isSynced": true,
+            "id": "sample-2026-0032"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1773988200000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "amount": 2870,
+            "title": "Groceries - June",
+            "dateTime": 1780641000000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
             "isSynced": true,
-            "id": "a03c29e9-a7aa-4c85-9f76-90d44bcf248b"
+            "id": "sample-2026-0033"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 690,
+            "title": "Daily commute - June",
+            "dateTime": 1780986600000,
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "isSynced": true,
+            "id": "sample-2026-0034"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 5440,
+            "title": "Rent & utilities - June",
+            "dateTime": 1781245800000,
+            "categoryId": "3847911b-3487-412f-80f5-5606710ab9f0",
+            "isSynced": true,
+            "id": "sample-2026-0035"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 1860,
+            "title": "Home essentials - June",
+            "dateTime": 1781764200000,
+            "categoryId": "78e06a3a-bf7e-4535-8be5-1c3e8f818c58",
+            "isSynced": true,
+            "id": "sample-2026-0036"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 18780,
+            "title": "Freelance project - June",
+            "dateTime": 1782196200000,
+            "categoryId": "0ccdc19e-65e6-48b1-b3d8-d11de9cc379d",
+            "isSynced": true,
+            "id": "sample-2026-0038"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1776666600000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "amount": 960,
+            "title": "Cafe & snacks - June",
+            "dateTime": 1782541800000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
             "isSynced": true,
-            "id": "425a671d-a6a3-43dd-8feb-cdf6534b9092"
+            "id": "sample-2026-0037"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 86550,
+            "title": "Salary - July",
+            "dateTime": 1782973800000,
+            "categoryId": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007",
+            "isSynced": true,
+            "id": "sample-2026-0039"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 2990,
+            "title": "Groceries - July",
+            "dateTime": 1783233000000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0040"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
+            "amount": 715,
+            "title": "Daily commute - July",
+            "dateTime": 1783578600000,
             "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1779258600000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
             "isSynced": true,
-            "id": "4b1c0e1b-d0de-4a6d-82a7-8837ea907835"
+            "id": "sample-2026-0041"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 5580,
+            "title": "Rent & utilities - July",
+            "dateTime": 1783837800000,
+            "categoryId": "3847911b-3487-412f-80f5-5606710ab9f0",
+            "isSynced": true,
+            "id": "sample-2026-0042"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 3770,
+            "title": "Weekend train trip - July",
+            "dateTime": 1784356200000,
+            "categoryId": "d10cb866-462c-4063-98c5-67aafacdf8c2",
+            "isSynced": true,
+            "id": "sample-2026-0043"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 1000,
+            "title": "Cafe & snacks - July",
+            "dateTime": 1785133800000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0044"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 87200,
+            "title": "Salary - August",
+            "dateTime": 1785652200000,
+            "categoryId": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007",
+            "isSynced": true,
+            "id": "sample-2026-0045"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1781937000000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "amount": 3110,
+            "title": "Groceries - August",
+            "dateTime": 1785911400000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
             "isSynced": true,
-            "id": "cf4bf4eb-6c24-4af9-af28-1d6bdfe8805d"
+            "id": "sample-2026-0046"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 740,
+            "title": "Daily commute - August",
+            "dateTime": 1786257000000,
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "isSynced": true,
+            "id": "sample-2026-0047"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 5720,
+            "title": "Rent & utilities - August",
+            "dateTime": 1786516200000,
+            "categoryId": "3847911b-3487-412f-80f5-5606710ab9f0",
+            "isSynced": true,
+            "id": "sample-2026-0048"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 2340,
+            "title": "Health checkup - August",
+            "dateTime": 1787034600000,
+            "categoryId": "c9409484-c0ab-4f07-b9af-eb3e440145a2",
+            "isSynced": true,
+            "id": "sample-2026-0049"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1784529000000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "amount": 1040,
+            "title": "Cafe & snacks - August",
+            "dateTime": 1787812200000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
             "isSynced": true,
-            "id": "397cfd89-f04f-4174-83f2-330f67a9fbc8"
+            "id": "sample-2026-0050"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 87850,
+            "title": "Salary - September",
+            "dateTime": 1788330600000,
+            "categoryId": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007",
+            "isSynced": true,
+            "id": "sample-2026-0051"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 3230,
+            "title": "Groceries - September",
+            "dateTime": 1788589800000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0052"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
+            "amount": 765,
+            "title": "Daily commute - September",
+            "dateTime": 1788935400000,
             "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1787207400000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
             "isSynced": true,
-            "id": "556cb34d-95ad-43f4-ab4a-0a1f4a236f32"
+            "id": "sample-2026-0053"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 5860,
+            "title": "Rent & utilities - September",
+            "dateTime": 1789194600000,
+            "categoryId": "3847911b-3487-412f-80f5-5606710ab9f0",
+            "isSynced": true,
+            "id": "sample-2026-0054"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1789885800000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "amount": 2020,
+            "title": "Festival gift box - September",
+            "dateTime": 1789713000000,
+            "categoryId": "11fecccd-4d08-409a-925d-5f2446cd5566",
             "isSynced": true,
-            "id": "e90335b8-bdcb-4f50-b5f8-6dac5fbbcbfa"
+            "id": "sample-2026-0055"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 19920,
+            "title": "Freelance project - September",
+            "dateTime": 1790145000000,
+            "categoryId": "0ccdc19e-65e6-48b1-b3d8-d11de9cc379d",
+            "isSynced": true,
+            "id": "sample-2026-0057"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 1080,
+            "title": "Cafe & snacks - September",
+            "dateTime": 1790490600000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0056"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 88500,
+            "title": "Salary - October",
+            "dateTime": 1790922600000,
+            "categoryId": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007",
+            "isSynced": true,
+            "id": "sample-2026-0058"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1792477800000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "amount": 3350,
+            "title": "Groceries - October",
+            "dateTime": 1791181800000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
             "isSynced": true,
-            "id": "1e12606b-7d73-4008-a433-f4ef17a8a449"
+            "id": "sample-2026-0059"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 790,
+            "title": "Daily commute - October",
+            "dateTime": 1791527400000,
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "isSynced": true,
+            "id": "sample-2026-0060"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 6000,
+            "title": "Rent & utilities - October",
+            "dateTime": 1791786600000,
+            "categoryId": "3847911b-3487-412f-80f5-5606710ab9f0",
+            "isSynced": true,
+            "id": "sample-2026-0061"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 2950,
+            "title": "Service top-up - October",
+            "dateTime": 1792305000000,
+            "categoryId": "9403f923-2022-407e-8d03-ee03227c824c",
+            "isSynced": true,
+            "id": "sample-2026-0062"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1795156200000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "amount": 1120,
+            "title": "Cafe & snacks - October",
+            "dateTime": 1793082600000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
             "isSynced": true,
-            "id": "eaa2b6a2-1d3b-4c6d-9a15-754023563e8d"
+            "id": "sample-2026-0063"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 89150,
+            "title": "Salary - November",
+            "dateTime": 1793601000000,
+            "categoryId": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007",
+            "isSynced": true,
+            "id": "sample-2026-0064"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 3470,
+            "title": "Groceries - November",
+            "dateTime": 1793860200000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0065"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
+            "amount": 815,
+            "title": "Daily commute - November",
+            "dateTime": 1794205800000,
             "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1797748200000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
             "isSynced": true,
-            "id": "8af8d297-1439-43b4-b1b2-acac9952db66"
+            "id": "sample-2026-0066"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 6140,
+            "title": "Rent & utilities - November",
+            "dateTime": 1794465000000,
+            "categoryId": "3847911b-3487-412f-80f5-5606710ab9f0",
+            "isSynced": true,
+            "id": "sample-2026-0067"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 3710,
+            "title": "Family visit - November",
+            "dateTime": 1794983400000,
+            "categoryId": "d10cb866-462c-4063-98c5-67aafacdf8c2",
+            "isSynced": true,
+            "id": "sample-2026-0068"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 1160,
+            "title": "Cafe & snacks - November",
+            "dateTime": 1795761000000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
+            "isSynced": true,
+            "id": "sample-2026-0069"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 89800,
+            "title": "Salary - December",
+            "dateTime": 1796193000000,
+            "categoryId": "58aa6d4e-75d7-4e35-b2c2-f88d3ca61007",
+            "isSynced": true,
+            "id": "sample-2026-0070"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1800426600000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "amount": 3590,
+            "title": "Groceries - December",
+            "dateTime": 1796452200000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
             "isSynced": true,
-            "id": "e19b835f-6b78-441b-88e1-cc843bdfd8a1"
+            "id": "sample-2026-0071"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 840,
+            "title": "Daily commute - December",
+            "dateTime": 1796797800000,
+            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
+            "isSynced": true,
+            "id": "sample-2026-0072"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "EXPENSE",
+            "amount": 6280,
+            "title": "Rent & utilities - December",
+            "dateTime": 1797057000000,
+            "categoryId": "3847911b-3487-412f-80f5-5606710ab9f0",
+            "isSynced": true,
+            "id": "sample-2026-0073"
+        },
+        {
+            "accountId": "bff0f4c0-c9bb-4f48-a2f8-98c44d4dd6de",
+            "type": "EXPENSE",
+            "amount": 2780,
+            "title": "Year-end shopping - December",
+            "dateTime": 1797575400000,
+            "categoryId": "78e06a3a-bf7e-4535-8be5-1c3e8f818c58",
+            "isSynced": true,
+            "id": "sample-2026-0074"
+        },
+        {
+            "accountId": "5060c444-4ac1-4a7d-9e9f-b297722e6bcf",
+            "type": "INCOME",
+            "amount": 21060,
+            "title": "Freelance project - December",
+            "dateTime": 1798007400000,
+            "categoryId": "0ccdc19e-65e6-48b1-b3d8-d11de9cc379d",
+            "isSynced": true,
+            "id": "sample-2026-0076"
         },
         {
             "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
             "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1803105000000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
+            "amount": 1200,
+            "title": "Cafe & snacks - December",
+            "dateTime": 1798353000000,
+            "categoryId": "e9ccbfcc-1cec-41eb-874c-c7b51ee6d23b",
             "isSynced": true,
-            "id": "d98cea37-f573-4fd6-96ad-250adaecede7"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1805524200000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "e32cc121-1353-4290-9745-3901bf86c9a8"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1808202600000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "f93438ae-d261-4b54-8a3e-30bfce077d4a"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1810794600000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "57d84318-196e-45a1-980c-facacec0efc0"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1813473000000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "fd3863eb-605b-4a8c-9fcd-a5e4c3fa011f"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1816065000000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "aeab62d7-101e-425c-ba91-61b6e01dfc50"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1818743400000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "018adc0d-4226-41cd-9533-3297df90b826"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1821421800000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "04420515-492d-4237-84a9-549ed6b8f8cb"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1824013800000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "e965ffe4-53b5-4ab1-9ed1-5c1459cb99f5"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1826692200000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "90a9568f-3e1b-4a0a-8084-c3baf4db17c3"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1829284200000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "a9bf30e3-2cee-41d5-8d6d-7e748f1bb6a0"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1831962600000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "1e1a0df3-2462-4b61-9193-c7dbaf529305"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1834641000000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "9bcf623a-2621-41e1-aad4-35cc79d3f17d"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1837146600000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "941bbd7f-ee1e-4ed9-8012-eb33edb2b6e0"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1839825000000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "4beae8a5-33f0-434d-8cab-c4adecc0accc"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1842417000000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "6dc68145-bc12-4007-95f8-1f8152a0f840"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1845095400000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "a69646af-2a08-4197-be4b-1917d1a06a10"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1847687400000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "5c3d7c25-9db1-456e-b4ac-137e4367ac63"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1850365800000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "3fdb4e0a-57cf-4b9c-a223-b060be2d25b0"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1853044200000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "13d4773c-99d9-47d0-955c-55054375c8cf"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1855636200000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "67025f54-7154-4c4e-84bd-eced710ec4b6"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1858314600000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "d87eefae-9beb-4c87-a19a-484cf57da08f"
-        },
-        {
-            "accountId": "9cbf29e0-e06a-47bc-b47c-f14a15c2f6dc",
-            "type": "EXPENSE",
-            "amount": 10.0,
-            "title": "Bus",
-            "categoryId": "e3385498-975a-4ae7-8a38-e4ece0b03504",
-            "dueDate": 1860906600000,
-            "recurringRuleId": "4d1dfca3-fb58-46f8-b1f5-8125beeb21c3",
-            "isSynced": true,
-            "id": "e87b9e1f-0af0-492d-9836-8cf5a8afeb71"
+            "id": "sample-2026-0075"
         }
     ],
     "sharedPrefs": {

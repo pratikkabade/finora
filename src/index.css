@@ -2,6 +2,35 @@
 @tailwind utilities;
 @import "tailwindcss";
 
+:root {
+    --app-background-light: #f8fafc;
+    --app-background-dark: #030712;
+    --app-background: var(--app-background-light);
+    background-color: var(--app-background-light);
+}
+
+html.dark {
+    --app-background: var(--app-background-dark);
+}
+
+html,
+body,
+#root {
+    min-height: 100%;
+}
+
+body,
+#root {
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+html,
+body,
+#root {
+    background-color: var(--app-background);
+}
+
 @layer base {
     body {
         @apply bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950;
