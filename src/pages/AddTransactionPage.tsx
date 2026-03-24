@@ -29,7 +29,7 @@ export const AddTransactionPage: React.FC<AddTransactionPageProps> = ({
 
     if (!financeData) {
         return (
-            <div className="min-h-screen min-h-dvh bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center px-4">
+            <div className="app-shell-ambient relative flex min-h-screen min-h-dvh items-center justify-center overflow-hidden bg-linear-to-br from-slate-100 via-white to-sky-50 px-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
                 <div className="text-center">
                     <p className="text-gray-900 dark:text-gray-50">Loading...</p>
                 </div>
@@ -38,7 +38,11 @@ export const AddTransactionPage: React.FC<AddTransactionPageProps> = ({
     }
 
     return (
-        <div className="min-h-screen min-h-dvh bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center px-4">
+        <div className="app-shell-ambient relative flex min-h-screen min-h-dvh items-center justify-center overflow-hidden bg-linear-to-br from-slate-100 via-white to-sky-50 px-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+                <div data-orb="one" className="absolute left-[-6rem] top-[-5rem] h-64 w-64 rounded-full bg-sky-200/55 blur-3xl dark:bg-sky-500/10" />
+                <div data-orb="two" className="absolute bottom-[-6rem] right-[-4rem] h-72 w-72 rounded-full bg-amber-200/40 blur-3xl dark:bg-amber-500/10" />
+            </div>
             <CreateTransactionModal
                 isOpen={true}
                 onClose={handleClose}

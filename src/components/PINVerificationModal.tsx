@@ -4,6 +4,7 @@ import { verifyPIN, getPINStatus, clearAccount } from '../services/pinService';
 import { FreeBlueBtn, FreeRedBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
 import { getFormattedDate } from '../utils/dateUtils';
 import { useAuth } from '../context/AuthContext';
+import { useAnimatedOpen } from '../hooks/useAnimatedOpen';
 
 interface PINVerificationModalProps {
     isOpen: boolean;
@@ -22,6 +23,7 @@ export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [status, setStatus] = useState(getPINStatus(userId));
+    const { shouldRender, isVisible } = useAnimatedOpen(isOpen);
     const { logout } = useAuth();
     
     useEffect(() => {
@@ -60,11 +62,11 @@ export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
         }
     };
 
-    if (!isOpen) return null;
+    if (!shouldRender) return null;
 
     return (
-        <div className={ModalOut}>
-            <div className={ModalPopUp}>
+        <div className={`${ModalOut} ${isVisible ? 'app-modal-backdrop-enter' : 'app-modal-backdrop-exit'}`}>
+            <div className={`${ModalPopUp} max-w-sm sm:max-w-md ${isVisible ? 'app-modal-panel-enter' : 'app-modal-panel-exit'}`}>
                 {/* Header */}
                 <div className={ModalHeader}>
                     <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-50 flex items-center gap-2">

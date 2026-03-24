@@ -3,6 +3,7 @@ import { X, Trash2, ChevronDown, Check } from 'lucide-react';
 import type { Account, Category, TransactionType, Transaction } from '../types/finance.types';
 import { generateUUID } from '../utils/dateUtils';
 import { FreeBlueBtn, FreeRedBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
+import { useAnimatedOpen } from '../hooks/useAnimatedOpen';
 import { intToHex } from '../utils/colorUtils';
 
 interface CreateTransactionModalProps {
@@ -40,24 +41,26 @@ const OptionPickerModal: React.FC<OptionPickerModalProps> = ({
     onSelect,
     onClose,
 }) => {
-    if (!isOpen) return null;
+    const { shouldRender, isVisible } = useAnimatedOpen(isOpen);
+
+    if (!shouldRender) return null;
 
     return (
         <div
-            className="fixed inset-0 z-60 bg-black/35 backdrop-blur-[1px] flex items-center justify-center p-4"
+            className={`app-modal-backdrop fixed inset-0 z-60 flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm ${isVisible ? 'app-modal-backdrop-enter' : 'app-modal-backdrop-exit'}`}
             onClick={onClose}
         >
             <div
-                className="w-full max-w-xs rounded-2xl border border-white/20 dark:border-gray-700/30 bg-white dark:bg-gray-800 shadow-xl overflow-hidden"
+                className={`app-modal-panel app-border-soft w-full max-w-xs overflow-hidden rounded-[1.75rem] bg-white/92 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)] dark:bg-slate-900/92 ${isVisible ? 'app-modal-panel-enter' : 'app-modal-panel-exit'}`}
                 onClick={(event) => event.stopPropagation()}
             >
-                <div className="flex items-center justify-between px-4 py-3 border-b border-white/20 dark:border-gray-700/30">
+                <div className="app-divider-border flex items-center justify-between border-b px-4 py-3">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
                     <button type="button" onClick={onClose} className={FreeWhiteBtn}>
                         <X size={16} />
                     </button>
                 </div>
-                <div className="p-2 max-h-64 overflow-y-auto">
+                <div className="app-stagger-list max-h-64 overflow-y-auto p-2">
                     {options.length ? (
                         options.map((option) => {
                             const isSelected = selectedId === option.id;
@@ -66,14 +69,14 @@ const OptionPickerModal: React.FC<OptionPickerModalProps> = ({
                                     key={option.id}
                                     type="button"
                                     onClick={() => onSelect(option.id)}
-                                    className={`w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition-colors text-left ${isSelected
-                                        ? 'bg-blue-50 dark:bg-blue-900/30 border border-blue-200/50 dark:border-blue-700/50'
-                                        : 'hover:bg-white/70 dark:hover:bg-gray-700/50 border border-transparent'
+                                    className={`w-full flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-left transition-[box-shadow,border-color,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isSelected
+                                        ? 'border border-blue-200/60 bg-blue-50/90 dark:border-blue-700/60 dark:bg-blue-900/30'
+                                        : 'app-border-subtle bg-white/48 hover:border-slate-300/85 hover:bg-white/72 hover:shadow-[0_16px_34px_-24px_rgba(15,23,42,0.2)] dark:bg-slate-900/34 dark:hover:border-slate-500/70 dark:hover:bg-slate-800/46'
                                         }`}
                                 >
                                     <span className="flex items-center gap-2 min-w-0">
                                         <span
-                                            className="h-3 w-3 rounded-full border border-black/10 dark:border-white/20 shrink-0"
+                                            className="app-color-chip-border h-3 w-3 rounded-full shrink-0"
                                             style={{ backgroundColor: intToHex(option.color) }}
                                         />
                                         <span className="text-sm text-gray-900 dark:text-gray-100 truncate">{option.name}</span>
@@ -181,16 +184,6 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
 
         onSave(transaction);
 
-        // Reset form
-        setFormData({
-            accountId: '',
-            type: 'EXPENSE',
-            amount: '',
-            title: '',
-            categoryId: '',
-            dateTime: formatLocalDateTime(),
-        });
-
         onClose();
     };
 
@@ -203,7 +196,9 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
         }
     };
 
-    if (!isOpen) return null;
+    const { shouldRender, isVisible } = useAnimatedOpen(isOpen);
+
+    if (!shouldRender) return null;
 
     const isEditing = !!editingTransaction;
     const selectedAccount = accounts.find((account) => account.id === formData.accountId);
@@ -221,8 +216,8 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
     const shouldLockAccountSelection = !isEditing && !!lockAccountSelection && !!selectedAccount;
 
     return (
-        <div className={ModalOut}>
-            <div className={ModalPopUp}>
+        <div className={`${ModalOut} ${isVisible ? 'app-modal-backdrop-enter' : 'app-modal-backdrop-exit'}`}>
+            <div className={`${ModalPopUp} max-w-sm sm:max-w-xl ${isVisible ? 'app-modal-panel-enter' : 'app-modal-panel-exit'}`}>
                 {/* Header */}
                 <div className={ModalHeader}>
                     <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-50">
@@ -237,10 +232,10 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+                <form onSubmit={handleSubmit} className="app-panel-stagger max-h-[70vh] space-y-4 overflow-y-auto p-6">
                     {/* Row 1: Account & Type */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="app-border-soft rounded-[1.4rem] bg-white/30 p-4 backdrop-blur-md dark:bg-slate-900/25">
                             <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                                 Account
                             </label>
@@ -248,13 +243,12 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                                 type="button"
                                 onClick={() => setIsAccountPickerOpen(true)}
                                 disabled={accounts.length === 0}
-                                className={`glass-input w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg flex items-center justify-between gap-2 cursor-pointer
-                                    }`}
+                                className="glass-input flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm text-gray-900 dark:text-gray-50"
                             >
                                 <span className="flex items-center gap-2 min-w-0">
                                     {selectedAccount ? (
                                         <span
-                                            className="h-3 w-3 rounded-full border border-black/10 dark:border-white/20 shrink-0"
+                                            className="app-color-chip-border h-3 w-3 rounded-full shrink-0"
                                             style={{ backgroundColor: intToHex(selectedAccount.color) }}
                                         />
                                     ) : null}
@@ -270,7 +264,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                                 </p>
                             )}
                         </div>
-                        <div>
+                        <div className="app-border-soft rounded-[1.4rem] bg-white/30 p-4 backdrop-blur-md dark:bg-slate-900/25">
                             <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                                 Type
                             </label>
@@ -287,7 +281,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                     </div>
 
                     {/* Row 2: Category */}
-                    <div>
+                    <div className="app-border-soft rounded-[1.4rem] bg-white/30 p-4 backdrop-blur-md dark:bg-slate-900/25">
                         <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                             Category
                         </label>
@@ -300,7 +294,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                             <span className="flex items-center gap-2 min-w-0">
                                 {selectedCategory ? (
                                     <span
-                                        className="h-3 w-3 rounded-full border border-black/10 dark:border-white/20 shrink-0"
+                                        className="app-color-chip-border h-3 w-3 rounded-full shrink-0"
                                         style={{ backgroundColor: intToHex(selectedCategory.color) }}
                                     />
                                 ) : null}
@@ -313,8 +307,8 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                     </div>
 
                     {/* Row 3: Amount & Title */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="app-border-soft rounded-[1.4rem] bg-white/30 p-4 backdrop-blur-md dark:bg-slate-900/25">
                             <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                                 Amount
                             </label>
@@ -328,7 +322,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                                 required
                             />
                         </div>
-                        <div>
+                        <div className="app-border-soft rounded-[1.4rem] bg-white/30 p-4 backdrop-blur-md dark:bg-slate-900/25">
                             <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                                 Title
                             </label>
@@ -344,7 +338,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                     </div>
 
                     {/* Row 4: Date */}
-                    <div>
+                    <div className="app-border-soft rounded-[1.4rem] bg-white/30 p-4 backdrop-blur-md dark:bg-slate-900/25">
                         <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                             Date & Time
                         </label>
@@ -368,8 +362,8 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                             >
                                 <Trash2 size={18} />
                             </button>
-                        ) : (<div></div>)}
-                        <div className='flex gap-3'>
+                        ) : <div />}
+                        <div className="flex gap-3">
                             <button
                                 type="button"
                                 onClick={onClose}

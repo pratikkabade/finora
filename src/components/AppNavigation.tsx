@@ -89,26 +89,39 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
 
     const handleNavigate = (path: string) => {
         if (location.pathname === path) {
-            window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+            window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
             return;
         }
 
-        navigate(path);
-        window.requestAnimationFrame(() => {
-            window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-        });
+        const completeNavigation = () => {
+            navigate(path);
+            window.requestAnimationFrame(() => {
+                window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+            });
+        };
+
+        const documentWithViewTransition = document as Document & {
+            startViewTransition?: (callback: () => void) => void;
+        };
+
+        try {
+            if (documentWithViewTransition.startViewTransition) {
+                documentWithViewTransition.startViewTransition(() => {
+                    completeNavigation();
+                });
+                return;
+            }
+        } catch (error) {
+            console.error('View transition failed, falling back to standard navigation.', error);
+        }
+
+        completeNavigation();
     };
 
     return (
         <>
             <aside className="fixed left-5 top-1/2 z-30 hidden -translate-y-1/2 md:block">
-                <div className="overflow-hidden rounded-[2rem] border border-white/60 bg-white/80 p-3 shadow-[0_24px_70px_-28px_rgba(15,23,42,0.55)] backdrop-blur-2xl dark:border-slate-800/80 dark:bg-slate-900/75">
-                    <div className="mb-4 flex justify-center">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 via-blue-600 to-cyan-500 shadow-[0_18px_38px_-18px_rgba(37,99,235,0.9)]">
-                            <img src="/finora-icon.svg" alt="" aria-hidden="true" className="h-9 w-9 object-contain" />
-                        </div>
-                    </div>
-
+                <div className="app-nav-shell app-border-soft overflow-hidden rounded-[2rem] bg-white/80 p-3 shadow-[0_24px_70px_-28px_rgba(15,23,42,0.55)] backdrop-blur-2xl dark:bg-slate-900/75">
                     <nav className="flex flex-col gap-2">
                         {navItems.map(({ id, icon: Icon, label, path }) => {
                             const isActive = activeView === id;
@@ -119,17 +132,27 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
                                     type="button"
                                     onClick={() => handleNavigate(path)}
                                     aria-current={isActive ? 'page' : undefined}
-                                    className={`group flex w-16 flex-col items-center gap-1 rounded-2xl border px-2 py-3 text-[11px] font-semibold transition-all duration-300 cursor-pointer ${
+                                    className={`group relative flex w-16 cursor-pointer flex-col items-center gap-1 overflow-hidden rounded-2xl border px-2 py-3 text-[11px] font-semibold transition-all duration-300 ${
                                         isActive
-                                            ? 'border-slate-200/80 bg-white/82 text-slate-950 shadow-[0_16px_30px_-18px_rgba(15,23,42,0.55)] dark:border-slate-300/35 dark:bg-slate-100 dark:text-slate-950'
-                                            : 'border-white/35 text-slate-500 hover:border-white/60 hover:bg-white/35 hover:text-slate-900 dark:border-slate-700/55 dark:text-slate-400 dark:hover:border-slate-600/75 dark:hover:bg-slate-800/50 dark:hover:text-slate-50'
+                                            ? 'app-border-surface bg-white/82 text-slate-950 shadow-[0_16px_30px_-18px_rgba(15,23,42,0.55)] dark:bg-slate-100 dark:text-slate-950'
+                                            : 'border border-slate-200/55 text-slate-500 hover:border-slate-300/80 hover:bg-white/35 hover:text-slate-900 hover:shadow-[0_16px_32px_-20px_rgba(15,23,42,0.35)] dark:border-slate-700/55 dark:text-slate-400 dark:hover:border-slate-500/75 dark:hover:bg-slate-800/50 dark:hover:text-slate-50'
                                     }`}
                                     title={label}
                                 >
-                                    <span className="flex h-8 w-8 items-center justify-center rounded-xl">
-                                        <Icon size={18} className={`transition-transform duration-300 ${isActive ? 'scale-105' : 'group-hover:scale-105'}`} />
+                                    <span
+                                        className={`pointer-events-none absolute inset-0 bg-linear-to-br from-white/45 via-white/0 to-sky-100/35 transition-opacity duration-300 ${
+                                            isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                        }`}
+                                    />
+                                    <span
+                                        className={`app-nav-active-indicator pointer-events-none absolute inset-x-2 top-1 h-9 rounded-2xl bg-linear-to-r from-sky-400/20 via-blue-500/20 to-cyan-400/20 blur-xl transition-opacity duration-300 ${
+                                            isActive ? 'opacity-100' : 'opacity-0'
+                                        }`}
+                                    />
+                                    <span className="relative flex h-8 w-8 items-center justify-center rounded-xl">
+                                        <Icon size={18} className={`transition-transform duration-300 ${isActive ? 'scale-105' : 'group-hover:scale-105 group-active:scale-95'}`} />
                                     </span>
-                                    <span>{label}</span>
+                                    <span className="relative">{label}</span>
                                 </button>
                             );
                         })}
@@ -141,7 +164,7 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
                 className="fixed inset-x-0 bottom-0 z-40 px-3 md:hidden"
                 style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.6rem)' }}
             >
-                <div className={`pointer-events-auto mx-auto flex w-fit items-center rounded-[2rem] border border-white/70 bg-white/55 backdrop-blur-[26px] transition-all duration-300 ease-out dark:border-slate-700/80 dark:bg-slate-900/55 ${
+                <div className={`app-nav-shell app-border-soft pointer-events-auto mx-auto flex w-fit items-center rounded-[2rem] bg-white/55 backdrop-blur-[26px] transition-all duration-300 ease-out dark:bg-slate-900/55 ${
                     isMobileNavCompact
                         ? 'gap-1 p-1 shadow-[0_18px_45px_-24px_rgba(15,23,42,0.55)]'
                         : 'gap-1.5 p-1.5 shadow-[0_24px_65px_-28px_rgba(15,23,42,0.55)]'
@@ -157,7 +180,7 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
                                 onClick={() => handleNavigate(path)}
                                 aria-current={isActive ? 'page' : undefined}
                                 aria-label={label}
-                                className={`group flex items-center justify-center overflow-hidden rounded-[1.45rem] border text-[11px] font-semibold touch-manipulation transition-[width,height,background-color,color,box-shadow,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                                className={`group relative flex cursor-pointer items-center justify-center overflow-hidden rounded-[1.45rem] border text-[11px] font-semibold touch-manipulation transition-[width,height,background-color,color,box-shadow,border-color,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                                     isMobileNavCompact
                                         ? 'h-11 w-11'
                                         : isActive
@@ -165,14 +188,24 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
                                             : 'h-12 w-12'
                                 } ${
                                     isActive
-                                        ? 'border-slate-200/80 bg-white/82 text-slate-950 shadow-[0_16px_30px_-18px_rgba(15,23,42,0.55)] dark:border-slate-300/35 dark:bg-slate-100 dark:text-slate-950'
-                                        : 'border-white/35 text-slate-500 hover:border-white/60 hover:bg-white/35 hover:text-slate-900 dark:border-slate-700/55 dark:text-slate-400 dark:hover:border-slate-600/75 dark:hover:bg-slate-800/50 dark:hover:text-slate-50'
+                                        ? 'app-border-surface bg-white/82 text-slate-950 shadow-[0_16px_30px_-18px_rgba(15,23,42,0.55)] dark:bg-slate-100 dark:text-slate-950'
+                                        : 'border border-slate-200/55 text-slate-500 hover:border-slate-300/80 hover:bg-white/35 hover:text-slate-900 hover:shadow-[0_16px_32px_-20px_rgba(15,23,42,0.35)] dark:border-slate-700/55 dark:text-slate-400 dark:hover:border-slate-500/75 dark:hover:bg-slate-800/50 dark:hover:text-slate-50'
                                 }`}
                             >
+                                <span
+                                    className={`pointer-events-none absolute inset-0 bg-linear-to-br from-white/45 via-white/0 to-sky-100/30 transition-opacity duration-300 ${
+                                        isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                    }`}
+                                />
+                                <span
+                                    className={`app-nav-active-indicator pointer-events-none absolute inset-x-2 top-1 h-9 rounded-2xl bg-linear-to-r from-sky-400/20 via-blue-500/20 to-cyan-400/20 blur-xl transition-opacity duration-300 ${
+                                        isActive ? 'opacity-100' : 'opacity-0'
+                                    }`}
+                                />
                                 <span className={`grid items-center overflow-hidden transition-[grid-template-columns,gap] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                                     showMobileLabel ? 'grid-cols-[32px_1fr] gap-2' : 'grid-cols-[32px_0fr] gap-0'
                                 }`}>
-                                    <span className="flex h-8 w-8 items-center justify-center justify-self-center rounded-full">
+                                    <span className="relative flex h-8 w-8 items-center justify-center justify-self-center rounded-full">
                                         <Icon size={18} className={`shrink-0 transition-transform duration-300 ${isActive ? 'scale-105' : 'group-active:scale-95'}`} />
                                     </span>
                                     <span className="overflow-hidden">

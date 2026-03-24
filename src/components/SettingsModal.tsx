@@ -7,17 +7,21 @@ import { FreeBlueBtn, FreeWhiteBtn, settingBtnDangerClass, settingBtnDetailTextC
 // import { PINManagement } from './PINManagement';
 import { SyncStatusIndicator } from './SyncStatusIndicator';
 import { getIncludedNetBalanceAccountIds } from '../services/storageService';
+import { useAnimatedOpen } from '../hooks/useAnimatedOpen';
 import { intToHex } from '../utils/colorUtils';
 
 type ActionStatus = 'idle' | 'success' | 'error';
 type ActionStatusKey = 'backup' | 'sync' | 'import' | 'sample' | 'category';
 
 const ACTION_STATUS_RESET_MS = 2000;
-    const ACTION_SUCCESS_CLASSES = '!bg-green-50/80 dark:!bg-green-950/35 !text-green-700 dark:!text-green-300 !border-green-200/70 dark:!border-green-800/60';
-    const ACTION_ERROR_CLASSES = '!bg-red-50/80 dark:!bg-red-950/35 !text-red-700 dark:!text-red-300 !border-red-200/70 dark:!border-red-800/60';
-    const ACTION_IDLE_CLASSES = 'text-gray-900 dark:text-gray-50';
+const ACTION_SUCCESS_CLASSES = '!bg-green-50/80 dark:!bg-green-950/35 !text-green-700 dark:!text-green-300 !border-green-200/70 dark:!border-green-800/60';
+const ACTION_ERROR_CLASSES = '!bg-red-50/80 dark:!bg-red-950/35 !text-red-700 dark:!text-red-300 !border-red-200/70 dark:!border-red-800/60';
+const ACTION_IDLE_CLASSES = 'text-gray-900 dark:text-gray-50';
 const ACTION_BASE_CLASSES = 'disabled:opacity-50 disabled:cursor-not-allowed';
-const SECTION_CARD_CLASSES = 'rounded-[1.75rem] border border-white/60 bg-white/70 p-4 shadow-[0_18px_44px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/40 sm:p-5';
+const SECTION_CARD_CLASSES = 'app-card-spotlight app-section app-border-soft rounded-[1.75rem] bg-white/72 p-4 shadow-[0_18px_44px_-28px_rgba(15,23,42,0.35)] backdrop-blur-xl dark:bg-slate-900/52 sm:p-5';
+const SETTINGS_ITEM_SURFACE = 'app-border-surface rounded-2xl bg-white/80 px-4 py-3 text-slate-800 shadow-sm dark:bg-slate-900/58 dark:text-slate-100';
+const SETTINGS_MUTED_SURFACE = 'app-border-surface rounded-2xl bg-white/80 px-4 py-3 shadow-sm dark:bg-slate-900/58';
+const SETTINGS_DASHED_SURFACE = 'rounded-2xl border border-dashed border-slate-300/80 bg-white/45 px-4 py-3 text-sm text-slate-600 dark:border-slate-600/65 dark:bg-slate-900/42 dark:text-slate-300';
 
 interface SettingsSectionProps {
     eyebrow: string;
@@ -73,6 +77,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const actionStatusTimersRef = useRef<Partial<Record<ActionStatusKey, number>>>({});
+    const { shouldRender, isVisible } = useAnimatedOpen(isOpen);
     const [cloudSyncStatus, setCloudSyncStatus] = useState({ isSynced: true, lastSyncTime: localStorage.getItem('lastCloudBackup') ? parseInt(localStorage.getItem('lastCloudBackup') as string, 10) : 0 });
     const [isBackingUp, setIsBackingUp] = useState(false);
     const [backupStatus, setBackupStatus] = useState<ActionStatus>('idle');
@@ -342,18 +347,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         reader.readAsText(file);
     };
 
-    if (!isOpen) return null;
+    if (!shouldRender) return null;
 
     const isPageVariant = variant === 'page';
     const shellClasses = isPageVariant
         ? 'relative w-full'
-        : 'fixed inset-0 z-50 overflow-y-auto bg-slate-950/30 px-4 py-6 backdrop-blur-xl sm:py-10';
+        : `app-modal-backdrop fixed inset-0 z-50 overflow-y-auto bg-slate-950/30 px-4 py-6 backdrop-blur-xl sm:py-10 ${isVisible ? 'app-modal-backdrop-enter' : 'app-modal-backdrop-exit'}`;
     const cardClasses = isPageVariant
         ? 'w-full'
-        : 'mx-auto w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/60 bg-white/90 shadow-[0_28px_80px_-34px_rgba(15,23,42,0.55)] backdrop-blur-2xl dark:border-slate-800/80 dark:bg-slate-900/85';
+        : `app-modal-panel app-border-soft mx-auto w-full max-w-5xl overflow-hidden rounded-[2rem] bg-white/90 shadow-[0_28px_80px_-34px_rgba(15,23,42,0.55)] backdrop-blur-2xl dark:bg-slate-900/78 ${isVisible ? 'app-modal-panel-enter' : 'app-modal-panel-exit'}`;
     const headerClasses = isPageVariant
-        ? 'mb-6'
-        : 'border-b border-slate-200/70 px-5 py-5 dark:border-slate-800/80 sm:px-7 sm:py-6';
+        ? 'app-section mb-6'
+        : 'app-divider-border border-b px-5 py-5 sm:px-7 sm:py-6';
     const contentClasses = isPageVariant
         ? 'grid gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)]'
         : 'grid gap-4 p-4 sm:gap-5 sm:p-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)]';
@@ -388,30 +393,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
 
                 <div className={contentClasses}>
-                    <div className="space-y-4 sm:space-y-5">
+                    <div className="app-stagger-list space-y-4 sm:space-y-5">
                         <SettingsSection
                             eyebrow="Profile"
                             title="Account at a glance"
                             description="See who is working in this workspace and keep your setup easy to understand."
                         >
                             {localUser ? (
-                                <div className="rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-slate-800 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/45 dark:text-slate-100">
+                                <div className={SETTINGS_ITEM_SURFACE}>
                                     Welcome, <span className="font-semibold">{localUser}</span>
                                 </div>
                             ) : (
-                                <div className="rounded-2xl border border-dashed border-slate-300/80 px-4 py-3 text-sm text-slate-600 dark:border-slate-700/80 dark:text-slate-400">
+                                <div className={SETTINGS_DASHED_SURFACE}>
                                     No local display name is set yet.
                                 </div>
                             )}
 
                             {user && (
-                                <div className="rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-sm text-slate-700 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/45 dark:text-slate-300">
+                                <div className={`${SETTINGS_ITEM_SURFACE} text-sm dark:text-slate-200`}>
                                     {user.email}
                                 </div>
                             )}
 
                             {!user && isGuest && (
-                                <div className="rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-sm text-slate-700 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/45 dark:text-slate-300">
+                                <div className={`${SETTINGS_ITEM_SURFACE} text-sm dark:text-slate-200`}>
                                     You are using guest mode. Data stays local unless you choose to back it up.
                                 </div>
                             )}
@@ -422,7 +427,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             title="Optimization"
                             description="Choose which accounts contribute to the top-level net balance shown on your home screen."
                         >
-                            <div className="flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/45">
+                            <div className={`${SETTINGS_MUTED_SURFACE} flex items-start gap-3`}>
                                 <Landmark size={18} className="mt-0.5 shrink-0 text-slate-700 dark:text-slate-200" />
                                 <span className="text-sm text-slate-600 dark:text-slate-400">
                                     Keep at least one account enabled so the headline balance always has a source.
@@ -444,7 +449,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                                                     isSelected
                                                         ? 'border-sky-300 bg-sky-50 text-sky-900 shadow-sm dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-100'
-                                                        : 'border-slate-200/80 bg-white/80 text-slate-700 hover:border-slate-300 dark:border-slate-800/80 dark:bg-slate-950/45 dark:text-slate-300 dark:hover:border-slate-700'
+                                                        : 'app-border-surface bg-white/80 text-slate-700 hover:border-slate-300/85 dark:bg-slate-900/58 dark:text-slate-300 dark:hover:border-slate-500/70'
                                                 }`}
                                             >
                                                 <span className={`relative inline-flex h-5.5 w-9.5 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${isSelected ? 'bg-blue-500' : 'bg-gray-300/60 dark:bg-slate-700'}`}>
@@ -465,7 +470,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             title="Manage categories"
                             description="Add new categories and keep the list clean for faster transaction entry."
                         >
-                            <div className="flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/45">
+                            <div className={`${SETTINGS_MUTED_SURFACE} flex items-start gap-3`}>
                                 <Tags size={18} className="mt-0.5 shrink-0 text-slate-700 dark:text-slate-200" />
                                 <span className="text-sm text-slate-600 dark:text-slate-400">
                                     New categories appear immediately when you create or edit transactions.
@@ -478,10 +483,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                         {orderedCategories.map((category) => (
                                             <div
                                                 key={category.id}
-                                                className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/80 px-3 py-2 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/45"
+                                                className={`${SETTINGS_ITEM_SURFACE} flex items-center gap-2 px-3 py-2`}
                                             >
                                                 <span
-                                                    className="h-3 w-3 rounded-full border border-black/10 dark:border-white/20"
+                                                    className="app-color-chip-border h-3 w-3 rounded-full"
                                                     style={{ backgroundColor: intToHex(category.color) }}
                                                 />
                                                 <span className="truncate text-sm text-slate-800 dark:text-slate-100">{category.name}</span>
@@ -504,7 +509,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                         disabled={!onAddCategory}
                                     />
                                     <label
-                                        className="h-10 w-12 shrink-0 overflow-hidden rounded-lg border border-white/30 dark:border-gray-700/40"
+                                        className="app-border-soft h-10 w-12 shrink-0 overflow-hidden rounded-lg bg-white/65 dark:bg-slate-900/45"
                                         title="Choose category color"
                                     >
                                         <input
@@ -531,7 +536,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </SettingsSection>
                     </div>
 
-                    <div className="space-y-4 sm:space-y-5">
+                    <div className="app-stagger-list space-y-4 sm:space-y-5">
                         <SettingsSection
                             eyebrow="Backups"
                             title="Safeguard data"

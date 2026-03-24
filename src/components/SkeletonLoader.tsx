@@ -25,7 +25,7 @@ const shimmerStyle = `
 export const SkeletonCard: React.FC = () => (
     <>
         <style>{shimmerStyle}</style>
-        <div className="w-full rounded-2xl border border-white/20 bg-white/20 p-4 backdrop-blur-xl dark:border-gray-700/20 dark:bg-gray-800/20 sm:p-5 md:p-6" style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)' }}>
+        <div className="app-border-soft w-full rounded-2xl bg-white/24 p-4 backdrop-blur-xl dark:bg-slate-900/32 sm:p-5 md:p-6" style={{ boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)' }}>
             <div>
                 <div className="shimmer mb-4 h-4 w-24 rounded bg-white/20 dark:bg-gray-700/30" style={{ minHeight: '1rem' }} />
                 <div className="shimmer h-8 w-32 rounded bg-white/20 dark:bg-gray-700/30" style={{ minHeight: '2rem' }} />
@@ -63,7 +63,7 @@ export const SkeletonTable: React.FC = () => (
 );
 
 export const SkeletonCard2: React.FC = () => (
-    <div className={transactionCard}>
+    <div className={`${transactionCard} pointer-events-none`}>
         <div className="mb-2 flex flex-col gap-2 xs:flex-row xs:items-start xs:justify-between xs:gap-3 xs:mb-3">
             <div className="min-w-0 flex-1">
                 <div className="mb-2 h-7 w-3/4 animate-pulse rounded-sm bg-slate-400 dark:bg-slate-600" />
@@ -93,7 +93,7 @@ interface SkeletonAppProps {
 }
 
 export const SkeletonApp: React.FC<SkeletonAppProps> = ({ variant = 'home' }) => (
-    <div className="">
+    <div className="app-panel-stagger">
         {variant === 'report' ? (
             <>
                 <div className="mb-6 flex flex-col justify-between gap-4 xl:flex-row xl:items-start">

@@ -3,6 +3,7 @@ import { X, Calendar } from 'lucide-react';
 import type { Transaction } from '../types/finance.types';
 import { generateMonthYearOptions, getMonthName } from '../utils/dateUtils';
 import { FreeBlueBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
+import { useAnimatedOpen } from '../hooks/useAnimatedOpen';
 
 type FilterMode = 'month' | 'range';
 
@@ -35,6 +36,7 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
     selectedMonthYear,
     transactions,
 }) => {
+    const { shouldRender, isVisible } = useAnimatedOpen(isOpen);
     const monthYearOptions = useMemo(() => {
         return generateMonthYearOptions(transactions);
     }, [transactions]);
@@ -122,15 +124,17 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
         onClose();
     };
 
-    if (!isOpen) return null;
+    if (!shouldRender) return null;
 
     const hasOptions = monthYearOptions.length > 0;
     const actionLabel = selectionMode === 'month' ? 'Apply Month' : 'Apply Range';
     const modeDescription = selectionMode === 'month'
         ? 'Keep it quick with a single-month filter.'
         : 'Choose a start and end month for a wider view.';
-    const selectClassName = 'glass-input w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg border border-white/20 dark:border-gray-700/30 focus:border-blue-400 focus:outline-none';
-    const sectionSurfaceClassName = 'rounded-2xl border border-white/35 dark:border-gray-700/30 bg-white/25 dark:bg-gray-800/25 backdrop-blur-md';
+    const selectClassName = 'glass-input w-full rounded-lg border border-slate-200/70 px-3 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none dark:border-slate-700/55 dark:text-gray-50';
+    const sectionSurfaceClassName = 'app-border-soft rounded-2xl bg-white/25 backdrop-blur-md dark:bg-gray-800/25';
+    const panelAnimationClass = selectionMode === 'month' ? 'filter-panel-enter-left' : 'filter-panel-enter-right';
+    const yearSelectOptions = yearOptions.map((year) => ({ value: year, label: year }));
     const singleMonthOptions = monthsByYear[singleYear] ?? [];
     const startMonthOptions = monthsByYear[startYear] ?? [];
     const endMonthOptions = monthsByYear[endYear] ?? [];
@@ -165,94 +169,80 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
         });
     };
 
-    const renderYearMonthSelectors = (
-        yearLabel: string,
-        yearValue: string,
-        onYearChange: (year: string) => void,
-        monthLabel: string,
-        monthValue: string,
-        onMonthChange: (month: string) => void,
-        monthOptions: Array<{ value: string; label: string }>,
+    const renderSelectField = (
+        label: string,
+        value: string,
+        onChange: (value: string) => void,
+        options: Array<{ value: string; label: string }>,
     ) => (
-        <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{yearLabel}</label>
-                <select
-                    value={yearValue}
-                    onChange={(e) => onYearChange(e.target.value)}
-                    className={selectClassName}
-                >
-                    {yearOptions.map((year) => (
-                        <option key={year} value={year}>
-                            {year}
-                        </option>
-                    ))}
-                </select>
-            </div>
-            <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{monthLabel}</label>
-                <select
-                    value={monthValue}
-                    onChange={(e) => onMonthChange(e.target.value)}
-                    className={selectClassName}
-                >
-                    {monthOptions.map((option) => (
-                        <option key={`${yearValue}-${option.value}`} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
-            </div>
+        <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className={selectClassName}
+            >
+                {options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
+            </select>
         </div>
     );
 
     const contentPanel = selectionMode === 'month' ? (
-        <div className={`filter-panel-enter ${sectionSurfaceClassName} space-y-4 p-4`}>
-            {renderYearMonthSelectors(
-                'Year',
-                singleYear,
-                handleSingleYearChange,
-                'Month',
-                singleMonth,
-                setSingleMonth,
-                singleMonthOptions,
-            )}
+        <div key="month-panel" className={`${panelAnimationClass} ${sectionSurfaceClassName} grid h-full content-center p-4`}>
+            <div className="grid grid-cols-2 gap-3">
+                {renderSelectField(
+                    'Year',
+                    singleYear,
+                    handleSingleYearChange,
+                    yearSelectOptions,
+                )}
+                {renderSelectField(
+                    'Month',
+                    singleMonth,
+                    setSingleMonth,
+                    singleMonthOptions,
+                )}
+            </div>
         </div>
     ) : (
-        <div className={`filter-panel-enter ${sectionSurfaceClassName} space-y-4 p-4`}>
-            <div className="space-y-4">
-                <div>
-                    <p className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Start</p>
-                    {renderYearMonthSelectors(
-                        'Start Year',
-                        startYear,
-                        handleStartYearChange,
-                        'Start Month',
-                        startMonth,
-                        setStartMonth,
-                        startMonthOptions,
-                    )}
-                </div>
-                <div>
-                    <p className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">End</p>
-                    {renderYearMonthSelectors(
-                        'End Year',
-                        endYear,
-                        handleEndYearChange,
-                        'End Month',
-                        endMonth,
-                        setEndMonth,
-                        endMonthOptions,
-                    )}
-                </div>
+        <div key="range-panel" className={`${panelAnimationClass} ${sectionSurfaceClassName} p-4`}>
+            <div className="grid grid-cols-2 gap-3">
+                {renderSelectField(
+                    'Start Year',
+                    startYear,
+                    handleStartYearChange,
+                    yearSelectOptions,
+                )}
+                {renderSelectField(
+                    'Start Month',
+                    startMonth,
+                    setStartMonth,
+                    startMonthOptions,
+                )}
+                {renderSelectField(
+                    'End Year',
+                    endYear,
+                    handleEndYearChange,
+                    yearSelectOptions,
+                )}
+                {renderSelectField(
+                    'End Month',
+                    endMonth,
+                    setEndMonth,
+                    endMonthOptions,
+                )}
             </div>
         </div>
     );
 
     return (
-        <div className={ModalOut}>
-            <div className={`${ModalPopUp} relative`}>
-                <div className="filter-mode-glow pointer-events-none absolute inset-x-10 top-16 h-16 rounded-full bg-linear-to-r from-sky-300/12 via-white/5 to-cyan-300/12 blur-3xl" />
+        <div className={`${ModalOut} ${isVisible ? 'app-modal-backdrop-enter' : 'app-modal-backdrop-exit'}`}>
+            <div className={`${ModalPopUp} relative max-w-sm sm:max-w-lg ${isVisible ? 'app-modal-panel-enter' : 'app-modal-panel-exit'}`}>
+                <div className="app-modal-glow pointer-events-none absolute inset-x-10 top-16 h-16 rounded-full bg-linear-to-r from-sky-300/12 via-white/5 to-cyan-300/12 blur-3xl" />
 
                 {/* Header */}
                 <div className={`${ModalHeader} relative`}>
@@ -269,11 +259,11 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
                 </div>
 
                 {/* Content */}
-                <div className="relative p-4 sm:p-6 space-y-4">
+                <div className="app-panel-stagger relative space-y-4 p-4 sm:p-6">
                     <div className={`${sectionSurfaceClassName} space-y-3 p-2`}>
                         <div className="relative grid grid-cols-2 gap-1">
                             <div
-                                className={`pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-white/90 dark:bg-gray-800/85 shadow-[0_12px_30px_-18px_rgba(37,99,235,0.45)] transition-transform duration-300 ease-out ${selectionMode === 'range' ? 'translate-x-full' : 'translate-x-0'}`}
+                                className={`pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-white/90 dark:bg-gray-800/85 shadow-[0_12px_30px_-18px_rgba(37,99,235,0.45)] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${selectionMode === 'range' ? 'translate-x-full scale-[1.01]' : 'translate-x-0 scale-100'}`}
                             />
                             <button
                                 type="button"
@@ -297,7 +287,9 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
                         </div>
                     </div>
 
-                    {contentPanel}
+                    <div className="overflow-hidden min-h-[12.25rem] sm:min-h-[11.5rem]">
+                        {contentPanel}
+                    </div>
 
                     <button
                         onClick={selectionMode === 'month' ? handleApplySingleMonth : handleApplyRange}

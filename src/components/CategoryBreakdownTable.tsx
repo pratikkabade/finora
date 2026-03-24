@@ -52,13 +52,19 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
                 total,
             }))
             .sort((a, b) => b.amount - a.amount);
-    }, [transactions, categories, type]);
+    }, [transactions, categories, type, getCategoryColor]);
 
     if (categoryData.length === 0) return null;
 
     const total = categoryData[0]?.total ?? 0;
     const totalCount = categoryData.reduce((sum, cat) => sum + cat.count, 0);
     const hasSelectedCategories = selectedCategories.length > 0;
+    const selectedCategoryData = categoryData.filter((row) => selectedCategories.includes(row.categoryId));
+    const selectedTotal = selectedCategoryData.reduce((sum, row) => sum + row.amount, 0);
+    const selectedPercentage = total > 0 ? ((selectedTotal / total) * 100).toFixed(2) : '0.00';
+    const totalLabel = hasSelectedCategories
+        ? `Selected Total${selectedCategoryData.length > 1 ? ` (${selectedCategoryData.length})` : ''}`
+        : 'Total';
 
     const handleCategoryClick = (categoryId: string) => {
         onToggleCategory(categoryId);
@@ -76,59 +82,58 @@ export const CategoryBreakdownTable: React.FC<CategoryBreakdownTableProps> = ({
             )}
             <div className="flex flex-col gap-2">
                 {/* Header */}
-                <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-3 pb-2 border-b border-white/20 dark:border-gray-700/30">
+                <div className="app-divider-border grid grid-cols-[1fr_auto_auto] gap-4 border-b px-3 pb-2">
                     <span className="font-semibold text-gray-800 dark:text-gray-200">Category</span>
                     <span className="font-semibold text-gray-800 dark:text-gray-200 text-right">Amount</span>
                     <span className="font-semibold text-gray-800 dark:text-gray-200 text-right">Percentage</span>
                 </div>
 
                 {/* Rows */}
-                {categoryData.map((row) => {
-                    const isSelected = selectedCategories.includes(row.categoryId);
+                <div className="app-stagger-list flex flex-col gap-2">
+                    {categoryData.map((row) => {
+                        const isSelected = selectedCategories.includes(row.categoryId);
 
-                    return (
-                        <button
-                            key={row.name}
-                            type="button"
-                            onClick={() => handleCategoryClick(row.categoryId)}
-                            aria-pressed={isSelected}
-                            className={`grid grid-cols-[1fr_auto_auto] gap-4 rounded-xl border px-3 py-3 text-left transition-all cursor-pointer ${
-                                isSelected
-                                    ? 'shadow-sm'
-                                    : 'border-slate-300 bg-transparent hover:border-slate-500 hover:bg-white/10 dark:border-slate-700 dark:hover:border-slate-500 dark:hover:bg-gray-800/30'
-                            }`}
-                            style={isSelected
-                                ? {
-                                    backgroundColor: hexToRgba(row.color, 0.12),
-                                    borderColor: hexToRgba(row.color, 0.7),
-                                    boxShadow: `0 0 0 1px ${hexToRgba(row.color, 0.18)}`,
-                                }
-                                : undefined}
-                        >
-                            <div className="flex flex-row gap-2 items-center text-gray-900 dark:text-gray-50 font-medium">
-                                <div
-                                    className={`h-3.5 w-3.5 shrink-0 rounded-full border border-black/10 transition-transform dark:border-white/20 ${
-                                        isSelected ? 'scale-110' : ''
-                                    }`}
-                                    style={{ backgroundColor: row.color }}
-                                />
-                                {row.name}
-                                <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">({row.count})</span>
-                            </div>
-                            <span className="text-right text-gray-800 dark:text-gray-200 font-semibold min-w-20">₹{row.amount.toFixed(2)}</span>
-                            <span className="text-right text-gray-800 dark:text-gray-200 font-semibold min-w-20">{row.percentage}%</span>
-                        </button>
-                    );
-                })}
+                        return (
+                            <button
+                                key={row.name}
+                                type="button"
+                                onClick={() => handleCategoryClick(row.categoryId)}
+                                aria-pressed={isSelected}
+                                className={`grid grid-cols-[1fr_auto_auto] gap-4 rounded-2xl border px-3 py-3 text-left transition-[transform,border-color,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] cursor-pointer ${
+                                    isSelected
+                                        ? 'shadow-sm'
+                                        : 'border-slate-200/80 bg-white/35 hover:border-slate-300/85 hover:bg-white/55 hover:shadow-[0_16px_36px_-26px_rgba(15,23,42,0.28)] dark:border-slate-700/65 dark:bg-slate-900/15 dark:hover:border-slate-500/70 dark:hover:bg-gray-800/30'
+                                }`}
+                                style={isSelected
+                                    ? {
+                                        backgroundColor: hexToRgba(row.color, 0.14),
+                                        borderColor: hexToRgba(row.color, 0.7),
+                                        boxShadow: `0 0 0 1px ${hexToRgba(row.color, 0.18)}, 0 18px 40px -26px ${hexToRgba(row.color, 0.38)}`,
+                                    }
+                                    : undefined}
+                            >
+                                <div className="flex flex-row gap-2 items-center text-gray-900 dark:text-gray-50 font-medium">
+                                    <div
+                                        className={`app-color-chip-border h-3.5 w-3.5 shrink-0 rounded-full transition-transform ${
+                                            isSelected ? 'scale-110' : ''
+                                        }`}
+                                        style={{ backgroundColor: row.color }}
+                                    />
+                                    {row.name}
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">({row.count})</span>
+                                </div>
+                                <span className="text-right text-gray-800 dark:text-gray-200 font-semibold min-w-20">₹{row.amount.toFixed(2)}</span>
+                                <span className="text-right text-gray-800 dark:text-gray-200 font-semibold min-w-20">{row.percentage}%</span>
+                            </button>
+                        );
+                    })}
+                </div>
 
-                {/* Total */}
-                {!hasSelectedCategories && (
-                    <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-3 py-3 rounded-xl bg-white/10 dark:bg-gray-800/20 font-bold text-gray-900 dark:text-gray-50 mt-1">
-                        <span>Total</span>
-                        <span className="text-right">₹{total.toFixed(2)}</span>
-                        <span className="text-right">100.00%</span>
-                    </div>
-                )}
+                <div className="app-border-soft mt-1 grid grid-cols-[1fr_auto_auto] gap-4 rounded-2xl bg-white/55 px-3 py-3 font-bold text-gray-900 dark:bg-slate-900/32 dark:text-gray-50">
+                    <span>{totalLabel}</span>
+                    <span className="text-right">₹{(hasSelectedCategories ? selectedTotal : total).toFixed(2)}</span>
+                    <span className="text-right">{hasSelectedCategories ? selectedPercentage : '100.00'}%</span>
+                </div>
             </div>
         </div>
     );

@@ -47,12 +47,12 @@ export const AppHeader = ({ onLogoClick }: AppHeaderProps) => {
     const logo = <img src="/finora-icon.svg" alt="Finora Logo" className="mx-auto h-24 w-24 sm:mx-0" />;
 
     return (
-        <div className="mb-6 flex flex-row items-center gap-4 pt-5 sm:mb-8">
+        <div className="app-section mb-6 flex flex-row items-center gap-4 pt-5 sm:mb-8">
             {onLogoClick ? (
                 <button
                     type="button"
                     onClick={onLogoClick}
-                    className="cursor-pointer rounded-full focus-visible:outline-2 focus-visible:outline-blue-500"
+                    className="cursor-pointer rounded-full transition-transform duration-300 hover:scale-[1.03] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-blue-500"
                     title="Refresh homepage"
                     aria-label="Refresh homepage"
                 >
@@ -83,9 +83,9 @@ function App() {
     const [selectedIncomeCategory, setSelectedIncomeCategory] = useState<string | null>(null);
     const [homeVisibleCount, setHomeVisibleCount] = useState(20);
     const [balanceSummary, setBalanceSummary] = useState<BalanceSummary | null>(null);
-    const [animation, setAnimation] = useState(true);
     const [isContentVisible, setIsContentVisible] = useState(false);
     const [showSkeletonOverlay, setShowSkeletonOverlay] = useState(true);
+    const [hasCompletedInitialHomeReveal, setHasCompletedInitialHomeReveal] = useState(false);
     const isSessionActive = !!user || isGuest;
     const storageUserId = user?.uid ?? (isGuest ? GUEST_USER_ID : null);
     // const [isPINVerified, setIsPINVerified] = useState(false);
@@ -453,7 +453,7 @@ function App() {
         }
 
         return (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+            <div className="app-stagger-grid grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
                 {transactions.map((transaction) => (
                     <TransactionCard
                         key={transaction.id}
@@ -521,8 +521,9 @@ function App() {
                 />
 
                 <button
+                    type="button"
                     onClick={() => setIsModalOpen(true)}
-                    className={`${FreeBlueBtn} fixed bottom-24 right-4 md:bottom-4 md:right-4`}
+                    className={`${FreeBlueBtn} app-fab fixed bottom-24 right-4 md:bottom-4 md:right-4`}
                 >
                     <Plus size={18} />
                     <span>Add</span>
@@ -599,6 +600,12 @@ function App() {
     }, [location.pathname]);
 
     useEffect(() => {
+        setHasCompletedInitialHomeReveal(false);
+        setIsContentVisible(false);
+        setShowSkeletonOverlay(true);
+    }, [storageUserId]);
+
+    useEffect(() => {
         setHomeVisibleCount(20);
     }, [selectedMonthYear, dateRange?.start, dateRange?.end, homeTransactions.length]);
 
@@ -614,19 +621,19 @@ function App() {
     }, []);
 
     useEffect(() => {
-        const timerId = window.setTimeout(() => {
-            setAnimation(false);
-        }, 1500);
+        if (location.pathname !== '/') {
+            return;
+        }
 
-        return () => {
-            window.clearTimeout(timerId);
-        };
-    }, []);
-
-    useEffect(() => {
-        if (!isHomeDataReady || animation) {
+        if (!isHomeDataReady) {
             setIsContentVisible(false);
             setShowSkeletonOverlay(true);
+            return;
+        }
+
+        if (hasCompletedInitialHomeReveal) {
+            setIsContentVisible(true);
+            setShowSkeletonOverlay(false);
             return;
         }
 
@@ -635,13 +642,14 @@ function App() {
         });
         const timerId = window.setTimeout(() => {
             setShowSkeletonOverlay(false);
-        }, 500);
+            setHasCompletedInitialHomeReveal(true);
+        }, 320);
 
         return () => {
             window.cancelAnimationFrame(rafId);
             window.clearTimeout(timerId);
         };
-    }, [isHomeDataReady, animation]);
+    }, [isHomeDataReady, hasCompletedInitialHomeReveal, location.pathname]);
 
     if (!isSessionActive) {
         return <LoginPage />;
@@ -668,7 +676,17 @@ function App() {
 
     if (location.pathname === '/settings') {
         return (
-            <AppShell activeView="settings">
+            <AppShell
+                activeView="settings"
+                overlayChildren={(
+                    <DataSourceModal
+                        isOpen={showDataSourceModal}
+                        onFetchFirebase={handleFetchFromFirebase}
+                        onGetDummyData={handleGetSampleData}
+                        showCloudOption={!!user}
+                    />
+                )}
+            >
                 <SettingsModal
                     variant="page"
                     isOpen={true}
@@ -682,13 +700,6 @@ function App() {
                     onSyncFromFirebase={user ? handleSyncFromFirebase : undefined}
                     onGetSampleData={handleGetSampleData}
                 />
-
-                <DataSourceModal
-                    isOpen={showDataSourceModal}
-                    onFetchFirebase={handleFetchFromFirebase}
-                    onGetDummyData={handleGetSampleData}
-                    showCloudOption={!!user}
-                />
             </AppShell>
         );
     }
@@ -696,24 +707,28 @@ function App() {
     if (!isHomeDataReady) {
         return (
             <>
-                <AppShell activeView={loadingView}>
+                <AppShell
+                    activeView={loadingView}
+                    overlayChildren={(
+                        <DataSourceModal
+                            isOpen={showDataSourceModal}
+                            onFetchFirebase={handleFetchFromFirebase}
+                            onGetDummyData={handleGetSampleData}
+                            showCloudOption={!!user}
+                        />
+                    )}
+                >
                     <SkeletonApp variant={loadingView === 'report' ? 'report' : 'home'} />
                 </AppShell>
-                <DataSourceModal
-                    isOpen={showDataSourceModal}
-                    onFetchFirebase={handleFetchFromFirebase}
-                    onGetDummyData={handleGetSampleData}
-                    showCloudOption={!!user}
-                />
             </>
         );
     }
 
     if (location.pathname === '/report') {
         return (
-            <AppShell activeView="report">
-                <div className="">
-                    <div className="mb-6 flex flex-col justify-between gap-4 xl:flex-row xl:items-start">
+            <AppShell activeView="report" overlayChildren={renderSharedFloatingUi()}>
+                <div className="space-y-6 sm:space-y-7">
+                    <div className="app-section mb-6 flex flex-col justify-between gap-4 xl:flex-row xl:items-start">
                         <div className="max-w-xl">
                             <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-sky-600/80 dark:text-sky-300/75">
                                 Insights
@@ -749,7 +764,7 @@ function App() {
                         </div>
                     </div>
 
-                    <div className="mb-6 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 md:gap-6">
+                    <div className="app-stagger-grid mb-6 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 md:gap-6">
                         <div className={amountCard}>
                             <p className="mb-1 text-xs font-medium text-gray-700 dark:text-gray-300 sm:mb-2 sm:text-sm">Total Expense</p>
                             <p className="text-xl font-bold text-red-600 sm:text-2xl md:text-3xl">₹ {formatNumberWithCommas(reportTotalExpense.toFixed(2))}</p>
@@ -770,7 +785,7 @@ function App() {
                     />
 
                     {selectedReportCategoryIds.length > 0 && (
-                        <div className="mt-6">
+                        <div className="app-section mt-6">
                             <div className="mb-4 flex flex-col gap-2 xs:flex-row xs:items-center xs:justify-between xs:gap-4">
                                 <div className="min-w-0">
                                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl">
@@ -786,14 +801,12 @@ function App() {
                         </div>
                     )}
                 </div>
-
-                {renderSharedFloatingUi()}
             </AppShell>
         );
     }
 
     return (
-        <AppShell activeView="home">
+        <AppShell activeView="home" overlayChildren={renderSharedFloatingUi()}>
             <div className="relative">
                 <div className={`transition-opacity duration-500 ease-out ${isContentVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
                     <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
@@ -807,7 +820,7 @@ function App() {
                         </div>
                     </div>
 
-                    <div>
+                    <div className="app-section">
                         <div className="mb-4 flex flex-col gap-2 xs:flex-row xs:items-center xs:justify-between xs:gap-4">
                             <div className="min-w-0">
                                 <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl">
@@ -841,8 +854,6 @@ function App() {
                     </div>
                 )}
             </div>
-
-            {renderSharedFloatingUi()}
         </AppShell>
     );
 }

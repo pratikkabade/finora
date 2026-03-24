@@ -17,7 +17,7 @@ interface ExpensePieChartProps {
 const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="app-border-surface rounded-lg bg-white p-2 dark:bg-slate-800">
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-50">{payload[0].name}</p>
                 <p className="text-sm font-bold text-gray-700 dark:text-gray-300">₹{payload[0].value.toFixed(2)}</p>
             </div>
@@ -111,7 +111,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                 {data.map((entry) => (
                     <div key={entry.name} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                         <span
-                            className="h-3 w-3 shrink-0 rounded-full border border-black/10 dark:border-white/20"
+                            className="app-color-chip-border h-3 w-3 shrink-0 rounded-full"
                             style={{ backgroundColor: entry.color }}
                         />
                         <span className="truncate">{entry.name}</span>
@@ -122,8 +122,8 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
     };
 
     return (
-        <div className="flex flex-col gap-3 sm:gap-4 md:gap-6">
-            <div className="flex flex-col md:flex-row gap-3 sm:gap-4 md:gap-6 h-full">
+        <div className="app-stagger-list flex flex-col gap-3 sm:gap-4 md:gap-6">
+            <div className="app-stagger-grid flex h-full flex-col gap-3 sm:gap-4 md:flex-row md:gap-6">
                 {expenseChartData.length > 0 && (
                     <div className={pieChartCard}>
                         <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-50 mb-3 sm:mb-4 md:mb-6">Expense Breakdown</h2>
@@ -183,7 +183,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                 )}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-3 sm:gap-4 md:gap-6">
+            <div className="app-stagger-grid flex flex-col gap-3 sm:gap-4 md:flex-row md:gap-6">
                 <div className="w-full md:flex-1">
                     <CategoryBreakdownTable
                         transactions={transactions}

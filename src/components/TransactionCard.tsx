@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { X } from 'lucide-react';
 import type { Transaction, Account, Category } from '../types/finance.types';
 import { hexToRgba, intToHex } from '../utils/colorUtils';
-import { SkeletonCard2 } from './SkeletonLoader';
 import { transactionCard } from '../constants/TailwindClasses';
+import { SkeletonCard2 } from './SkeletonLoader';
 
 interface TransactionCardProps {
     transaction: Transaction;
@@ -72,43 +72,48 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
     onFilterChange,
     onEdit,
 }) => {
-    const [animation, setAnimation] = useState(true);
-
-    setTimeout(() => {
-        setAnimation(false);
-    }, 500);
-
-    if (animation) return (
-        <SkeletonCard2 />
-    )
-
+    const [showSkeleton, setShowSkeleton] = useState(true);
     const isIncome = transaction.type === 'INCOME';
+
+    useEffect(() => {
+        setShowSkeleton(true);
+
+        const timeoutId = window.setTimeout(() => {
+            setShowSkeleton(false);
+        }, 1000);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [transaction.id]);
+
+    if (showSkeleton) {
+        return <SkeletonCard2 />;
+    }
 
     return (
         <div className={transactionCard}>
-            {/* <button
-                onClick={() => onEdit?.(transaction)}
-                className={`${freebluebutton} absolute top-3 right-3 w-8 h-8 rounded-full`}
-                title="Edit transaction"
-            >
-                <Edit2 size={14} />
-            </button> */}
-
             <div
                 onClick={() => onEdit?.(transaction)}
-                className="flex flex-col xs:flex-row xs:justify-between xs:items-start gap-2 xs:gap-3 mb-2 xs:mb-3 cursor-pointer">
-                <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-lg xs:text-md text-gray-900 dark:text-gray-50 truncate">{transaction.title || 'No title'}</h3>
-                    <p className="text-xs xs:text-sm text-gray-600 dark:text-gray-400">
+                className="group mb-4 flex cursor-pointer flex-col gap-3 xs:flex-row xs:items-start xs:justify-between"
+            >
+                <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-base font-semibold text-gray-900 transition-colors duration-300 group-hover:text-slate-950 dark:text-gray-50 dark:group-hover:text-white sm:text-lg">
+                        {transaction.title || 'No title'}
+                    </h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 sm:text-sm">
                         {formatDate(transaction.dateTime || transaction.dueDate || 0)}
                     </p>
                 </div>
-                <div className={`text-lg xs:text-md font-bold whitespace-nowrap ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
-                    {isIncome ? '+' : '-'}₹{transaction.amount.toFixed(2)}
+
+                <div className="text-left xs:text-right">
+                    <div className={`mt-1 text-lg font-bold transition-transform duration-300 xs:text-xl ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+                        {isIncome ? '+' : '-'}₹{transaction.amount.toFixed(2)}
+                    </div>
                 </div>
             </div>
 
-            <div className="flex flex-wrap justify-around gap-1.5 sm:gap-2 text-xs max-sm:text-sm">
+            <div className="flex flex-wrap gap-2 text-xs max-sm:text-sm">
                 {account && (
                     renderFilterChip({
                         name: account.name,
