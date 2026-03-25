@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, CalendarDays, Calendar1 } from 'lucide-react';
+import { Plus, CalendarDays, Calendar1, ArrowUpDown, LayoutGrid, Table, Download } from 'lucide-react';
 import type { Category, FinanceData, Transaction } from './types/finance.types';
 import { CreateTransactionModal } from './components/CreateTransactionModal';
 import { AddTransactionPage } from './pages/AddTransactionPage';
@@ -8,7 +8,10 @@ import { SettingsModal } from './components/SettingsModal';
 import { DateRangeModal } from './components/DateRangeModal';
 import { DataSourceModal } from './components/DataSourceModal';
 import { TransactionCard } from './components/TransactionCard';
+import { TransactionTable } from './components/TransactionTable';
+import { ExportTransactionsModal } from './components/ExportTransactionsModal';
 import { ExpensePieChart } from './components/ExpensePieChart';
+import { IncomeExpenseTrendChart } from './components/IncomeExpenseTrendChart';
 import { SkeletonApp } from './components/SkeletonLoader';
 import { LoginPage } from './pages/LoginPage';
 // import { PINVerificationModal } from './components/PINVerificationModal';
@@ -34,14 +37,40 @@ import { fetchFinanceDataFromFirebase, backupFinanceDataToFirebase } from './ser
 import financeDataJson from './data/finance-data.json';
 import './App.css';
 import { formatNumberWithCommas } from './utils/numberFormatterUtils.ts';
-import { amountCard, AppChartBtn, FreeBlueBtn, FreeWhiteBtn } from './constants/TailwindClasses';
+import {
+    amountCard,
+    AppChartBtn,
+    FreeBlueBtn,
+    FreeWhiteBtn,
+    SegmentedToggleItemSelected,
+    SegmentedToggleItemUnselected,
+    SegmentedToggleShell,
+    SegmentedToggleThumb,
+    SegmentedToggleTrack,
+} from './constants/TailwindClasses';
 import { AppShell } from './components/AppShell';
+import { exportTransactionsToExcel, exportTransactionsToPdf } from './utils/reportExportUtils';
 
 const GUEST_USER_ID = '__guest__';
 
 interface AppHeaderProps {
     onLogoClick?: () => void;
 }
+
+type ReportTransactionView = 'cards' | 'table';
+type ReportTransactionSort = 'date' | 'amount';
+
+const getTransactionTimestamp = (transaction: Transaction) => {
+    return transaction.dateTime || transaction.dueDate || 0;
+};
+
+const formatReportDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
+};
 
 export const AppHeader = ({ onLogoClick }: AppHeaderProps) => {
     const logo = <img src="/finora-icon.svg" alt="Finora Logo" className="mx-auto h-24 w-24 sm:mx-0" />;
@@ -86,6 +115,9 @@ function App() {
     const [isContentVisible, setIsContentVisible] = useState(false);
     const [showSkeletonOverlay, setShowSkeletonOverlay] = useState(true);
     const [hasCompletedInitialHomeReveal, setHasCompletedInitialHomeReveal] = useState(false);
+    const [reportTransactionView, setReportTransactionView] = useState<ReportTransactionView>('cards');
+    const [reportTransactionSort, setReportTransactionSort] = useState<ReportTransactionSort>('date');
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const isSessionActive = !!user || isGuest;
     const storageUserId = user?.uid ?? (isGuest ? GUEST_USER_ID : null);
     // const [isPINVerified, setIsPINVerified] = useState(false);
@@ -196,23 +228,9 @@ function App() {
         const baseTransactions = dateRange || selectedMonthYear ? filteredTransactions : validTransactions;
 
         return [...baseTransactions].sort((transactionA, transactionB) => {
-            const dateA = transactionA.dateTime || transactionA.dueDate || 0;
-            const dateB = transactionB.dateTime || transactionB.dueDate || 0;
-            return dateB - dateA;
+            return getTransactionTimestamp(transactionB) - getTransactionTimestamp(transactionA);
         });
     }, [filteredTransactions, validTransactions, dateRange, selectedMonthYear]);
-
-    const reportTotalExpense = useMemo(() => {
-        return filteredTransactions
-            .filter(transaction => transaction.type === 'EXPENSE')
-            .reduce((sum, transaction) => sum + transaction.amount, 0);
-    }, [filteredTransactions]);
-
-    const reportTotalIncome = useMemo(() => {
-        return filteredTransactions
-            .filter(transaction => transaction.type === 'INCOME')
-            .reduce((sum, transaction) => sum + transaction.amount, 0);
-    }, [filteredTransactions]);
 
     const handleCreateTransaction = (transaction: Transaction) => {
         if (!financeData) return;
@@ -385,7 +403,7 @@ function App() {
 
     const lifetimeSummary = balanceSummary ?? fallbackLifetimeSummary;
     const isHomeDataReady = isSessionActive && !!financeData && !authLoading;
-    const isAnyModalOpen = isModalOpen || isDateRangeOpen || showDataSourceModal || !!editingTransaction;
+    const isAnyModalOpen = isModalOpen || isDateRangeOpen || showDataSourceModal || !!editingTransaction || isExportModalOpen;
     const netBalanceAccountIds = useMemo(() => {
         if (!financeData) return [];
         return getIncludedNetBalanceAccountIds(financeData);
@@ -425,6 +443,13 @@ function App() {
 
         return `${selectedReportCategoryIds.length} ${selectedReportCategoryType === 'EXPENSE' ? 'Expense' : 'Income'} Categories`;
     }, [selectedReportCategoryIds.length, selectedReportCategoryName, selectedReportCategoryType]);
+    const activeReportPeriodLabel = useMemo(() => {
+        if (dateRange) {
+            return `${formatReportDate(dateRange.start)} - ${formatReportDate(dateRange.end)}`;
+        }
+
+        return monthYearOptions.find((option) => option.value === activeMonthYear)?.label || 'Selected period';
+    }, [dateRange, monthYearOptions, activeMonthYear]);
     const selectedReportTransactions = useMemo(() => {
         if (selectedReportCategoryIds.length === 0 || !selectedReportCategoryType) return [];
 
@@ -435,11 +460,34 @@ function App() {
                 return selectedCategoryIds.has(transaction.categoryId || '') && transaction.type === selectedReportCategoryType;
             })
             .sort((transactionA, transactionB) => {
-                const dateA = transactionA.dateTime || transactionA.dueDate || 0;
-                const dateB = transactionB.dateTime || transactionB.dueDate || 0;
-                return dateB - dateA;
+                if (reportTransactionSort === 'amount') {
+                    const amountDelta = transactionB.amount - transactionA.amount;
+
+                    if (amountDelta !== 0) {
+                        return amountDelta;
+                    }
+                } else {
+                    const dateDelta = getTransactionTimestamp(transactionB) - getTransactionTimestamp(transactionA);
+
+                    if (dateDelta !== 0) {
+                        return dateDelta;
+                    }
+
+                    return transactionB.amount - transactionA.amount;
+                }
+
+                return getTransactionTimestamp(transactionB) - getTransactionTimestamp(transactionA);
             });
-    }, [filteredTransactions, selectedReportCategoryIds, selectedReportCategoryType]);
+    }, [filteredTransactions, selectedReportCategoryIds, selectedReportCategoryType, reportTransactionSort]);
+    const selectedReportExportTitle = useMemo(() => {
+        return selectedReportHeading ? `${selectedReportHeading} Transactions` : 'Report Transactions';
+    }, [selectedReportHeading]);
+    const selectedReportExportSubtitle = useMemo(() => {
+        return `${activeReportPeriodLabel} | ${selectedReportTransactions.length} selected transaction${selectedReportTransactions.length !== 1 ? 's' : ''}`;
+    }, [activeReportPeriodLabel, selectedReportTransactions.length]);
+    const selectedReportExportFileBase = useMemo(() => {
+        return `${selectedReportHeading || 'report-transactions'}-${activeReportPeriodLabel}`;
+    }, [selectedReportHeading, activeReportPeriodLabel]);
 
     const renderTransactionGrid = (transactions: Transaction[]) => {
         if (!financeData) return null;
@@ -483,6 +531,38 @@ function App() {
         setSelectedExpenseCategories([]);
     };
 
+    const handleExportSelectedTransactionsAsPdf = () => {
+        if (!financeData || selectedReportTransactions.length === 0) {
+            alert('No selected transactions are available to export.');
+            return;
+        }
+
+        exportTransactionsToPdf({
+            transactions: selectedReportTransactions,
+            accounts: financeData.accounts,
+            categories: financeData.categories,
+            title: selectedReportExportTitle,
+            subtitle: selectedReportExportSubtitle,
+            fileBaseName: selectedReportExportFileBase,
+        });
+    };
+
+    const handleExportSelectedTransactionsAsExcel = () => {
+        if (!financeData || selectedReportTransactions.length === 0) {
+            alert('No selected transactions are available to export.');
+            return;
+        }
+
+        exportTransactionsToExcel({
+            transactions: selectedReportTransactions,
+            accounts: financeData.accounts,
+            categories: financeData.categories,
+            title: selectedReportExportTitle,
+            subtitle: selectedReportExportSubtitle,
+            fileBaseName: selectedReportExportFileBase,
+        });
+    };
+
     const renderSharedFloatingUi = () => {
         if (!financeData) return null;
 
@@ -520,14 +600,26 @@ function App() {
                     showCloudOption={!!user}
                 />
 
-                <button
-                    type="button"
-                    onClick={() => setIsModalOpen(true)}
-                    className={`${FreeBlueBtn} app-fab fixed bottom-24 right-4 md:bottom-4 md:right-4`}
-                >
-                    <Plus size={18} />
-                    <span>Add</span>
-                </button>
+                <ExportTransactionsModal
+                    isOpen={isExportModalOpen}
+                    onClose={() => setIsExportModalOpen(false)}
+                    onExportPdf={handleExportSelectedTransactionsAsPdf}
+                    onExportExcel={handleExportSelectedTransactionsAsExcel}
+                    transactionCount={selectedReportTransactions.length}
+                    title={selectedReportExportTitle}
+                    subtitle={selectedReportExportSubtitle}
+                />
+
+                {location.pathname === '/' && (
+                    <button
+                        type="button"
+                        onClick={() => setIsModalOpen(true)}
+                        className={`${FreeBlueBtn} app-fab fixed bottom-24 right-4 md:bottom-4 md:right-4`}
+                    >
+                        <Plus size={18} />
+                        <span>Add</span>
+                    </button>
+                )}
             </>
         );
     };
@@ -590,6 +682,7 @@ function App() {
     useEffect(() => {
         if (location.pathname !== '/report') {
             setIsDateRangeOpen(false);
+            setIsExportModalOpen(false);
         }
     }, [location.pathname]);
 
@@ -612,6 +705,7 @@ function App() {
     useEffect(() => {
         setSelectedExpenseCategories([]);
         setSelectedIncomeCategory(null);
+        setIsExportModalOpen(false);
     }, [selectedMonthYear, dateRange?.start, dateRange?.end]);
 
     const handleHomeLogoRefresh = useCallback(() => {
@@ -764,16 +858,13 @@ function App() {
                         </div>
                     </div>
 
-                    <div className="app-stagger-grid mb-6 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 md:gap-6">
-                        <div className={amountCard}>
-                            <p className="mb-1 text-xs font-medium text-gray-700 dark:text-gray-300 sm:mb-2 sm:text-sm">Total Expense</p>
-                            <p className="text-xl font-bold text-red-600 sm:text-2xl md:text-3xl">₹ {formatNumberWithCommas(reportTotalExpense.toFixed(2))}</p>
-                        </div>
-                        <div className={amountCard}>
-                            <p className="mb-1 text-xs font-medium text-gray-700 dark:text-gray-300 sm:mb-2 sm:text-sm">Total Income</p>
-                            <p className="text-xl font-bold text-green-600 sm:text-2xl md:text-3xl">₹ {formatNumberWithCommas(reportTotalIncome.toFixed(2))}</p>
-                        </div>
-                    </div>
+                    <IncomeExpenseTrendChart
+                        transactions={dateRange ? filteredTransactions : validTransactions}
+                        selectedMonthKey={selectedMonthYear}
+                        onSelectMonth={handleApplyMonthSelection}
+                        isRangeLocked={Boolean(dateRange)}
+                        rangeLabelOverride={dateRange ? activeReportPeriodLabel : undefined}
+                    />
 
                     <ExpensePieChart
                         transactions={filteredTransactions}
@@ -786,7 +877,7 @@ function App() {
 
                     {selectedReportCategoryIds.length > 0 && (
                         <div className="app-section mt-6">
-                            <div className="mb-4 flex flex-col gap-2 xs:flex-row xs:items-center xs:justify-between xs:gap-4">
+                            <div className="mb-4 flex flex-col flex-wrap gap-3 lg:flex-row lg:items-center lg:justify-between">
                                 <div className="min-w-0">
                                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl">
                                         {selectedReportHeading} Transactions
@@ -795,9 +886,68 @@ function App() {
                                         Showing {selectedReportTransactions.length} {selectedReportCategoryType?.toLowerCase()} transaction{selectedReportTransactions.length !== 1 ? 's' : ''} for {selectedReportCategoryName} in this report period.
                                     </p>
                                 </div>
+
+                                <div className="flex max-sm:flex-col max-sm:items-start gap-2">
+                                    <div className={SegmentedToggleShell}>
+                                        <div className={SegmentedToggleTrack}>
+                                            <div
+                                                className={`${SegmentedToggleThumb} ${reportTransactionView === 'table' ? 'translate-x-full' : 'translate-x-0'}`}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setReportTransactionView('cards')}
+                                                className={reportTransactionView === 'cards' ? SegmentedToggleItemSelected : SegmentedToggleItemUnselected}
+                                                aria-pressed={reportTransactionView === 'cards'}
+                                            >
+                                                <LayoutGrid size={16} />
+                                                Cards
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setReportTransactionView('table')}
+                                                className={reportTransactionView === 'table' ? SegmentedToggleItemSelected : SegmentedToggleItemUnselected}
+                                                aria-pressed={reportTransactionView === 'table'}
+                                            >
+                                                <Table size={16} />
+                                                Table
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className='flex flex-wrap items-center gap-2'>
+                                        <button
+                                            type="button"
+                                            onClick={() => setReportTransactionSort((currentSort) => currentSort === 'date' ? 'amount' : 'date')}
+                                            className={`${FreeWhiteBtn} whitespace-nowrap`}
+                                            title="Toggle sorting between date and amount"
+                                        >
+                                            <ArrowUpDown size={16} />
+                                            Sort: {reportTransactionSort === 'date' ? 'Latest' : 'Highest Amount'}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsExportModalOpen(true)}
+                                            className={`${FreeWhiteBtn} whitespace-nowrap`}
+                                            title="Export selected report transactions"
+                                        >
+                                            <Download size={16} />
+                                            Export
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
-                            {renderTransactionGrid(selectedReportTransactions)}
+                            {reportTransactionView === 'table' ? (
+                                <TransactionTable
+                                    transactions={selectedReportTransactions}
+                                    accounts={financeData.accounts}
+                                    categories={financeData.categories}
+                                    onEdit={(transactionToEdit) => setEditingTransaction(transactionToEdit)}
+                                />
+                            ) : (
+                                renderTransactionGrid(selectedReportTransactions)
+                            )}
                         </div>
                     )}
                 </div>

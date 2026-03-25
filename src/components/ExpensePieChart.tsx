@@ -1,9 +1,10 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import type { TooltipContentProps } from 'recharts';
 import type { Transaction, Category } from '../types/finance.types';
-import { CategoryBreakdownTable } from './CategoryBreakdownTable';
-import { intToHex } from '../utils/colorUtils';
+import { hexToRgba, intToHex } from '../utils/colorUtils';
 import { pieChartCard } from '../constants/TailwindClasses';
+import { formatNumberWithCommas } from '../utils/numberFormatterUtils';
 
 interface ExpensePieChartProps {
     transactions: Transaction[];
@@ -14,16 +15,185 @@ interface ExpensePieChartProps {
     onSelectIncomeCategory: (categoryId: string) => void;
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+interface CategoryBreakdownRow {
+    name: string;
+    amount: number;
+    categoryId: string;
+    count: number;
+    percentage: string;
+    color: string;
+    total: number;
+}
+
+interface CategoryBreakdownSectionProps {
+    rows: CategoryBreakdownRow[];
+    title: string;
+    selectedCategories: string[];
+    onToggleCategory: (categoryId: string) => void;
+    allowMultiSelect?: boolean;
+    showAll: boolean;
+    onToggleShowAll: () => void;
+}
+
+const DEFAULT_VISIBLE_CATEGORY_COUNT = 5;
+
+const getCategoryName = (categories: Category[], categoryId: string) => {
+    return categories.find((category) => category.id === categoryId)?.name || 'Uncategorized';
+};
+
+const getCategoryColor = (categories: Category[], categoryId: string) => {
+    const category = categories.find((item) => item.id === categoryId);
+    return category ? intToHex(category.color) : '#808080';
+};
+
+const buildCategoryData = (
+    transactions: Transaction[],
+    categories: Category[],
+    type: 'EXPENSE' | 'INCOME',
+): CategoryBreakdownRow[] => {
+    const groupedCategories: Record<string, { name: string; amount: number; categoryId: string; count: number }> = {};
+
+    transactions
+        .filter((transaction) => transaction.type === type)
+        .forEach((transaction) => {
+            const categoryId = transaction.categoryId || '';
+            const categoryKey = categoryId || '__uncategorized__';
+
+            if (!groupedCategories[categoryKey]) {
+                groupedCategories[categoryKey] = {
+                    name: getCategoryName(categories, categoryId),
+                    amount: 0,
+                    categoryId,
+                    count: 0,
+                };
+            }
+
+            groupedCategories[categoryKey].amount += transaction.amount;
+            groupedCategories[categoryKey].count += 1;
+        });
+
+    const total = Object.values(groupedCategories).reduce((sum, category) => sum + category.amount, 0);
+
+    return Object.values(groupedCategories)
+        .map((category) => ({
+            ...category,
+            amount: Math.round(category.amount * 100) / 100,
+            percentage: total > 0 ? ((category.amount / total) * 100).toFixed(2) : '0.00',
+            color: getCategoryColor(categories, category.categoryId),
+            total,
+        }))
+        .sort((categoryA, categoryB) => categoryB.amount - categoryA.amount);
+};
+
+const CustomTooltip = ({ active, payload }: Partial<TooltipContentProps<number, string>>) => {
     if (active && payload && payload.length) {
+        const [firstItem] = payload;
+        const tooltipValue = firstItem?.value;
+        const formattedValue = typeof tooltipValue === 'number' ? tooltipValue.toFixed(2) : tooltipValue;
+
         return (
             <div className="app-border-surface rounded-lg bg-white p-2 dark:bg-slate-800">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-50">{payload[0].name}</p>
-                <p className="text-sm font-bold text-gray-700 dark:text-gray-300">₹{payload[0].value.toFixed(2)}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-50">{firstItem?.name}</p>
+                <p className="text-sm font-bold text-gray-700 dark:text-gray-300">₹{formattedValue}</p>
             </div>
         );
     }
     return null;
+};
+
+const CategoryBreakdownSection: React.FC<CategoryBreakdownSectionProps> = ({
+    rows,
+    title,
+    selectedCategories,
+    onToggleCategory,
+    allowMultiSelect = false,
+    showAll,
+    onToggleShowAll,
+}) => {
+    if (rows.length === 0) return null;
+
+    const total = rows[0]?.total ?? 0;
+    const hasSelectedCategories = selectedCategories.length > 0;
+    const selectedCategoryData = rows.filter((row) => selectedCategories.includes(row.categoryId));
+    const selectedTotal = selectedCategoryData.reduce((sum, row) => sum + row.amount, 0);
+    const selectedPercentage = total > 0 ? ((selectedTotal / total) * 100).toFixed(2) : '0.00';
+    const totalLabel = hasSelectedCategories
+        ? `Selected Total${selectedCategoryData.length > 1 ? ` (${selectedCategoryData.length})` : ''}`
+        : 'Total';
+    const canToggleAll = rows.length > DEFAULT_VISIBLE_CATEGORY_COUNT;
+    const visibleRows = showAll || !canToggleAll
+        ? rows
+        : rows.filter((row, index) => {
+            return index < DEFAULT_VISIBLE_CATEGORY_COUNT || selectedCategories.includes(row.categoryId);
+        });
+
+    return (
+        <div className="mt-4 flex flex-col gap-2 pt-4">
+            <div className="flex flex-col gap-2">
+                <div className="app-divider-border grid grid-cols-[1fr_auto_auto] gap-4 px-3 pb-2">
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">Category</span>
+                    <span className="text-right font-semibold text-gray-800 dark:text-gray-200">Amount</span>
+                    <span className="text-right font-semibold text-gray-800 dark:text-gray-200">Percentage</span>
+                </div>
+
+                <div className="app-stagger-list flex flex-col gap-2">
+                    {visibleRows.map((row) => {
+                        const isSelected = selectedCategories.includes(row.categoryId);
+
+                        return (
+                            <button
+                                key={row.categoryId || row.name}
+                                type="button"
+                                onClick={() => onToggleCategory(row.categoryId)}
+                                aria-pressed={isSelected}
+                                className={`grid cursor-pointer grid-cols-[1fr_auto_auto] gap-4 rounded-2xl border px-3 py-3 text-left transition-[transform,border-color,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isSelected
+                                    ? 'shadow-sm'
+                                    : 'border-slate-200/80 bg-white/35 hover:border-slate-300/85 hover:bg-white/55 hover:shadow-[0_16px_36px_-26px_rgba(15,23,42,0.28)] dark:border-slate-700/65 dark:bg-slate-900/15 dark:hover:border-slate-500/70 dark:hover:bg-gray-800/30'
+                                    }`}
+                                style={isSelected
+                                    ? {
+                                        backgroundColor: hexToRgba(row.color, 0.14),
+                                        borderColor: hexToRgba(row.color, 0.7),
+                                        boxShadow: `0 0 0 1px ${hexToRgba(row.color, 0.18)}, 0 18px 40px -26px ${hexToRgba(row.color, 0.38)}`,
+                                    }
+                                    : undefined}
+                            >
+                                <div className="flex flex-row items-center gap-2 font-medium text-gray-900 dark:text-gray-50">
+                                    <div
+                                        className={`app-color-chip-border h-3.5 w-3.5 shrink-0 rounded-full transition-transform ${isSelected ? 'scale-110' : ''
+                                            }`}
+                                        style={{ backgroundColor: row.color }}
+                                    />
+                                    {row.name}
+                                    <span className="text-xs font-normal text-gray-500 dark:text-gray-400">({row.count})</span>
+                                </div>
+                                <span className="min-w-20 text-right font-semibold text-gray-800 dark:text-gray-200">₹{row.amount.toFixed(2)}</span>
+                                <span className="min-w-20 text-right font-semibold text-gray-800 dark:text-gray-200">{row.percentage}%</span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                <div className="flex flex-wrap justify-end gap-3">
+                    {canToggleAll && (
+                        <button
+                            type="button"
+                            onClick={onToggleShowAll}
+                            className="rounded-full border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-800/60"
+                        >
+                            {showAll ? 'Show Less' : `Show All (${rows.length})`}
+                        </button>
+                    )}
+                </div>
+
+                <div className="app-border-soft mt-1 grid grid-cols-[1fr_auto_auto] gap-4 rounded-2xl bg-white/55 px-3 py-3 font-bold text-gray-900 dark:bg-slate-900/32 dark:text-gray-50">
+                    <span>{totalLabel}</span>
+                    <span className="text-right">₹{(hasSelectedCategories ? selectedTotal : total).toFixed(2)}</span>
+                    <span className="text-right">{hasSelectedCategories ? selectedPercentage : '100.00'}%</span>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
@@ -35,6 +205,8 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
     onSelectIncomeCategory,
 }) => {
     const [chartHeight, setChartHeight] = useState(250);
+    const [showAllExpenseCategories, setShowAllExpenseCategories] = useState(false);
+    const [showAllIncomeCategories, setShowAllIncomeCategories] = useState(false);
 
     useEffect(() => {
         const handleResize = () => {
@@ -50,164 +222,126 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const getCategoryName = (categoryId: string) => {
-        return categories.find(c => c.id === categoryId)?.name || 'Uncategorized';
-    };
-
-    const getCategoryColor = (categoryId: string): string => {
-        const category = categories.find(c => c.id === categoryId);
-        return category ? intToHex(category.color) : '#808080';
-    };
-
-    // Calculate expenses by category with categoryId mapping
     const expensesByCategory = useMemo(() => {
-        const result: Record<string, { amount: number; categoryId: string }> = {};
-        transactions
-            .filter(t => t.type === 'EXPENSE')
-            .forEach(transaction => {
-                const categoryId = transaction.categoryId || '';
-                const categoryName = getCategoryName(categoryId);
-                if (!result[categoryName]) {
-                    result[categoryName] = { amount: 0, categoryId };
-                }
-                result[categoryName].amount += transaction.amount;
-            });
-        return result;
+        return buildCategoryData(transactions, categories, 'EXPENSE');
     }, [transactions, categories]);
 
-    // Calculate income by category with categoryId mapping
     const incomeByCategory = useMemo(() => {
-        const result: Record<string, { amount: number; categoryId: string }> = {};
-        transactions
-            .filter(t => t.type === 'INCOME')
-            .forEach(transaction => {
-                const categoryId = transaction.categoryId || '';
-                const categoryName = getCategoryName(categoryId);
-                if (!result[categoryName]) {
-                    result[categoryName] = { amount: 0, categoryId };
-                }
-                result[categoryName].amount += transaction.amount;
-            });
-        return result;
+        return buildCategoryData(transactions, categories, 'INCOME');
     }, [transactions, categories]);
 
-    const expenseChartData = Object.entries(expensesByCategory).map(([name, data]) => ({
-        name,
-        value: Math.round(data.amount * 100) / 100,
-        color: getCategoryColor(data.categoryId),
+    const reportTotalExpense = useMemo(() => {
+        return expensesByCategory.reduce((sum, category) => sum + category.amount, 0);
+    }, [expensesByCategory]);
+
+    const reportTotalIncome = useMemo(() => {
+        return incomeByCategory.reduce((sum, category) => sum + category.amount, 0);
+    }, [incomeByCategory]);
+
+    const expenseChartData = expensesByCategory.map((category) => ({
+        name: category.name,
+        value: category.amount,
+        color: category.color,
     }));
 
-    const incomeChartData = Object.entries(incomeByCategory).map(([name, data]) => ({
-        name,
-        value: Math.round(data.amount * 100) / 100,
-        color: getCategoryColor(data.categoryId),
+    const incomeChartData = incomeByCategory.map((category) => ({
+        name: category.name,
+        value: category.amount,
+        color: category.color,
     }));
 
-    const renderLegend = (data: typeof expenseChartData) => {
-        if (data.length === 0) return null;
-
-        return (
-            <div className="mt-4 grid max-h-28 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
-                {data.map((entry) => (
-                    <div key={entry.name} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <span
-                            className="app-color-chip-border h-3 w-3 shrink-0 rounded-full"
-                            style={{ backgroundColor: entry.color }}
-                        />
-                        <span className="truncate">{entry.name}</span>
-                    </div>
-                ))}
-            </div>
-        );
-    };
+    const totalCount = expensesByCategory.reduce((sum, row) => sum + row.count, 0);
+    const totalIncomeCount = incomeByCategory.reduce((sum, row) => sum + row.count, 0);
 
     return (
-        <div className="app-stagger-list flex flex-col gap-3 sm:gap-4 md:gap-6">
-            <div className="app-stagger-grid flex h-full flex-col gap-3 sm:gap-4 md:flex-row md:gap-6">
-                {expenseChartData.length > 0 && (
-                    <div className={pieChartCard}>
-                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-50 mb-3 sm:mb-4 md:mb-6">Expense Breakdown</h2>
-                        <ResponsiveContainer width="100%" height={chartHeight}>
-                            <PieChart>
-                                <Pie
-                                    data={expenseChartData}
-                                    cx="50%"
-                                    cy="50%"
-                                    labelLine={false}
-                                    outerRadius={70}
-                                    innerRadius={38}
-                                    fill="#8884d8"
-                                    dataKey="value"
-                                >
-                                    {expenseChartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip content={<CustomTooltip />} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        {renderLegend(expenseChartData)}
-                    </div>
-                )}
-
-                {incomeChartData.length > 0 && (
-                    <div className={pieChartCard}>
-                        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-50 mb-3 sm:mb-4 md:mb-6">Income Breakdown</h2>
-                        <ResponsiveContainer width="100%" height={chartHeight}>
-                            <PieChart>
-                                <Pie
-                                    data={incomeChartData}
-                                    cx="50%"
-                                    cy="50%"
-                                    labelLine={false}
-                                    outerRadius={70}
-                                    innerRadius={38}
-                                    fill="#8884d8"
-                                    dataKey="value"
-                                >
-                                    {incomeChartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip content={<CustomTooltip />} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        {renderLegend(incomeChartData)}
-                    </div>
-                )}
-
-                {expenseChartData.length === 0 && incomeChartData.length === 0 && (
-                    <div className={pieChartCard}>
-                        <p className="text-gray-600 dark:text-gray-400 text-center py-6 sm:py-8">No breakdown data available</p>
-                    </div>
-                )}
-            </div>
-
-            <div className="app-stagger-grid flex flex-col gap-3 sm:gap-4 md:flex-row md:gap-6">
-                <div className="w-full md:flex-1">
-                    <CategoryBreakdownTable
-                        transactions={transactions}
-                        categories={categories}
-                        type="EXPENSE"
+        <div className="app-stagger-grid flex h-full flex-col gap-3 sm:gap-4 md:flex-row md:gap-6">
+            {expenseChartData.length > 0 && (
+                <div className={pieChartCard}>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl">
+                        Expense Breakdown
+                        <span className='text-sm text-gray-600 dark:text-gray-400 ml-2'>
+                            {totalCount > 0 && `(${totalCount} categories)`}
+                        </span>
+                    </h2>
+                    <p className="text-xl font-bold text-red-600 sm:text-2xl md:text-3xl">₹ {formatNumberWithCommas(reportTotalExpense)}</p>
+                    {/* <div className='flex flex-row overflow-x-auto w-full'> */}
+                    <ResponsiveContainer width="100%" height={chartHeight}>
+                        <PieChart>
+                            <Pie
+                                data={expenseChartData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                outerRadius={70}
+                                innerRadius={38}
+                                fill="#8884d8"
+                                dataKey="value"
+                            >
+                                {expenseChartData.map((entry, index) => (
+                                    <Cell key={`expense-cell-${index}`} fill={entry.color} />
+                                ))}
+                            </Pie>
+                            <Tooltip content={<CustomTooltip />} />
+                        </PieChart>
+                    </ResponsiveContainer>
+                    <CategoryBreakdownSection
+                        rows={expensesByCategory}
                         title="Expenses by Category"
-                        getCategoryColor={getCategoryColor}
                         selectedCategories={selectedExpenseCategories}
                         onToggleCategory={onSelectExpenseCategory}
                         allowMultiSelect
+                        showAll={showAllExpenseCategories}
+                        onToggleShowAll={() => setShowAllExpenseCategories((currentValue) => !currentValue)}
                     />
+                    {/* </div> */}
                 </div>
-                <div className="w-full md:flex-1">
-                    <CategoryBreakdownTable
-                        transactions={transactions}
-                        categories={categories}
-                        type="INCOME"
+            )}
+
+            {incomeChartData.length > 0 && (
+                <div className={pieChartCard}>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl">
+                        Revenue Sources
+                        <span className='text-sm text-gray-600 dark:text-gray-400 ml-2'>
+                            {totalIncomeCount > 0 && `(${totalIncomeCount} categories)`}
+                        </span>
+                    </h2>
+
+                    <p className="text-xl font-bold text-green-600 sm:text-2xl md:text-3xl">₹ {formatNumberWithCommas(reportTotalIncome)}</p>
+                    <ResponsiveContainer width="100%" height={chartHeight}>
+                        <PieChart>
+                            <Pie
+                                data={incomeChartData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                outerRadius={70}
+                                innerRadius={38}
+                                fill="#8884d8"
+                                dataKey="value"
+                            >
+                                {incomeChartData.map((entry, index) => (
+                                    <Cell key={`income-cell-${index}`} fill={entry.color} />
+                                ))}
+                            </Pie>
+                            <Tooltip content={<CustomTooltip />} />
+                        </PieChart>
+                    </ResponsiveContainer>
+                    <CategoryBreakdownSection
+                        rows={incomeByCategory}
                         title="Income by Category"
-                        getCategoryColor={getCategoryColor}
                         selectedCategories={selectedIncomeCategory ? [selectedIncomeCategory] : []}
                         onToggleCategory={onSelectIncomeCategory}
+                        showAll={showAllIncomeCategories}
+                        onToggleShowAll={() => setShowAllIncomeCategories((currentValue) => !currentValue)}
                     />
                 </div>
-            </div>
+            )}
+
+            {expenseChartData.length === 0 && incomeChartData.length === 0 && (
+                <div className={pieChartCard}>
+                    <p className="py-6 text-center text-gray-600 dark:text-gray-400 sm:py-8">No breakdown data available</p>
+                </div>
+            )}
         </div>
     );
 };

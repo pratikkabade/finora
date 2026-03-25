@@ -2,7 +2,18 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { X, Calendar } from 'lucide-react';
 import type { Transaction } from '../types/finance.types';
 import { generateMonthYearOptions, getMonthName } from '../utils/dateUtils';
-import { FreeBlueBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
+import {
+    FreeBlueBtn,
+    FreeWhiteBtn,
+    ModalHeader,
+    ModalOut,
+    ModalPopUp,
+    SegmentedToggleItemSelected,
+    SegmentedToggleItemUnselected,
+    SegmentedToggleShell,
+    SegmentedToggleThumb,
+    SegmentedToggleTrack,
+} from '../constants/TailwindClasses';
 import { useAnimatedOpen } from '../hooks/useAnimatedOpen';
 
 type FilterMode = 'month' | 'range';
@@ -128,9 +139,6 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
 
     const hasOptions = monthYearOptions.length > 0;
     const actionLabel = selectionMode === 'month' ? 'Apply Month' : 'Apply Range';
-    const modeDescription = selectionMode === 'month'
-        ? 'Keep it quick with a single-month filter.'
-        : 'Choose a start and end month for a wider view.';
     const selectClassName = 'glass-input w-full rounded-lg border border-slate-200/70 px-3 py-2 text-sm text-gray-900 focus:border-blue-400 focus:outline-none dark:border-slate-700/55 dark:text-gray-50';
     const sectionSurfaceClassName = 'app-border-soft rounded-2xl bg-white/25 backdrop-blur-md dark:bg-gray-800/25';
     const panelAnimationClass = selectionMode === 'month' ? 'filter-panel-enter-left' : 'filter-panel-enter-right';
@@ -260,32 +268,29 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
 
                 {/* Content */}
                 <div className="app-panel-stagger relative space-y-4 p-4 sm:p-6">
-                    <div className={`${sectionSurfaceClassName} space-y-3 p-2`}>
-                        <div className="relative grid grid-cols-2 gap-1">
+                    {/* <div className={`${sectionSurfaceClassName} space-y-3 p-2`}> */}
+                    <div className={SegmentedToggleShell}>
+                        <div className={SegmentedToggleTrack}>
                             <div
-                                className={`pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-white/90 dark:bg-gray-800/85 shadow-[0_12px_30px_-18px_rgba(37,99,235,0.45)] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${selectionMode === 'range' ? 'translate-x-full scale-[1.01]' : 'translate-x-0 scale-100'}`}
+                                className={`${SegmentedToggleThumb} ${selectionMode === 'range' ? 'translate-x-full' : 'translate-x-0'}`}
                             />
                             <button
                                 type="button"
                                 onClick={() => setSelectionMode('month')}
-                                className={`relative z-10 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300 border cursor-pointer ${selectionMode === 'month' ? 'text-blue-700 dark:text-blue-200' : 'text-gray-600 hover:text-blue-800 dark:text-gray-400 dark:hover:text-blue-200'}`}
+                                className={selectionMode === 'month' ? SegmentedToggleItemSelected : SegmentedToggleItemUnselected}
                             >
                                 Single Month
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setSelectionMode('range')}
-                                className={`relative z-10 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-300 border cursor-pointer ${selectionMode === 'range' ? 'text-blue-700 dark:text-blue-200' : 'text-gray-600 hover:text-blue-800 dark:text-gray-400 dark:hover:text-blue-200'}`}
+                                className={selectionMode === 'range' ? SegmentedToggleItemSelected : SegmentedToggleItemUnselected}
                             >
                                 Set Range
                             </button>
                         </div>
-
-                        <div className="flex items-center gap-2 px-2 text-xs text-gray-600 transition-all duration-300 dark:text-gray-400">
-                            <span className={`h-2.5 w-2.5 rounded-full ${selectionMode === 'month' ? 'bg-blue-500' : 'bg-cyan-400'} animate-pulse`} />
-                            <span>{modeDescription}</span>
-                        </div>
                     </div>
+                    {/* </div> */}
 
                     <div className="overflow-hidden min-h-[12.25rem] sm:min-h-[11.5rem]">
                         {contentPanel}

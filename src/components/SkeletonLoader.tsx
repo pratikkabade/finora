@@ -126,6 +126,7 @@ export const SkeletonApp: React.FC<SkeletonAppProps> = ({ variant = 'home' }) =>
                 </div>
 
                 <div className="flex flex-col gap-3 sm:gap-4 md:gap-6">
+                    <SkeletonChart />
                     <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:gap-6">
                         <SkeletonChart />
                         <SkeletonChart />

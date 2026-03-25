@@ -54,7 +54,7 @@ const OptionPickerModal: React.FC<OptionPickerModalProps> = ({
                 className={`app-modal-panel app-border-soft w-full max-w-xs overflow-hidden rounded-[1.75rem] bg-white/92 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.55)] dark:bg-slate-900/92 ${isVisible ? 'app-modal-panel-enter' : 'app-modal-panel-exit'}`}
                 onClick={(event) => event.stopPropagation()}
             >
-                <div className="app-divider-border flex items-center justify-between border-b px-4 py-3">
+                <div className="app-divider-border flex items-center justify-between px-4 py-3">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
                     <button type="button" onClick={onClose} className={FreeWhiteBtn}>
                         <X size={16} />
@@ -69,9 +69,9 @@ const OptionPickerModal: React.FC<OptionPickerModalProps> = ({
                                     key={option.id}
                                     type="button"
                                     onClick={() => onSelect(option.id)}
-                                    className={`w-full flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-left transition-[box-shadow,border-color,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isSelected
+                                    className={`w-full flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-left transition-[box-shadow,border-color,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] my-1 ${isSelected
                                         ? 'border border-blue-200/60 bg-blue-50/90 dark:border-blue-700/60 dark:bg-blue-900/30'
-                                        : 'app-border-subtle bg-white/48 hover:border-slate-300/85 hover:bg-white/72 hover:shadow-[0_16px_34px_-24px_rgba(15,23,42,0.2)] dark:bg-slate-900/34 dark:hover:border-slate-500/70 dark:hover:bg-slate-800/46'
+                                        : 'app-border-subtle border border-slate-200 bg-white/48 hover:border-slate-300 hover:bg-white/72 hover:shadow-[0_16px_34px_-24px_rgba(15,23,42,0.2)] dark:bg-slate-900/34 dark:hover:border-slate-500/70 dark:hover:bg-slate-800/46'
                                         }`}
                                 >
                                     <span className="flex items-center gap-2 min-w-0">
@@ -232,7 +232,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="app-panel-stagger max-h-[70vh] space-y-4 overflow-y-auto p-6">
+                <form onSubmit={handleSubmit} className="app-panel-stagger max-h-[65vh] space-y-4 overflow-y-auto px-3 py-6 bg-slate-50 dark:bg-slate-800/20">
                     {/* Row 1: Account & Type */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="app-border-soft rounded-[1.4rem] bg-white/30 p-4 backdrop-blur-md dark:bg-slate-900/25">
@@ -350,36 +350,36 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                             required
                         />
                     </div>
-
-                    {/* Actions */}
-                    <div className="flex flex-row justify-between gap-3 pt-4">
-                        {isEditing && onDelete ? (
-                            <button
-                                type="button"
-                                onClick={handleDelete}
-                                className={FreeRedBtn}
-                                title="Delete transaction"
-                            >
-                                <Trash2 size={18} />
-                            </button>
-                        ) : <div />}
-                        <div className="flex gap-3">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className={FreeWhiteBtn}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                className={FreeBlueBtn}
-                            >
-                                {isEditing ? 'Update' : 'Create'}
-                            </button>
-                        </div>
-                    </div>
                 </form>
+
+                {/* Actions */}
+                <div className={ModalHeader}>
+                    {isEditing && onDelete ? (
+                        <button
+                            type="button"
+                            onClick={handleDelete}
+                            className={FreeRedBtn}
+                            title="Delete transaction"
+                        >
+                            <Trash2 size={18} />
+                        </button>
+                    ) : <div />}
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className={FreeWhiteBtn}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className={FreeBlueBtn}
+                        >
+                            {isEditing ? 'Update' : 'Create'}
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <OptionPickerModal

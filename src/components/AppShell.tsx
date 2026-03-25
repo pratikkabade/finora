@@ -62,7 +62,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
             <AppNavigation activeView={activeView} />
 
-            <main className={`relative mx-auto min-h-screen min-h-dvh max-w-7xl px-3 pb-28 pt-4 sm:px-4 sm:pt-6 md:px-6 md:pb-10 md:pl-28 lg:px-8 lg:pl-32 ${contentClassName}`}>
+            <main className={`relative mx-auto min-h-screen min-h-dvh max-w-7xl px-3 pb-28 pt-4 sm:px-4 sm:pt-6 md:px-6 md:pb-10 md:pl-72 lg:px-8 lg:pl-80 ${contentClassName}`}>
                 <div
                     key={`${activeView}-${pageTransitionKey}`}
                     className={`app-page-enter ${pageDirection === 'forward' ? 'app-page-enter-forward' : 'app-page-enter-backward'}`}

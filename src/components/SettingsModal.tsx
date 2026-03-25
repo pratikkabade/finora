@@ -449,7 +449,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
                                                     isSelected
                                                         ? 'border-sky-300 bg-sky-50 text-sky-900 shadow-sm dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-100'
-                                                        : 'app-border-surface bg-white/80 text-slate-700 hover:border-slate-300/85 dark:bg-slate-900/58 dark:text-slate-300 dark:hover:border-slate-500/70'
+                                                        : 'app-border-surface bg-white/80 text-slate-700 border-slate-100 hover:border-slate-300/85 dark:bg-slate-900/58 dark:text-slate-300 dark:hover:border-slate-500/70'
                                                 }`}
                                             >
                                                 <span className={`relative inline-flex h-5.5 w-9.5 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${isSelected ? 'bg-blue-500' : 'bg-gray-300/60 dark:bg-slate-700'}`}>
