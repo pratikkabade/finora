@@ -103,10 +103,10 @@ const CustomTooltip = ({ active, payload }: Partial<TooltipContentProps<number, 
 
 const CategoryBreakdownSection: React.FC<CategoryBreakdownSectionProps> = ({
     rows,
-    title,
+    // title,
     selectedCategories,
     onToggleCategory,
-    allowMultiSelect = false,
+    // allowMultiSelect = false,
     showAll,
     onToggleShowAll,
 }) => {
@@ -117,9 +117,9 @@ const CategoryBreakdownSection: React.FC<CategoryBreakdownSectionProps> = ({
     const selectedCategoryData = rows.filter((row) => selectedCategories.includes(row.categoryId));
     const selectedTotal = selectedCategoryData.reduce((sum, row) => sum + row.amount, 0);
     const selectedPercentage = total > 0 ? ((selectedTotal / total) * 100).toFixed(2) : '0.00';
-    const totalLabel = hasSelectedCategories
-        ? `Selected Total${selectedCategoryData.length > 1 ? ` (${selectedCategoryData.length})` : ''}`
-        : 'Total';
+    // const totalLabel = hasSelectedCategories
+    //     ? `Selected Total${selectedCategoryData.length > 1 ? ` (${selectedCategoryData.length})` : ''}`
+    //     : 'Total';
     const canToggleAll = rows.length > DEFAULT_VISIBLE_CATEGORY_COUNT;
     const visibleRows = showAll || !canToggleAll
         ? rows
@@ -130,13 +130,8 @@ const CategoryBreakdownSection: React.FC<CategoryBreakdownSectionProps> = ({
     return (
         <div className="mt-4 flex flex-col gap-2 pt-4">
             <div className="flex flex-col gap-2">
-                <div className="app-divider-border grid grid-cols-[1fr_auto_auto] gap-4 px-3 pb-2">
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">Category</span>
-                    <span className="text-right font-semibold text-gray-800 dark:text-gray-200">Amount</span>
-                    <span className="text-right font-semibold text-gray-800 dark:text-gray-200">Percentage</span>
-                </div>
 
-                <div className="app-stagger-list flex flex-col gap-2">
+                <div className="app-stagger-list flex flex-row flex-wrap gap-2">
                     {visibleRows.map((row) => {
                         const isSelected = selectedCategories.includes(row.categoryId);
 
@@ -146,50 +141,63 @@ const CategoryBreakdownSection: React.FC<CategoryBreakdownSectionProps> = ({
                                 type="button"
                                 onClick={() => onToggleCategory(row.categoryId)}
                                 aria-pressed={isSelected}
-                                className={`grid cursor-pointer grid-cols-[1fr_auto_auto] gap-4 rounded-2xl border px-3 py-3 text-left transition-[transform,border-color,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isSelected
+                                className={`relative overflow-hidden cursor-pointer gap-4 rounded-2xl border px-3 py-1 text-left transition-[transform,border-color,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] w-fit ${isSelected
                                     ? 'shadow-sm'
-                                    : 'border-slate-200/80 bg-white/35 hover:border-slate-300/85 hover:bg-white/55 hover:shadow-[0_16px_36px_-26px_rgba(15,23,42,0.28)] dark:border-slate-700/65 dark:bg-slate-900/15 dark:hover:border-slate-500/70 dark:hover:bg-gray-800/30'
+                                    : 'border-slate-200/80 hover:border-slate-300/85 hover:shadow-[0_16px_36px_-26px_rgba(15,23,42,0.28)] dark:border-slate-700/65 dark:hover:border-slate-500/70'
                                     }`}
-                                style={isSelected
-                                    ? {
-                                        backgroundColor: hexToRgba(row.color, 0.14),
-                                        borderColor: hexToRgba(row.color, 0.7),
-                                        boxShadow: `0 0 0 1px ${hexToRgba(row.color, 0.18)}, 0 18px 40px -26px ${hexToRgba(row.color, 0.38)}`,
-                                    }
-                                    : undefined}
+                                style={
+                                    isSelected
+                                        ? {
+                                            borderColor: hexToRgba(row.color, 0.7)
+                                        }
+                                        : undefined
+                                }
+                                title={`${row.percentage} %`}
                             >
-                                <div className="flex flex-row items-center gap-2 font-medium text-gray-900 dark:text-gray-50">
+                                {/* percentage fill layer */}
+                                <span
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute inset-y-0 left-0 rounded- transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                                    style={{
+                                        width: `${row.percentage}%`,
+                                        backgroundColor: hexToRgba(row.color, isSelected ? 0.30 : 0.10),
+                                    }}
+                                />
+
+                                {/* content sits above the fill */}
+                                <div className="relative z-10 flex flex-row items-center gap-1 font-medium text-gray-900 dark:text-gray-50">
                                     <div
-                                        className={`app-color-chip-border h-3.5 w-3.5 shrink-0 rounded-full transition-transform ${isSelected ? 'scale-110' : ''
-                                            }`}
+                                        className={`h-3.5 w-3.5 shrink-0 rounded-full transition-transform ${isSelected ? 'scale-110' : ''}`}
                                         style={{ backgroundColor: row.color }}
                                     />
                                     {row.name}
-                                    <span className="text-xs font-normal text-gray-500 dark:text-gray-400">({row.count})</span>
+                                    <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(x{row.count})</span>
                                 </div>
-                                <span className="min-w-20 text-right font-semibold text-gray-800 dark:text-gray-200">₹{row.amount.toFixed(2)}</span>
-                                <span className="min-w-20 text-right font-semibold text-gray-800 dark:text-gray-200">{row.percentage}%</span>
+                                <div className="relative z-10 flex flex-row items-center gap-2 text-right text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                    ₹{row.amount.toFixed(2)}
+                                </div>
                             </button>
                         );
                     })}
                 </div>
 
-                <div className="flex flex-wrap justify-end gap-3">
+                <div className="app-border-soft mt-1 flex flex-row bg-white/55 px-3 py-3 font-bold text-gray-900 dark:bg-slate-900/32 dark:text-gray-50 justify-between items-center rounded-lg">
+                    {hasSelectedCategories && selectedPercentage !== '100.00' &&
+                        <div className='flex flex-row items-center gap-1' title={`${hasSelectedCategories ? selectedPercentage : '100.00'}% of total ${total.toFixed(2)}`}>
+                            <span className="text-right">₹{(hasSelectedCategories ? selectedTotal : total).toFixed(2)}</span>
+                            {/* <span className="text-right text-xs font-normal text-gray-500 dark:text-gray-400"></span> */}
+                        </div>
+                    }
+                    <div></div>
                     {canToggleAll && (
                         <button
                             type="button"
                             onClick={onToggleShowAll}
-                            className="rounded-full border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-800/60"
+                            className="rounded-full border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-800/60 cursor-pointer"
                         >
                             {showAll ? 'Show Less' : `Show All (${rows.length})`}
                         </button>
                     )}
-                </div>
-
-                <div className="app-border-soft mt-1 grid grid-cols-[1fr_auto_auto] gap-4 rounded-2xl bg-white/55 px-3 py-3 font-bold text-gray-900 dark:bg-slate-900/32 dark:text-gray-50">
-                    <span>{totalLabel}</span>
-                    <span className="text-right">₹{(hasSelectedCategories ? selectedTotal : total).toFixed(2)}</span>
-                    <span className="text-right">{hasSelectedCategories ? selectedPercentage : '100.00'}%</span>
                 </div>
             </div>
         </div>
@@ -264,36 +272,36 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                         </span>
                     </h2>
                     <p className="text-xl font-bold text-red-600 sm:text-2xl md:text-3xl">₹ {formatNumberWithCommas(reportTotalExpense)}</p>
-                    {/* <div className='flex flex-row overflow-x-auto w-full'> */}
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                        <PieChart>
-                            <Pie
-                                data={expenseChartData}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                outerRadius={70}
-                                innerRadius={38}
-                                fill="#8884d8"
-                                dataKey="value"
-                            >
-                                {expenseChartData.map((entry, index) => (
-                                    <Cell key={`expense-cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip content={<CustomTooltip />} />
-                        </PieChart>
-                    </ResponsiveContainer>
-                    <CategoryBreakdownSection
-                        rows={expensesByCategory}
-                        title="Expenses by Category"
-                        selectedCategories={selectedExpenseCategories}
-                        onToggleCategory={onSelectExpenseCategory}
-                        allowMultiSelect
-                        showAll={showAllExpenseCategories}
-                        onToggleShowAll={() => setShowAllExpenseCategories((currentValue) => !currentValue)}
-                    />
-                    {/* </div> */}
+                    <div className=''>
+                        <ResponsiveContainer width="100%" height={chartHeight}>
+                            <PieChart>
+                                <Pie
+                                    data={expenseChartData}
+                                    cx="50%"
+                                    cy="50%"
+                                    labelLine={false}
+                                    outerRadius={70}
+                                    innerRadius={38}
+                                    fill="#8884d8"
+                                    dataKey="value"
+                                >
+                                    {expenseChartData.map((entry, index) => (
+                                        <Cell key={`expense-cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip content={<CustomTooltip />} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                        <CategoryBreakdownSection
+                            rows={expensesByCategory}
+                            title="Expenses by Category"
+                            selectedCategories={selectedExpenseCategories}
+                            onToggleCategory={onSelectExpenseCategory}
+                            allowMultiSelect
+                            showAll={showAllExpenseCategories}
+                            onToggleShowAll={() => setShowAllExpenseCategories((currentValue) => !currentValue)}
+                        />
+                    </div>
                 </div>
             )}
 
@@ -307,33 +315,35 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                     </h2>
 
                     <p className="text-xl font-bold text-green-600 sm:text-2xl md:text-3xl">₹ {formatNumberWithCommas(reportTotalIncome)}</p>
-                    <ResponsiveContainer width="100%" height={chartHeight}>
-                        <PieChart>
-                            <Pie
-                                data={incomeChartData}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                outerRadius={70}
-                                innerRadius={38}
-                                fill="#8884d8"
-                                dataKey="value"
-                            >
-                                {incomeChartData.map((entry, index) => (
-                                    <Cell key={`income-cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip content={<CustomTooltip />} />
-                        </PieChart>
-                    </ResponsiveContainer>
-                    <CategoryBreakdownSection
-                        rows={incomeByCategory}
-                        title="Income by Category"
-                        selectedCategories={selectedIncomeCategory ? [selectedIncomeCategory] : []}
-                        onToggleCategory={onSelectIncomeCategory}
-                        showAll={showAllIncomeCategories}
-                        onToggleShowAll={() => setShowAllIncomeCategories((currentValue) => !currentValue)}
-                    />
+                    <div className=''>
+                        <ResponsiveContainer width="100%" height={chartHeight}>
+                            <PieChart>
+                                <Pie
+                                    data={incomeChartData}
+                                    cx="50%"
+                                    cy="50%"
+                                    labelLine={false}
+                                    outerRadius={70}
+                                    innerRadius={38}
+                                    fill="#8884d8"
+                                    dataKey="value"
+                                >
+                                    {incomeChartData.map((entry, index) => (
+                                        <Cell key={`income-cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip content={<CustomTooltip />} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                        <CategoryBreakdownSection
+                            rows={incomeByCategory}
+                            title="Income by Category"
+                            selectedCategories={selectedIncomeCategory ? [selectedIncomeCategory] : []}
+                            onToggleCategory={onSelectIncomeCategory}
+                            showAll={showAllIncomeCategories}
+                            onToggleShowAll={() => setShowAllIncomeCategories((currentValue) => !currentValue)}
+                        />
+                    </div>
                 </div>
             )}
 

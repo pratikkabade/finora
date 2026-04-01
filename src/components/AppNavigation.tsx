@@ -32,6 +32,25 @@ const navItems = [
     },
 ];
 
+export const navButton = ({ id, icon: Icon, desktopLabel, path }: Omit<typeof navItems[number], 'label'>, isActive: boolean, handleNavigate: (path: string) => void) => {
+    return (
+        <button
+            key={id}
+            type="button"
+            onClick={() => handleNavigate(path)}
+            aria-current={isActive ? 'page' : undefined}
+            className={`group relative flex w-full cursor-pointer items-center gap-3 overflow-hidden rounded-xl px-3 py-3 text-left text-sm font-semibold transition-all duration-300 active:scale-[0.98] ${isActive
+                ? 'bg-slate-800/95 text-slate-50 dark:bg-slate-100 dark:text-slate-950 '
+                : 'border text-slate-600 hover:border-slate-200/85 hover:bg-white/62 hover:text-slate-900 dark:text-slate-400 dark:hover:border-slate-700/70 dark:hover:bg-slate-800/55 dark:hover:text-slate-50 border-slate-100 dark:border-slate-700'
+                }`}
+            title={desktopLabel}
+        >
+            <Icon size={18} className={`transition-transform duration-300 ${isActive ? 'scale-105' : 'group-hover:scale-105 group-active:scale-95'}`} />
+            <span className="relative truncate">{desktopLabel}</span>
+        </button>
+    )
+}
+
 export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -139,25 +158,28 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
                         </div>
                     </div>
 
-                    <nav className="flex flex-1 flex-col gap-1.5">
-                        {navItems.map(({ id, icon: Icon, desktopLabel, path }) => {
+                    <nav className="flex flex-col h-full justify-between">
+                        <div className='flex flex-1 flex-col gap-1.5'>
+                            {navItems
+                                .filter((_, index) => index < navItems.length - 1)
+                                .map(({ id, icon: Icon, desktopLabel, path }) => {
+                                    const isActive = activeView === id;
+
+                                    return (
+                                        <React.Fragment key={id}>
+                                            {navButton({ id, icon: Icon, desktopLabel, path }, isActive, handleNavigate)}
+                                        </React.Fragment>
+                                    );
+                                })}
+                        </div>
+                        {/* show last item */}
+                        {navItems.slice(-1).map(({ id, icon: Icon, desktopLabel, path }) => {
                             const isActive = activeView === id;
 
                             return (
-                                <button
-                                    key={id}
-                                    type="button"
-                                    onClick={() => handleNavigate(path)}
-                                    aria-current={isActive ? 'page' : undefined}
-                                    className={`group relative flex w-full cursor-pointer items-center gap-3 overflow-hidden rounded-xl px-3 py-3 text-left text-sm font-semibold transition-all duration-300 active:scale-[0.98] ${isActive
-                                            ? 'bg-slate-800/95 text-slate-50 dark:bg-slate-100 dark:text-slate-950 '
-                                            : 'border text-slate-600 hover:border-slate-200/85 hover:bg-white/62 hover:text-slate-900 dark:text-slate-400 dark:hover:border-slate-700/70 dark:hover:bg-slate-800/55 dark:hover:text-slate-50 border-slate-100 dark:border-slate-700'
-                                        }`}
-                                    title={desktopLabel}
-                                >
-                                        <Icon size={18} className={`transition-transform duration-300 ${isActive ? 'scale-105' : 'group-hover:scale-105 group-active:scale-95'}`} />
-                                    <span className="relative truncate">{desktopLabel}</span>
-                                </button>
+                                <React.Fragment key={id}>
+                                    {navButton({ id, icon: Icon, desktopLabel, path }, isActive, handleNavigate)}
+                                </React.Fragment>
                             );
                         })}
                     </nav>
@@ -169,8 +191,8 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
                 style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.6rem)' }}
             >
                 <div className={`app-nav-shell app-border-soft pointer-events-auto mx-auto flex w-fit items-center rounded-[2rem] bg-white/55 backdrop-blur-[26px] transition-all duration-300 ease-out dark:bg-slate-900/55 ${isMobileNavCompact
-                        ? 'gap-1 p-1 shadow-[0_18px_45px_-24px_rgba(15,23,42,0.55)]'
-                        : 'gap-1.5 p-1.5 shadow-[0_24px_65px_-28px_rgba(15,23,42,0.55)]'
+                    ? 'gap-1 p-1 shadow-[0_18px_45px_-24px_rgba(15,23,42,0.55)]'
+                    : 'gap-1.5 p-1.5 shadow-[0_24px_65px_-28px_rgba(15,23,42,0.55)]'
                     }`}>
                     {navItems.map(({ id, icon: Icon, label, path }) => {
                         const isActive = activeView === id;
@@ -184,10 +206,10 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
                                 aria-current={isActive ? 'page' : undefined}
                                 aria-label={label}
                                 className={`group relative flex cursor-pointer items-center justify-center overflow-hidden rounded-[1.45rem] border text-[11px] font-semibold touch-manipulation transition-[width,height,background-color,color,box-shadow,border-color,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.96] ${isMobileNavCompact
-                                        ? 'h-11 w-11'
-                                        : isActive
-                                            ? 'h-12 w-[6.4rem]'
-                                            : 'h-12 w-12'
+                                    ? 'h-11 w-11'
+                                    : isActive
+                                        ? 'h-12 w-[6.4rem]'
+                                        : 'h-12 w-12'
                                     } ${isActive
                                         ? 'app-border-surface bg-white/82 text-slate-950 shadow-[0_16px_30px_-18px_rgba(15,23,42,0.55)] dark:bg-slate-100 dark:text-slate-950 border-slate-300'
                                         : 'border border-slate-200/55 text-slate-500 hover:border-slate-300/80 hover:bg-white/35 hover:text-slate-900 hover:shadow-[0_16px_32px_-20px_rgba(15,23,42,0.35)] dark:border-slate-700/55 dark:text-slate-400 dark:hover:border-slate-500/75 dark:hover:bg-slate-800/50 dark:hover:text-slate-50'
