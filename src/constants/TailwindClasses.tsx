@@ -39,7 +39,7 @@ export const ModalPopUp = "app-modal-panel app-border-soft mx-auto max-h-[90vh] 
 export const ModalHeader = "app-divider-border sticky top-0 z-10 flex items-center justify-between bg-white/62 p-5 backdrop-blur-xl dark:bg-slate-900/55 sm:p-7";
 
 export const settingBtnPlainClass = `${FreeWhiteBtn} w-full`;
-export const settingBtnInteractiveClass = `${settingBtnPlainClass} hover:bg-white/40 dark:hover:bg-gray-700/40 border border-slate-100 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700`;
+export const settingBtnInteractiveClass = settingBtnPlainClass;
 export const settingBtnPlainNoHoverClass1 = `${freeBtn} ${base.flex} ${base.whiteBtn} shadow-none! cursor-default`;
 export const settingBtnPlainNoHoverClass2 = "flex flex-row gap-4 items-center justify-start cursor-default";
 export const settingBtnDangerClass = `${freeBtn} ${base.flex} ${base.redBtn} ${base.interact} ${base.redBtnInteract} w-full items-center justify-start`;
@@ -50,3 +50,5 @@ export const transactionCard = `${base.cardFrame} ${standardCardSurface} ${base.
 export const amountCard = `${base.cardFrame} ${softPanelSurface} app-card-spotlight app-section-pop p-4 sm:p-5 md:p-6`;
 export const pieChartCard = `${base.cardFrame} ${softPanelSurface} ${base.cardInteract} app-card-spotlight p-3 sm:p-4 md:p-6 w-full md:flex-1`;
 export const categorySelector = `${base.cardFrame} ${softPanelSurface} app-card-spotlight p-3 sm:p-4 md:p-6 w-full`;
+
+export const transactionFieldClasses = 'flex items-center justify-between gap-2 px-3 py-2 text-md text-gray-900 dark:text-gray-50 bg-white dark:bg-slate-800 hover:bg-sky-50 hover:text-sky-800 dark:hover:bg-sky-500/12 dark:hover:text-sky-100 cursor-pointer rounded-lg shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] focus:outline-none focus:ring-2 focus:ring-white/50 dark:focus:ring-gray-600/50 focus:border-transparent transition-all duration-300'

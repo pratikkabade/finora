@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Lock, X } from 'lucide-react';
-import { verifyPIN, getPINStatus, clearAccount } from '../services/pinService';
-import { FreeBlueBtn, FreeRedBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
+import { clearAccount, getPINStatus, PIN_LENGTH, verifyPIN } from '../services/pinService';
+import { FreeRedBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
 import { getFormattedDate } from '../utils/dateUtils';
 import { useAuth } from '../context/AuthContext';
 import { useAnimatedOpen } from '../hooks/useAnimatedOpen';
+import { PinSquirclesInput } from './PinSquirclesInput';
 
 interface PINVerificationModalProps {
     isOpen: boolean;
@@ -22,42 +23,62 @@ export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
     const [pin, setPin] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [status, setStatus] = useState(getPINStatus(userId));
+    const [status, setStatus] = useState(() => getPINStatus(userId));
     const { shouldRender, isVisible } = useAnimatedOpen(isOpen);
     const { logout } = useAuth();
-    
+
     useEffect(() => {
-        if (isOpen) {
-            setPin('');
-            setError('');
-            setStatus(getPINStatus(userId));
+        if (!isOpen) {
+            return;
         }
+
+        setPin('');
+        setError('');
+        setStatus(getPINStatus(userId));
+        setIsLoading(false);
     }, [isOpen, userId]);
 
-    const handleVerify = async (e: React.FormEvent) => {
-        e.preventDefault();
+    useEffect(() => {
+        if (!isOpen || !status.isLocked) {
+            return;
+        }
+
+        const intervalId = window.setInterval(() => {
+            const nextStatus = getPINStatus(userId);
+            setStatus(nextStatus);
+
+            if (!nextStatus.isLocked) {
+                setError('');
+            }
+        }, 1000);
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
+    }, [isOpen, status.isLocked, userId]);
+
+    const handleVerify = async (pinValue: string) => {
+        if (isLoading || status.isLocked) {
+            return;
+        }
+
         setError('');
         setIsLoading(true);
 
         try {
-            if (!pin) {
-                setError('Please enter your PIN');
-                setIsLoading(false);
-                return;
-            }
-
-            verifyPIN(userId, pin);
+            verifyPIN(userId, pinValue);
             setPin('');
-            setIsLoading(false);
+            setStatus(getPINStatus(userId));
             onVerified();
-        } catch (err: any) {
-            if (!err.message.includes('locked')) {
-                setError(err.message);
-            } else {
-                setError('');
-            }
+        } catch (caughtError) {
+            const message = caughtError instanceof Error ? caughtError.message : 'Could not verify PIN';
             setStatus(getPINStatus(userId));
             setPin('');
+
+            if (!message.toLowerCase().includes('locked')) {
+                setError(message);
+            }
+        } finally {
             setIsLoading(false);
         }
     };
@@ -67,13 +88,13 @@ export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
     return (
         <div className={`${ModalOut} ${isVisible ? 'app-modal-backdrop-enter' : 'app-modal-backdrop-exit'}`}>
             <div className={`${ModalPopUp} max-w-sm sm:max-w-md ${isVisible ? 'app-modal-panel-enter' : 'app-modal-panel-exit'}`}>
-                {/* Header */}
                 <div className={ModalHeader}>
-                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-50 flex items-center gap-2">
+                    <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-gray-50 sm:text-xl">
                         <Lock size={20} />
                         Enter PIN
                     </h2>
                     <button
+                        type="button"
                         onClick={onClose}
                         className={FreeWhiteBtn}
                         disabled={isLoading}
@@ -82,65 +103,59 @@ export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
                     </button>
                 </div>
 
-                {/* Content */}
-                <form onSubmit={handleVerify} className="p-6 space-y-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                        This page is protected. Please enter your PIN to continue.
-                    </p>
-
+                <div className="space-y-5 p-6">
                     <div>
-                        <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
-                            PIN
-                        </label>
-                        <input
-                            type="password"
-                            inputMode="numeric"
-                            maxLength={6}
-                            value={pin}
-                            onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-                                setPin(val);
-                            }}
-                            className="glass-input w-full px-4 py-3 text-lg text-start tracking-widest text-gray-900 dark:text-gray-50 rounded-lg"
-                            placeholder="••••"
-                            disabled={isLoading || status.isLocked}
-                            autoFocus
-                        />
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            This page is protected. Enter your PIN and we will verify it automatically after digit {PIN_LENGTH}.
+                        </p>
                     </div>
 
+                    <PinSquirclesInput
+                        value={pin}
+                        onChange={setPin}
+                        onComplete={(nextPin) => {
+                            void handleVerify(nextPin);
+                        }}
+                        disabled={isLoading || status.isLocked}
+                        autoFocus={isOpen}
+                        hasError={!!error}
+                        ariaLabel="PIN"
+                    />
 
+                    {!status.isLocked && (
+                        <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+                            {isLoading ? 'Checking PIN...' : `Enter all ${PIN_LENGTH} digits to continue.`}
+                        </p>
+                    )}
 
-                    <div className="flex flex-row justify-end gap-3 pt-2">
-                        {error && !status.isLocked && (
-                            <div className="p-3 bg-red-50/50 dark:bg-red-950/30 border border-red-200/50 dark:border-red-800/50 rounded-lg w-full">
-                                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                            </div>
-                        )}
-                        {status.isLocked && (
-                            <div className="p-3 bg-yellow-50/50 dark:bg-yellow-950/30 border border-yellow-200/50 dark:border-yellow-800/50 rounded-lg w-full">
-                                <p className="text-sm text-yellow-600 dark:text-yellow-400">
-                                    Try again in {getFormattedDate(status.timeUntilUnlock)}
-                                </p>
-                            </div>
-                        )}
-                        {status.isLocked ? (
+                    {error && !status.isLocked && (
+                        <div className="w-full rounded-lg border border-red-200/50 bg-red-50/50 p-3 dark:border-red-800/50 dark:bg-red-950/30">
+                            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                        </div>
+                    )}
+
+                    {status.isLocked && (
+                        <div className="w-full rounded-lg border border-yellow-200/50 bg-yellow-50/50 p-3 dark:border-yellow-800/50 dark:bg-yellow-950/30">
+                            <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                                Try again in {getFormattedDate(status.timeUntilUnlock)}
+                            </p>
+                        </div>
+                    )}
+
+                    {status.isLocked && (
+                        <div className="flex justify-end pt-1">
                             <button
+                                type="button"
                                 className={FreeRedBtn}
-                                onClick={clearAccount.bind(null, logout)}
+                                onClick={() => {
+                                    void clearAccount(logout);
+                                }}
                             >
                                 Logout
                             </button>
-                        ) : (
-                            <button
-                                type="submit"
-                                className={FreeBlueBtn}
-                                disabled={isLoading || status.isLocked}
-                            >
-                                {isLoading ? 'Verifying...' : 'Verify'}
-                            </button>
-                        )}
-                    </div>
-                </form>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

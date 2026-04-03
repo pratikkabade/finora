@@ -1,17 +1,19 @@
 import React from 'react';
-import { AppNavigation, type AppView } from './AppNavigation';
+import { AppNavigation, type AppView, type PlannedPaymentsNavBadge } from './AppNavigation';
 
 interface AppShellProps {
     activeView: AppView;
     children: React.ReactNode;
     overlayChildren?: React.ReactNode;
     contentClassName?: string;
+    plannedPaymentsBadge?: PlannedPaymentsNavBadge;
 }
 
 const VIEW_ORDER: Record<AppView, number> = {
     home: 0,
-    report: 1,
-    settings: 2,
+    planned: 1,
+    report: 2,
+    settings: 3,
 };
 
 export const AppShell: React.FC<AppShellProps> = ({
@@ -19,6 +21,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     children,
     overlayChildren,
     contentClassName = '',
+    plannedPaymentsBadge,
 }) => {
     const previousViewRef = React.useRef(activeView);
     const [pageTransitionKey, setPageTransitionKey] = React.useState(0);
@@ -60,7 +63,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 />
             </div>
 
-            <AppNavigation activeView={activeView} />
+            <AppNavigation activeView={activeView} plannedPaymentsBadge={plannedPaymentsBadge} />
 
             <main className={`relative mx-auto min-h-screen min-h-dvh max-w-7xl px-3 pb-28 pt-4 sm:px-4 sm:pt-6 md:px-6 md:pb-10 md:pl-72 lg:px-8 lg:pl-80 ${contentClassName}`}>
                 <div

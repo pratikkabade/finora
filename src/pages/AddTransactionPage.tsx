@@ -49,6 +49,7 @@ export const AddTransactionPage: React.FC<AddTransactionPageProps> = ({
                 onSave={handleSave}
                 accounts={financeData.accounts}
                 categories={financeData.categories}
+                transactions={financeData.transactions}
                 defaultAccountId={defaultAccountId}
                 lockAccountSelection={lockAccountSelection}
             />

@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, CalendarDays, Calendar1, ArrowUpDown, LayoutGrid, Table, Download } from 'lucide-react';
-import type { Category, FinanceData, Transaction } from './types/finance.types';
+import type { Category, FinanceData, PlannedPaymentRule, Transaction } from './types/finance.types';
 import { CreateTransactionModal } from './components/CreateTransactionModal';
 import { AddTransactionPage } from './pages/AddTransactionPage';
+import { PlannedPaymentsPage } from './pages/PlannedPaymentsPage';
 import { SettingsModal } from './components/SettingsModal';
 import { DateRangeModal } from './components/DateRangeModal';
 import { DataSourceModal } from './components/DataSourceModal';
@@ -14,9 +15,9 @@ import { ExpensePieChart } from './components/ExpensePieChart';
 import { IncomeExpenseTrendChart } from './components/IncomeExpenseTrendChart';
 import { SkeletonApp } from './components/SkeletonLoader';
 import { LoginPage } from './pages/LoginPage';
-// import { PINVerificationModal } from './components/PINVerificationModal';
+import { PINVerificationModal } from './components/PINVerificationModal';
 import { useAuth } from './context/AuthContext';
-// import { getPINStatus } from './services/pinService';
+import { getPINStatus } from './services/pinService';
 import {
     generateMonthYearOptions,
     filterTransactionsByMonth,
@@ -50,6 +51,11 @@ import {
 } from './constants/TailwindClasses';
 import { AppShell } from './components/AppShell';
 import { exportTransactionsToExcel, exportTransactionsToPdf } from './utils/reportExportUtils';
+import {
+    advancePlannedPaymentRule,
+    getNextPlannedPaymentDate,
+    getPlannedPaymentAlertSummary,
+} from './utils/plannedPaymentUtils';
 
 const GUEST_USER_ID = '__guest__';
 
@@ -64,12 +70,38 @@ const getTransactionTimestamp = (transaction: Transaction) => {
     return transaction.dateTime || transaction.dueDate || 0;
 };
 
+const sortCategoriesByOrder = (categories: Category[]) => {
+    return [...categories].sort((categoryA, categoryB) => {
+        const orderA = Number(categoryA.orderNum) || 0;
+        const orderB = Number(categoryB.orderNum) || 0;
+        if (orderA !== orderB) {
+            return orderA - orderB;
+        }
+
+        return categoryA.name.localeCompare(categoryB.name);
+    });
+};
+
 const formatReportDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
     });
+};
+
+const normalizeFinanceData = (data: FinanceData): FinanceData => {
+    return {
+        ...data,
+        plannedPaymentRules: Array.isArray(data.plannedPaymentRules)
+            ? data.plannedPaymentRules.map((rule) => ({
+                ...rule,
+                nextDueDate: typeof rule.nextDueDate === 'number'
+                    ? rule.nextDueDate
+                    : getNextPlannedPaymentDate(rule),
+            }))
+            : [],
+    };
 };
 
 export const AppHeader = ({ onLogoClick }: AppHeaderProps) => {
@@ -103,11 +135,13 @@ function App() {
     const navigate = useNavigate();
     const [financeData, setFinanceData] = useState<FinanceData | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isPlannedPaymentModalOpen, setIsPlannedPaymentModalOpen] = useState(false);
     const [isDateRangeOpen, setIsDateRangeOpen] = useState(false);
     const [showDataSourceModal, setShowDataSourceModal] = useState(false);
     const [selectedMonthYear, setSelectedMonthYear] = useState<string>('');
     const [dateRange, setDateRange] = useState<{ start: number; end: number } | null>(null);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+    const [editingPlannedPayment, setEditingPlannedPayment] = useState<PlannedPaymentRule | null>(null);
     const [selectedExpenseCategories, setSelectedExpenseCategories] = useState<string[]>([]);
     const [selectedIncomeCategory, setSelectedIncomeCategory] = useState<string | null>(null);
     const [homeVisibleCount, setHomeVisibleCount] = useState(20);
@@ -120,22 +154,30 @@ function App() {
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const isSessionActive = !!user || isGuest;
     const storageUserId = user?.uid ?? (isGuest ? GUEST_USER_ID : null);
-    // const [isPINVerified, setIsPINVerified] = useState(false);
-    // const [showPINModal, setShowPINModal] = useState(false);
+    const [isPINVerified, setIsPINVerified] = useState(false);
+    const [showPINModal, setShowPINModal] = useState(false);
 
-    // // Check if PIN is required for homepage
-    // useEffect(() => {
-    //     if (!user || authLoading) return;
+    useEffect(() => {
+        setIsPINVerified(false);
+        setShowPINModal(false);
+    }, [storageUserId]);
 
-    //     const isHomePage = location.pathname === '/';
-    //     const pinStatus = getPINStatus(user.uid);
+    useEffect(() => {
+        if (!storageUserId || authLoading) {
+            setShowPINModal(false);
+            return;
+        }
 
-    //     if (isHomePage && pinStatus.isPINSet && !isPINVerified) {
-    //         setShowPINModal(true);
-    //     } else {
-    //         setShowPINModal(false);
-    //     }
-    // }, [location.pathname, user, authLoading, isPINVerified]);
+        const isHomePage = location.pathname === '/';
+        const pinStatus = getPINStatus(storageUserId);
+
+        if (isHomePage && pinStatus.isPINSet && !isPINVerified) {
+            setShowPINModal(true);
+            return;
+        }
+
+        setShowPINModal(false);
+    }, [location.pathname, storageUserId, authLoading, isPINVerified]);
 
     useEffect(() => {
         if (authLoading) return;
@@ -151,7 +193,7 @@ function App() {
 
                 const localData = loadFromLocalStorage(storageUserId);
                 if (localData) {
-                    setFinanceData(localData);
+                    setFinanceData(normalizeFinanceData(localData));
                     setBalanceSummary(loadBalanceSummaryFromLocalStorage(storageUserId));
                     setShowDataSourceModal(false);
                     return;
@@ -250,6 +292,91 @@ function App() {
         });
     };
 
+    const handleCreatePlannedPayment = (plannedPaymentRule: PlannedPaymentRule) => {
+        if (!financeData) return;
+
+        const nextRule = {
+            ...plannedPaymentRule,
+            nextDueDate: plannedPaymentRule.nextDueDate ?? plannedPaymentRule.startDate,
+        };
+
+        localStorage.setItem('outOfSync', 'true');
+
+        if (editingPlannedPayment) {
+            setFinanceData({
+                ...financeData,
+                plannedPaymentRules: financeData.plannedPaymentRules.map((rule) => {
+                    return rule.id === nextRule.id ? nextRule : rule;
+                }),
+            });
+            setEditingPlannedPayment(null);
+            setIsPlannedPaymentModalOpen(false);
+            return;
+        }
+
+        setFinanceData({
+            ...financeData,
+            plannedPaymentRules: [...(financeData.plannedPaymentRules ?? []), nextRule],
+        });
+    };
+
+    const handleDeletePlannedPayment = (plannedPaymentRuleId: string) => {
+        if (!financeData) return;
+
+        localStorage.setItem('outOfSync', 'true');
+        setFinanceData({
+            ...financeData,
+            plannedPaymentRules: financeData.plannedPaymentRules.filter((rule) => rule.id !== plannedPaymentRuleId),
+        });
+        setEditingPlannedPayment(null);
+        setIsPlannedPaymentModalOpen(false);
+    };
+
+    const handlePayPlannedPayment = (plannedPaymentRule: PlannedPaymentRule) => {
+        if (!financeData) return;
+
+        const occurrenceDate = getNextPlannedPaymentDate(plannedPaymentRule);
+        const transaction: Transaction = {
+            id: generateUUID(),
+            accountId: plannedPaymentRule.accountId,
+            type: plannedPaymentRule.type,
+            amount: plannedPaymentRule.amount,
+            title: plannedPaymentRule.title,
+            categoryId: plannedPaymentRule.categoryId,
+            dateTime: Date.now(),
+            isSynced: false,
+        };
+        const advancedRule = advancePlannedPaymentRule(plannedPaymentRule, occurrenceDate);
+
+        localStorage.setItem('outOfSync', 'true');
+        setFinanceData({
+            ...financeData,
+            transactions: [...financeData.transactions, transaction],
+            plannedPaymentRules: advancedRule
+                ? financeData.plannedPaymentRules.map((rule) => {
+                    return rule.id === plannedPaymentRule.id ? advancedRule : rule;
+                })
+                : financeData.plannedPaymentRules.filter((rule) => rule.id !== plannedPaymentRule.id),
+        });
+    };
+
+    const handleSkipPlannedPayment = (plannedPaymentRule: PlannedPaymentRule) => {
+        if (!financeData) return;
+
+        const occurrenceDate = getNextPlannedPaymentDate(plannedPaymentRule);
+        const advancedRule = advancePlannedPaymentRule(plannedPaymentRule, occurrenceDate);
+
+        localStorage.setItem('outOfSync', 'true');
+        setFinanceData({
+            ...financeData,
+            plannedPaymentRules: advancedRule
+                ? financeData.plannedPaymentRules.map((rule) => {
+                    return rule.id === plannedPaymentRule.id ? advancedRule : rule;
+                })
+                : financeData.plannedPaymentRules.filter((rule) => rule.id !== plannedPaymentRule.id),
+        });
+    };
+
     const handleDeleteTransaction = (transactionId: string) => {
         if (!financeData) return;
 
@@ -266,6 +393,8 @@ function App() {
         setFinanceData(null);
         setSelectedMonthYear('');
         setDateRange(null);
+        setIsPlannedPaymentModalOpen(false);
+        setEditingPlannedPayment(null);
         setEditingTransaction(null);
         setSelectedExpenseCategories([]);
         setSelectedIncomeCategory(null);
@@ -274,9 +403,11 @@ function App() {
     };
 
     const handleImportData = (importedData: FinanceData) => {
-        setFinanceData(importedData);
+        setFinanceData(normalizeFinanceData(importedData));
         setSelectedMonthYear('');
         setDateRange(null);
+        setIsPlannedPaymentModalOpen(false);
+        setEditingPlannedPayment(null);
         setEditingTransaction(null);
         setSelectedExpenseCategories([]);
         setSelectedIncomeCategory(null);
@@ -334,8 +465,128 @@ function App() {
         return true;
     };
 
+    const handleRenameCategory = (categoryId: string, categoryName: string): boolean => {
+        if (!financeData) return false;
+
+        const trimmedCategoryName = categoryName.trim();
+        if (!trimmedCategoryName) {
+            alert('Category name is required.');
+            return false;
+        }
+
+        const currentCategory = financeData.categories.find((category) => category.id === categoryId);
+        if (!currentCategory) {
+            return false;
+        }
+
+        const isDuplicateCategory = financeData.categories.some(
+            (category) => category.id !== categoryId && category.name.trim().toLowerCase() === trimmedCategoryName.toLowerCase(),
+        );
+
+        if (isDuplicateCategory) {
+            alert('A category with this name already exists.');
+            return false;
+        }
+
+        if (currentCategory.name.trim() === trimmedCategoryName) {
+            return true;
+        }
+
+        setFinanceData({
+            ...financeData,
+            categories: financeData.categories.map((category) => category.id === categoryId
+                ? {
+                    ...category,
+                    name: trimmedCategoryName,
+                    isSynced: false,
+                }
+                : category),
+        });
+        localStorage.setItem('outOfSync', 'true');
+        return true;
+    };
+
+    const handleUpdateCategoryColor = (categoryId: string, color: number): boolean => {
+        if (!financeData) return false;
+
+        const currentCategory = financeData.categories.find((category) => category.id === categoryId);
+        if (!currentCategory) {
+            return false;
+        }
+
+        if (currentCategory.color === color) {
+            return true;
+        }
+
+        setFinanceData({
+            ...financeData,
+            categories: financeData.categories.map((category) => category.id === categoryId
+                ? {
+                    ...category,
+                    color,
+                    isSynced: false,
+                }
+                : category),
+        });
+        localStorage.setItem('outOfSync', 'true');
+        return true;
+    };
+
+    const handleReorderCategories = (orderedCategoryIds: string[]): boolean => {
+        if (!financeData) return false;
+        if (orderedCategoryIds.length !== financeData.categories.length) {
+            return false;
+        }
+
+        const currentOrderedCategoryIds = sortCategoriesByOrder(financeData.categories).map((category) => category.id);
+        const isSameOrder = currentOrderedCategoryIds.every((categoryId, index) => categoryId === orderedCategoryIds[index]);
+        if (isSameOrder) {
+            return true;
+        }
+
+        const categoriesById = new Map(financeData.categories.map((category) => [category.id, category]));
+        const nextCategories: Category[] = [];
+
+        for (const [index, categoryId] of orderedCategoryIds.entries()) {
+            const currentCategory = categoriesById.get(categoryId);
+            if (!currentCategory) {
+                return false;
+            }
+
+            const nextOrderNum = index + 1;
+            nextCategories.push({
+                ...currentCategory,
+                orderNum: nextOrderNum,
+                isSynced: currentCategory.orderNum === nextOrderNum ? currentCategory.isSynced : false,
+            });
+        }
+
+        setFinanceData({
+            ...financeData,
+            categories: nextCategories,
+        });
+        localStorage.setItem('outOfSync', 'true');
+        return true;
+    };
+
+    const handleDeleteCategory = (categoryId: string): boolean => {
+        if (!financeData) return false;
+
+        const categoryExists = financeData.categories.some((category) => category.id === categoryId);
+        if (!categoryExists) {
+            return false;
+        }
+
+        setFinanceData({
+            ...financeData,
+            categories: financeData.categories.filter((category) => category.id !== categoryId),
+        });
+        localStorage.setItem('outOfSync', 'true');
+        return true;
+    };
+
     const applyFirebaseData = (firebaseData: FinanceData) => {
-        setFinanceData(firebaseData);
+        setFinanceData(normalizeFinanceData(firebaseData));
         setShowDataSourceModal(false);
     };
 
@@ -372,7 +623,7 @@ function App() {
     };
 
     const handleGetSampleData = () => {
-        const sampleData = financeDataJson as FinanceData;
+        const sampleData = normalizeFinanceData(financeDataJson as FinanceData);
         setFinanceData(sampleData);
         setShowDataSourceModal(false);
     };
@@ -403,14 +654,24 @@ function App() {
 
     const lifetimeSummary = balanceSummary ?? fallbackLifetimeSummary;
     const isHomeDataReady = isSessionActive && !!financeData && !authLoading;
-    const isAnyModalOpen = isModalOpen || isDateRangeOpen || showDataSourceModal || !!editingTransaction || isExportModalOpen;
+    const plannedPaymentAlertSummary = useMemo(() => {
+        return getPlannedPaymentAlertSummary(financeData?.plannedPaymentRules ?? []);
+    }, [financeData?.plannedPaymentRules]);
+    const isAnyModalOpen = isModalOpen || isPlannedPaymentModalOpen || !!editingPlannedPayment || isDateRangeOpen || showDataSourceModal || !!editingTransaction || isExportModalOpen || showPINModal;
     const netBalanceAccountIds = useMemo(() => {
         if (!financeData) return [];
         return getIncludedNetBalanceAccountIds(financeData);
     }, [financeData]);
     const defaultTransactionAccountId = netBalanceAccountIds[0] ?? financeData?.accounts?.[0]?.id ?? '';
     const lockDefaultTransactionAccount = netBalanceAccountIds.length === 1;
-    const loadingView = location.pathname === '/report' ? 'report' : 'home';
+    const loadingView =
+        location.pathname === '/report'
+            ? 'report'
+            : location.pathname === '/settings'
+                ? 'settings'
+                : location.pathname === '/planned-payments'
+                    ? 'planned'
+                    : 'home';
     const visibleHomeTransactions = useMemo(() => {
         return homeTransactions.slice(0, homeVisibleCount);
     }, [homeTransactions, homeVisibleCount]);
@@ -488,6 +749,14 @@ function App() {
     const selectedReportExportFileBase = useMemo(() => {
         return `${selectedReportHeading || 'report-transactions'}-${activeReportPeriodLabel}`;
     }, [selectedReportHeading, activeReportPeriodLabel]);
+    const pinVerificationModal = storageUserId ? (
+        <PINVerificationModal
+            isOpen={showPINModal}
+            onClose={() => navigate('/')}
+            onVerified={() => setIsPINVerified(true)}
+            userId={storageUserId}
+        />
+    ) : null;
 
     const renderTransactionGrid = (transactions: Transaction[]) => {
         if (!financeData) return null;
@@ -578,7 +847,25 @@ function App() {
                     onDelete={handleDeleteTransaction}
                     accounts={financeData.accounts}
                     categories={financeData.categories}
+                    transactions={financeData.transactions}
                     editingTransaction={editingTransaction}
+                    defaultAccountId={defaultTransactionAccountId}
+                    lockAccountSelection={lockDefaultTransactionAccount}
+                />
+
+                <CreateTransactionModal
+                    mode="planned-payment"
+                    isOpen={isPlannedPaymentModalOpen || !!editingPlannedPayment}
+                    onClose={() => {
+                        setIsPlannedPaymentModalOpen(false);
+                        setEditingPlannedPayment(null);
+                    }}
+                    onSave={handleCreatePlannedPayment}
+                    onDelete={handleDeletePlannedPayment}
+                    accounts={financeData.accounts}
+                    categories={financeData.categories}
+                    transactions={financeData.transactions}
+                    editingPlannedPayment={editingPlannedPayment}
                     defaultAccountId={defaultTransactionAccountId}
                     lockAccountSelection={lockDefaultTransactionAccount}
                 />
@@ -758,12 +1045,7 @@ function App() {
                     defaultAccountId={defaultTransactionAccountId}
                     lockAccountSelection={lockDefaultTransactionAccount}
                 />
-                {/* <PINVerificationModal
-                    isOpen={showPINModal}
-                    onClose={() => navigate('/')}
-                    onVerified={() => setIsPINVerified(true)}
-                    userId={user.uid}
-                /> */}
+                {pinVerificationModal}
             </>
         );
     }
@@ -772,6 +1054,7 @@ function App() {
         return (
             <AppShell
                 activeView="settings"
+                plannedPaymentsBadge={plannedPaymentAlertSummary}
                 overlayChildren={(
                     <DataSourceModal
                         isOpen={showDataSourceModal}
@@ -789,7 +1072,12 @@ function App() {
                     onImport={handleImportData}
                     onUpdateNetBalanceAccounts={handleUpdateNetBalanceAccounts}
                     onAddCategory={handleAddCategory}
+                    onRenameCategory={handleRenameCategory}
+                    onUpdateCategoryColor={handleUpdateCategoryColor}
+                    onReorderCategories={handleReorderCategories}
+                    onDeleteCategory={handleDeleteCategory}
                     financeData={financeData}
+                    pinUserId={storageUserId}
                     onBackupToFirebase={user ? handleBackupToFirebase : undefined}
                     onSyncFromFirebase={user ? handleSyncFromFirebase : undefined}
                     onGetSampleData={handleGetSampleData}
@@ -803,13 +1091,17 @@ function App() {
             <>
                 <AppShell
                     activeView={loadingView}
+                    plannedPaymentsBadge={plannedPaymentAlertSummary}
                     overlayChildren={(
-                        <DataSourceModal
-                            isOpen={showDataSourceModal}
-                            onFetchFirebase={handleFetchFromFirebase}
-                            onGetDummyData={handleGetSampleData}
-                            showCloudOption={!!user}
-                        />
+                        <>
+                            <DataSourceModal
+                                isOpen={showDataSourceModal}
+                                onFetchFirebase={handleFetchFromFirebase}
+                                onGetDummyData={handleGetSampleData}
+                                showCloudOption={!!user}
+                            />
+                            {pinVerificationModal}
+                        </>
                     )}
                 >
                     <SkeletonApp variant={loadingView === 'report' ? 'report' : 'home'} />
@@ -818,9 +1110,39 @@ function App() {
         );
     }
 
+    if (location.pathname === '/planned-payments') {
+        return (
+            <AppShell
+                activeView="planned"
+                plannedPaymentsBadge={plannedPaymentAlertSummary}
+                overlayChildren={renderSharedFloatingUi()}
+            >
+                <PlannedPaymentsPage
+                    plannedPaymentRules={financeData.plannedPaymentRules}
+                    accounts={financeData.accounts}
+                    categories={financeData.categories}
+                    onCreate={() => {
+                        setEditingPlannedPayment(null);
+                        setIsPlannedPaymentModalOpen(true);
+                    }}
+                    onEdit={(plannedPaymentRule) => {
+                        setIsPlannedPaymentModalOpen(false);
+                        setEditingPlannedPayment(plannedPaymentRule);
+                    }}
+                    onPay={handlePayPlannedPayment}
+                    onSkip={handleSkipPlannedPayment}
+                />
+            </AppShell>
+        );
+    }
+
     if (location.pathname === '/report') {
         return (
-            <AppShell activeView="report" overlayChildren={renderSharedFloatingUi()}>
+            <AppShell
+                activeView="report"
+                plannedPaymentsBadge={plannedPaymentAlertSummary}
+                overlayChildren={renderSharedFloatingUi()}
+            >
                 <div className="space-y-6 sm:space-y-7">
                     <div className="app-section mb-6 flex flex-col justify-between gap-4 xl:flex-row xl:items-start">
                         <div className="max-w-xl">
@@ -956,7 +1278,16 @@ function App() {
     }
 
     return (
-        <AppShell activeView="home" overlayChildren={renderSharedFloatingUi()}>
+        <AppShell
+            activeView="home"
+            plannedPaymentsBadge={plannedPaymentAlertSummary}
+            overlayChildren={(
+                <>
+                    {renderSharedFloatingUi()}
+                    {pinVerificationModal}
+                </>
+            )}
+        >
             <div className="relative">
                 <div className={`transition-opacity duration-500 ease-out ${isContentVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
                     <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-start">

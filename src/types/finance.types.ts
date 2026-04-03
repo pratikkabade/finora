@@ -19,6 +19,7 @@ export interface Category {
 }
 
 export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
+export type PlannedPaymentIntervalType = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
 
 export interface Transaction {
   id: string;
@@ -38,8 +39,9 @@ export interface Transaction {
 export interface PlannedPaymentRule {
   id: string;
   startDate: number;
+  nextDueDate?: number;
   intervalN: number;
-  intervalType: string;
+  intervalType: PlannedPaymentIntervalType;
   oneTime: boolean;
   type: TransactionType;
   accountId: string;

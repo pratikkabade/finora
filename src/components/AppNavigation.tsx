@@ -1,11 +1,18 @@
 import React from 'react';
-import { BarChart3, Home, Settings2 } from 'lucide-react';
+import { BarChart3, BellRing, Home, Settings2 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import type { PlannedPaymentBadgeTone } from '../utils/plannedPaymentUtils';
 
-export type AppView = 'home' | 'report' | 'settings';
+export type AppView = 'home' | 'planned' | 'report' | 'settings';
+
+export interface PlannedPaymentsNavBadge {
+    count: number;
+    tone: PlannedPaymentBadgeTone;
+}
 
 interface AppNavigationProps {
     activeView: AppView;
+    plannedPaymentsBadge?: PlannedPaymentsNavBadge;
 }
 
 const navItems = [
@@ -15,6 +22,13 @@ const navItems = [
         desktopLabel: 'Dashboard',
         path: '/',
         icon: Home,
+    },
+    {
+        id: 'planned' as const,
+        label: 'Planned',
+        desktopLabel: 'Planned Payments',
+        path: '/planned-payments',
+        icon: BellRing,
     },
     {
         id: 'report' as const,
@@ -32,7 +46,36 @@ const navItems = [
     },
 ];
 
-export const navButton = ({ id, icon: Icon, desktopLabel, path }: Omit<typeof navItems[number], 'label'>, isActive: boolean, handleNavigate: (path: string) => void) => {
+const getBadgeClassName = (tone: PlannedPaymentBadgeTone) => {
+    if (tone === 'red') {
+        return 'border-red-300/90 bg-red-500 text-white shadow-[0_10px_22px_-12px_rgba(239,68,68,0.9)]';
+    }
+
+    return 'border-amber-200/90 bg-amber-300 text-slate-950 shadow-[0_10px_22px_-12px_rgba(251,191,36,0.92)]';
+};
+
+const renderBadge = (badge?: PlannedPaymentsNavBadge) => {
+    if (!badge || !badge.count || !badge.tone) {
+        return null;
+    }
+
+    const displayCount = badge.count > 99 ? '99' : String(badge.count);
+
+    return (
+        <span
+            className={`pointer-events-none absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-bold leading-none tabular-nums ${getBadgeClassName(badge.tone)}`}
+        >
+            {displayCount}
+        </span>
+    );
+};
+
+export const navButton = (
+    { id, icon: Icon, desktopLabel, path }: Omit<typeof navItems[number], 'label'>,
+    isActive: boolean,
+    handleNavigate: (path: string) => void,
+    badge?: PlannedPaymentsNavBadge,
+) => {
     return (
         <button
             key={id}
@@ -40,18 +83,19 @@ export const navButton = ({ id, icon: Icon, desktopLabel, path }: Omit<typeof na
             onClick={() => handleNavigate(path)}
             aria-current={isActive ? 'page' : undefined}
             className={`group relative flex w-full cursor-pointer items-center gap-3 overflow-hidden rounded-xl px-3 py-3 text-left text-sm font-semibold transition-all duration-300 active:scale-[0.98] ${isActive
-                ? 'bg-slate-800/95 text-slate-50 dark:bg-slate-100 dark:text-slate-950 '
+                ? 'text-blue-50 bg-blue-600/95 dark:bg-blue-700'
                 : 'border text-slate-600 hover:border-slate-200/85 hover:bg-white/62 hover:text-slate-900 dark:text-slate-400 dark:hover:border-slate-700/70 dark:hover:bg-slate-800/55 dark:hover:text-slate-50 border-slate-100 dark:border-slate-700'
                 }`}
             title={desktopLabel}
         >
+            {renderBadge(badge)}
             <Icon size={18} className={`transition-transform duration-300 ${isActive ? 'scale-105' : 'group-hover:scale-105 group-active:scale-95'}`} />
             <span className="relative truncate">{desktopLabel}</span>
         </button>
     )
 }
 
-export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
+export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView, plannedPaymentsBadge }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [isMobileNavCompact, setIsMobileNavCompact] = React.useState(false);
@@ -159,15 +203,16 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
                     </div>
 
                     <nav className="flex flex-col h-full justify-between">
-                        <div className='flex flex-1 flex-col gap-1.5'>
+                        <div className='flex flex-1 flex-col gap-3'>
                             {navItems
                                 .filter((_, index) => index < navItems.length - 1)
                                 .map(({ id, icon: Icon, desktopLabel, path }) => {
                                     const isActive = activeView === id;
+                                    const badge = id === 'planned' ? plannedPaymentsBadge : undefined;
 
                                     return (
                                         <React.Fragment key={id}>
-                                            {navButton({ id, icon: Icon, desktopLabel, path }, isActive, handleNavigate)}
+                                            {navButton({ id, icon: Icon, desktopLabel, path }, isActive, handleNavigate, badge)}
                                         </React.Fragment>
                                     );
                                 })}
@@ -175,10 +220,11 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
                         {/* show last item */}
                         {navItems.slice(-1).map(({ id, icon: Icon, desktopLabel, path }) => {
                             const isActive = activeView === id;
+                            const badge = id === 'planned' ? plannedPaymentsBadge : undefined;
 
                             return (
                                 <React.Fragment key={id}>
-                                    {navButton({ id, icon: Icon, desktopLabel, path }, isActive, handleNavigate)}
+                                    {navButton({ id, icon: Icon, desktopLabel, path }, isActive, handleNavigate, badge)}
                                 </React.Fragment>
                             );
                         })}
@@ -197,6 +243,7 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
                     {navItems.map(({ id, icon: Icon, label, path }) => {
                         const isActive = activeView === id;
                         const showMobileLabel = !isMobileNavCompact && isActive;
+                        const badge = id === 'planned' ? plannedPaymentsBadge : undefined;
 
                         return (
                             <button
@@ -215,6 +262,13 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView }) => {
                                         : 'border border-slate-200/55 text-slate-500 hover:border-slate-300/80 hover:bg-white/35 hover:text-slate-900 hover:shadow-[0_16px_32px_-20px_rgba(15,23,42,0.35)] dark:border-slate-700/55 dark:text-slate-400 dark:hover:border-slate-500/75 dark:hover:bg-slate-800/50 dark:hover:text-slate-50'
                                     }`}
                             >
+                                {badge && badge.count > 0 && badge.tone ? (
+                                    <span
+                                        className={`pointer-events-none absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-bold leading-none tabular-nums ${getBadgeClassName(badge.tone)}`}
+                                    >
+                                        {badge.count > 99 ? '99' : badge.count}
+                                    </span>
+                                ) : null}
                                 <span
                                     className={`pointer-events-none absolute inset-0 bg-linear-to-br from-white/45 via-white/0 to-sky-100/30 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                                         }`}
