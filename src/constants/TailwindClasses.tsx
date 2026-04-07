@@ -9,6 +9,7 @@ const base = {
     cardFrame: "relative overflow-hidden rounded-[1.75rem] text-slate-900 shadow-[0_22px_60px_-34px_rgba(15,23,42,0.36)] backdrop-blur-2xl dark:text-slate-50",
     cardInteract: "transition-[box-shadow,border-color,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-slate-300/80 hover:shadow-[0_28px_72px_-34px_rgba(15,23,42,0.46)] dark:hover:border-slate-500/70",
     whiteBtn: "app-border-surface relative overflow-hidden rounded-2xl bg-slate-100 text-slate-900 shadow-[0_16px_34px_-24px_rgba(15,23,42,0.38)] backdrop-blur-xl dark:bg-slate-800 dark:text-slate-50",
+    greenBtn: "text-green-600! dark:text-green-300! bg-green-50/75 dark:bg-green-950/40 border border-green-200/70 dark:border-green-800/60",
     whiteBtnDisabled: "app-border-surface relative overflow-hidden rounded-2xl bg-slate-50 text-slate-900 shadow-[0_16px_34px_-24px_rgba(15,23,42,0.38)] backdrop-blur-xl dark:bg-slate-900 dark:text-slate-50 border border-slate-400 dark:border-slate-600",
     whiteBtnInteract: "hover:bg-slate-200 hover:shadow-[0_22px_50px_-26px_rgba(15,23,42,0.46)] dark:hover:bg-slate-800/70",
     redBtn: "text-red-600! dark:text-red-300! bg-red-50/75 dark:bg-red-950/40 border border-red-200/70 dark:border-red-800/60",
@@ -21,7 +22,7 @@ const softPanelSurface = "app-border-soft bg-white/72 dark:bg-slate-900/52";
 
 export const FreeBlueBtn = `${freeBtn} ${base.flex} ${base.interact} ${base.btnBlue} text-white shadow-[0_18px_40px_-24px_rgba(37,99,235,0.55)]`;
 export const FreeRedBtn = `${freeBtn} ${base.flex} ${base.interact} ${base.btnRed} text-white shadow-[0_18px_46px_-26px_rgba(225,29,72,0.58)]`;
-export const FreeGreenBtn = `${freeBtn} ${base.flex} ${base.interact} ${base.btnGreen} text-white shadow-[0_18px_46px_-26px_rgba(225,29,72,0.58)]`;
+export const FreeGreenBtn = `${freeBtn} ${base.flex} ${base.interact} ${base.greenBtn} justify-start`;
 export const FreeWhiteBtn = `${freeBtn} ${base.flex} ${base.interact} ${base.whiteBtn} ${base.whiteBtnInteract} justify-start`;
 export const FreeWhiteBtnDisabled = `${freeBtn} ${base.flex} ${base.whiteBtnDisabled} cursor-not-allowed justify-start`;
 

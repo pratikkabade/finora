@@ -166,9 +166,13 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
     lockAccountSelection,
     mode = 'transaction',
 }) => {
+    const initialFormDataRef = useRef<typeof formData | null>(null);
     const isPlannedPaymentMode = mode === 'planned-payment';
     const titleInputRef = useRef<HTMLInputElement>(null);
+    const amountInputRef = useRef<HTMLInputElement>(null);
+    const amountInputRefDesktop = useRef<HTMLInputElement>(null);
     const titleSuggestionsListId = `${useId().replace(/:/g, '')}-title-suggestions`;
+    const amountSuggestionsListId = `${useId().replace(/:/g, '')}-amount-suggestions`;
     const [isAccountPickerOpen, setIsAccountPickerOpen] = useState(false);
     const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false);
     const [selectionMode, setSelectionMode] = useState<FilterMode>('expense');
@@ -232,6 +236,11 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
 
         setIsAccountPickerOpen(false);
         setIsCategoryPickerOpen(false);
+
+        initialFormDataRef.current = {
+            ...formData,
+        };
+
     }, [editingTransaction, editingPlannedPayment, isOpen, isPlannedPaymentMode, resolvedDefaultAccountId]);
 
     // useEffect(()=>{
@@ -300,6 +309,21 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 onClose();
             }
         }
+    };
+
+    const isFormDirty = () => {
+        if (!initialFormDataRef.current) return false;
+        return JSON.stringify(initialFormDataRef.current) !== JSON.stringify(formData);
+    };
+
+    const handleCloseWithConfirm = () => {
+        if (isFormDirty()) {
+            const confirmClose = window.confirm(
+                "You have unsaved changes.\n\nIf you close this, all entered data will be lost.\n\nDo you want to discard your changes?"
+            );
+            if (!confirmClose) return;
+        }
+        onClose();
     };
 
     const { shouldRender, isVisible } = useAnimatedOpen(isOpen);
@@ -420,6 +444,104 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
 
     if (!shouldRender) return null;
 
+    const amountSuggestions = [50, 100, 250, 500, 1000, 1500, 2000]
+
+    const amountSetter = (h: boolean) => {
+        return (
+            <>
+                {h ?
+                    <div className={`${formFieldCardClassName} ${h ? 'max-md:hidden' : 'md:hidden'}`}>
+                        <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
+                            Amount
+                        </label>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => handleAdjustAmount(-50)}
+                                className={amountStepButtonClassName}
+                            >
+                                -50
+                            </button>
+                            <input
+                                ref={amountInputRef}
+                                list={amountSuggestionsListId}
+                                inputMode="decimal"
+                                type="number"
+                                step="0.01"
+                                value={formData.amount}
+                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                className={`min-w-0 ${transactionFieldClasses}`}
+                                placeholder="0.00"
+                                onFocus={(e) => e.currentTarget.select()}
+                                required
+                            />
+                            <datalist id={amountSuggestionsListId}>
+                                {amountSuggestions.map((suggestion) => (
+                                    <option
+                                        key={suggestion}
+                                        value={suggestion}
+                                        label={suggestion.toString()}
+                                    />
+                                ))}
+                            </datalist>
+                            <button
+                                type="button"
+                                onClick={() => handleAdjustAmount(50)}
+                                className={amountStepButtonClassName}
+                            >
+                                +50
+                            </button>
+                        </div>
+                    </div>
+                    :
+                    <div className={`${formFieldCardClassName} ${h ? 'max-md:hidden' : 'md:hidden'}`}>
+                        <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
+                            Amount
+                        </label>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => handleAdjustAmount(-50)}
+                                className={amountStepButtonClassName}
+                            >
+                                -50
+                            </button>
+                            <input
+                                ref={amountInputRefDesktop}
+                                list={amountSuggestionsListId}
+                                inputMode="decimal"
+                                type="number"
+                                step="0.01"
+                                value={formData.amount}
+                                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                className={`min-w-0 ${transactionFieldClasses}`}
+                                placeholder="0.00"
+                                onFocus={(e) => e.currentTarget.select()}
+                                required
+                            />
+                            <datalist id={amountSuggestionsListId}>
+                                {amountSuggestions.map((suggestion) => (
+                                    <option
+                                        key={suggestion}
+                                        value={suggestion}
+                                        label={suggestion.toString()}
+                                    />
+                                ))}
+                            </datalist>
+                            <button
+                                type="button"
+                                onClick={() => handleAdjustAmount(50)}
+                                className={amountStepButtonClassName}
+                            >
+                                +50
+                            </button>
+                        </div>
+                    </div>
+                }
+            </>
+        )
+    }
+
     return (
         <div className={`${ModalOut} ${isVisible ? 'app-modal-backdrop-enter' : 'app-modal-backdrop-exit'}`}>
             <div className={`${ModalPopUp} max-w-sm sm:max-w-xl ${isVisible ? 'app-modal-panel-enter' : 'app-modal-panel-exit'}`}>
@@ -435,7 +557,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                                 : 'New Transaction'}
                     </h2>
                     <button
-                        onClick={onClose}
+                        onClick={handleCloseWithConfirm}
                         className={FreeWhiteBtn}
                     >
                         <X size={20} />
@@ -478,9 +600,137 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 <form
                     id={formId}
                     onSubmit={handleSubmit}
-                    className="app-panel-stagger max-h-[55vh] overflow-y-auto bg-slate-50 px-3 py-6 dark:bg-slate-800/20"
+                    className="app-panel-stagger max-h-[50vh] overflow-y-auto bg-slate-50 px-3 py-6 dark:bg-slate-800/20"
                 >
-                    {/* Row 1: Account & Type */}
+                    {/* Row 1: Category & (Amount)*/}
+                    <div className="grid grid-cols-1 md:grid-cols-2">
+                        <div className={formFieldCardClassName}>
+                            <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
+                                Category
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => setIsCategoryPickerOpen(true)}
+                                disabled={categories.length === 0}
+                                className={`w-full disabled:cursor-not-allowed disabled:opacity-70 ${transactionFieldClasses}`}
+                            >
+                                <span className="flex items-center gap-2 min-w-0">
+                                    {selectedCategory ? (
+                                        <span
+                                            className="app-color-chip-border h-3 w-3 rounded-full shrink-0"
+                                            style={{ backgroundColor: intToHex(selectedCategory.color) }}
+                                        />
+                                    ) : null}
+                                    <span className={`truncate ${selectedCategory ? '' : 'text-gray-500 dark:text-gray-400'}`}>
+                                        {selectedCategory?.name || (categories.length ? 'Select category' : 'No categories available')}
+                                    </span>
+                                </span>
+                                <ChevronDown size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
+                            </button>
+                        </div>
+
+                        {amountSetter(true)}
+                    </div>
+
+                    {/* Row 2: Title & (Amount)*/}
+                    <div className="grid grid-cols-1 md:grid-cols-1">
+                        <div className={formFieldCardClassName}>
+                            <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
+                                Title
+                            </label>
+                            <input
+                                ref={titleInputRef}
+                                type="text"
+                                list={selectedCategory ? titleSuggestionsListId : undefined}
+                                value={formData.title}
+                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                className={`w-full ${transactionFieldClasses}`}
+                                placeholder="Description"
+                                autoComplete="off"
+                                onBlur={() => {
+                                    const el =
+                                        amountInputRef.current && amountInputRef.current.offsetWidth > 0
+                                            ? amountInputRef.current
+                                            : amountInputRefDesktop.current;
+                                    if (el) {
+                                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    }
+                                }}
+                                required
+                            />
+                            {/* <datalist id={titleSuggestionsListId}>
+                                {matchedTitleSuggestions.map((suggestion) => (
+                                    <option
+                                        key={suggestion.value}
+                                        value={suggestion.value}
+                                        label={`Used ${suggestion.count} time${suggestion.count === 1 ? '' : 's'}`}
+                                    />
+                                ))}
+                            </datalist> */}
+                            {titlePreviewSuggestions.length > 0 ? (
+                                <div className="mt-3 flex gap-2 w-full overflow-x-auto scrollbar-none -mx-4 px-4">
+                                    {titlePreviewSuggestions.map((suggestion) => {
+                                        const isActiveSuggestion = getNormalizedTitleKey(formData.title) === getNormalizedTitleKey(suggestion.value);
+
+                                        return (
+                                            <button
+                                                key={suggestion.value}
+                                                type="button"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault(); // prevents blur on iOS
+
+                                                    setFormData({ ...formData, title: suggestion.value });
+
+                                                    const el =
+                                                        amountInputRef.current && amountInputRef.current.offsetParent !== null
+                                                            ? amountInputRef.current
+                                                            : amountInputRefDesktop.current;
+
+                                                    if (el) {
+                                                        el.focus();
+                                                        el.click();
+                                                        el.scrollIntoView({
+                                                            behavior: 'smooth',
+                                                            block: 'center',
+                                                        });
+                                                    }
+                                                }}
+                                                onTouchStart={(e) => {
+                                                    e.preventDefault(); // critical for iOS
+
+                                                    setFormData({ ...formData, title: suggestion.value });
+
+                                                    const el =
+                                                        amountInputRef.current && amountInputRef.current.offsetParent !== null
+                                                            ? amountInputRef.current
+                                                            : amountInputRefDesktop.current;
+
+                                                    if (el) {
+                                                        el.focus();
+                                                        el.click();
+                                                        el.scrollIntoView({
+                                                            behavior: 'smooth',
+                                                            block: 'center',
+                                                        });
+                                                    }
+                                                }}
+                                                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-[border-color,background-color,transform,box-shadow] duration-200 whitespace-nowrap shrink-0 ${isActiveSuggestion
+                                                    ? 'border-sky-300 bg-sky-100/90 text-sky-900 shadow-[0_10px_24px_-18px_rgba(14,116,144,0.55)] dark:border-sky-400/50 dark:bg-sky-500/18 dark:text-sky-100'
+                                                    : 'border-slate-200/80 bg-white/80 text-slate-700 hover:border-sky-200 hover:bg-sky-50/80 hover:text-sky-800 dark:border-slate-700/70 dark:bg-slate-900/55 dark:text-slate-200 dark:hover:border-sky-500/35 dark:hover:bg-sky-500/10 dark:hover:text-sky-100'
+                                                    }`}
+                                            >
+                                                {suggestion.value}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ) : null}
+                        </div>
+
+                        {amountSetter(false)}
+                    </div>
+
+                    {/* Row 3: Account & Date */}
                     <div className="grid grid-cols-1 md:grid-cols-2">
                         <div className={formFieldCardClassName}>
                             <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
@@ -512,21 +762,6 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                             )}
                         </div>
 
-                        {/* <div className={formFieldCardClassName}>
-                            <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
-                                Type
-                            </label>
-                            <select
-                                value={formData.type}
-                                onChange={(e) => setFormData({ ...formData, type: e.target.value as TransactionType })}
-                                className="w-full px-3 py-2 text-sm text-gray-900 dark:text-gray-50 rounded-lg cursor-pointer"
-                                required
-                            >
-                                <option value="INCOME">Income</option>
-                                <option value="EXPENSE">Expense</option>
-                            </select>
-                        </div> */}
-
                         <div className={formFieldCardClassName}>
                             <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
                                 {isPlannedPaymentMode ? 'Next Due Date' : 'Date & Time'}
@@ -541,115 +776,6 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                         </div>
                     </div>
 
-                    {/* Row 2: Date & Category */}
-                    <div className="grid grid-cols-1 md:grid-cols-2">
-
-                        <div className={formFieldCardClassName}>
-                            <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
-                                Category
-                            </label>
-                            <button
-                                type="button"
-                                onClick={() => setIsCategoryPickerOpen(true)}
-                                disabled={categories.length === 0}
-                                className={`w-full disabled:cursor-not-allowed disabled:opacity-70 ${transactionFieldClasses}`}
-                            >
-                                <span className="flex items-center gap-2 min-w-0">
-                                    {selectedCategory ? (
-                                        <span
-                                            className="app-color-chip-border h-3 w-3 rounded-full shrink-0"
-                                            style={{ backgroundColor: intToHex(selectedCategory.color) }}
-                                        />
-                                    ) : null}
-                                    <span className={`truncate ${selectedCategory ? '' : 'text-gray-500 dark:text-gray-400'}`}>
-                                        {selectedCategory?.name || (categories.length ? 'Select category' : 'No categories available')}
-                                    </span>
-                                </span>
-                                <ChevronDown size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
-                            </button>
-                        </div>
-
-                        <div className={formFieldCardClassName}>
-                            <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
-                                Amount
-                            </label>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => handleAdjustAmount(-50)}
-                                    className={amountStepButtonClassName}
-                                >
-                                    -50
-                                </button>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={formData.amount}
-                                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                    className={`min-w-0 ${transactionFieldClasses}`}
-                                    placeholder="0.00"
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => handleAdjustAmount(50)}
-                                    className={amountStepButtonClassName}
-                                >
-                                    +50
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Row 3: Amount */}
-
-                    {/* Row 4: Title */}
-                    <div className={formFieldCardClassName}>
-                        <label className="block text-xs font-semibold text-gray-900 dark:text-gray-50 mb-2 uppercase tracking-wide">
-                            Title
-                        </label>
-                        <input
-                            ref={titleInputRef}
-                            type="text"
-                            list={selectedCategory ? titleSuggestionsListId : undefined}
-                            value={formData.title}
-                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                            className={`w-full ${transactionFieldClasses}`}
-                            placeholder="Description"
-                            autoComplete="off"
-                            required
-                        />
-                        <datalist id={titleSuggestionsListId}>
-                            {matchedTitleSuggestions.map((suggestion) => (
-                                <option
-                                    key={suggestion.value}
-                                    value={suggestion.value}
-                                    label={`Used ${suggestion.count} time${suggestion.count === 1 ? '' : 's'}`}
-                                />
-                            ))}
-                        </datalist>
-                        {titlePreviewSuggestions.length > 0 ? (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                                {titlePreviewSuggestions.map((suggestion) => {
-                                    const isActiveSuggestion = getNormalizedTitleKey(formData.title) === getNormalizedTitleKey(suggestion.value);
-
-                                    return (
-                                        <button
-                                            key={suggestion.value}
-                                            type="button"
-                                            onClick={() => setFormData({ ...formData, title: suggestion.value })}
-                                            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-[border-color,background-color,transform,box-shadow] duration-200 ${isActiveSuggestion
-                                                ? 'border-sky-300 bg-sky-100/90 text-sky-900 shadow-[0_10px_24px_-18px_rgba(14,116,144,0.55)] dark:border-sky-400/50 dark:bg-sky-500/18 dark:text-sky-100'
-                                                : 'border-slate-200/80 bg-white/80 text-slate-700 hover:-translate-y-0.5 hover:border-sky-200 hover:bg-sky-50/80 hover:text-sky-800 dark:border-slate-700/70 dark:bg-slate-900/55 dark:text-slate-200 dark:hover:border-sky-500/35 dark:hover:bg-sky-500/10 dark:hover:text-sky-100'
-                                                }`}
-                                        >
-                                            {suggestion.value}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        ) : null}
-                    </div>
 
                     {isPlannedPaymentMode && (
                         <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_12rem]">
@@ -704,7 +830,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                     <div className="flex gap-3">
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={handleCloseWithConfirm}
                             className={FreeWhiteBtn}
                         >
                             Cancel
@@ -746,7 +872,13 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 onSelect={(categoryId) => {
                     setFormData({ ...formData, categoryId });
                     setIsCategoryPickerOpen(false);
-                    window.requestAnimationFrame(() => titleInputRef.current?.focus());
+                    window.requestAnimationFrame(() => {
+                        titleInputRef.current?.focus();
+                        titleInputRef.current?.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                        });
+                    });
                 }}
                 onClose={() => setIsCategoryPickerOpen(false)}
             />

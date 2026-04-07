@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Lock, X } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { clearAccount, getPINStatus, PIN_LENGTH, verifyPIN } from '../services/pinService';
-import { FreeRedBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
+import { FreeRedBtn, ModalHeader, ModalOut, ModalPopUp } from '../constants/TailwindClasses';
 import { getFormattedDate } from '../utils/dateUtils';
 import { useAuth } from '../context/AuthContext';
 import { useAnimatedOpen } from '../hooks/useAnimatedOpen';
@@ -16,7 +16,6 @@ interface PINVerificationModalProps {
 
 export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
     isOpen,
-    onClose,
     onVerified,
     userId,
 }) => {
@@ -93,14 +92,6 @@ export const PINVerificationModal: React.FC<PINVerificationModalProps> = ({
                         <Lock size={20} />
                         Enter PIN
                     </h2>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className={FreeWhiteBtn}
-                        disabled={isLoading}
-                    >
-                        <X size={20} />
-                    </button>
                 </div>
 
                 <div className="space-y-5 p-6">

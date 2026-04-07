@@ -901,7 +901,7 @@ function App() {
                     <button
                         type="button"
                         onClick={() => setIsModalOpen(true)}
-                        className={`${FreeBlueBtn} app-fab fixed bottom-24 right-4 md:bottom-4 md:right-4`}
+                        className={`${FreeBlueBtn} app-fab fixed bottom-18 right-4 md:bottom-4 md:right-4 px-5! py-3! rounded-full! active:scale-90!`}
                     >
                         <Plus size={18} />
                         <span>Add</span>

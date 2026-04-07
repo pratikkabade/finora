@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { PIN_LENGTH } from '../services/pinService';
 
 interface PinSquirclesInputProps {
@@ -25,17 +25,41 @@ export const PinSquirclesInput: React.FC<PinSquirclesInputProps> = ({
     const [isFocused, setIsFocused] = useState(false);
     const digits = Array.from({ length: PIN_LENGTH }, (_, index) => value[index] ?? '');
 
+    const focusInput = () => {
+        const input = inputRef.current;
+
+        if (!input) {
+            return;
+        }
+
+        try {
+            input.focus({ preventScroll: true });
+        } catch {
+            input.focus();
+        }
+    };
+
+    useLayoutEffect(() => {
+        if (!autoFocus || disabled) {
+            return;
+        }
+
+        focusInput();
+    }, [autoFocus, disabled]);
+
     useEffect(() => {
         if (!autoFocus || disabled) {
             return;
         }
 
-        const timerId = window.setTimeout(() => {
-            inputRef.current?.focus();
-        }, 60);
+        const frameId = window.requestAnimationFrame(() => {
+            if (document.activeElement !== inputRef.current) {
+                focusInput();
+            }
+        });
 
         return () => {
-            window.clearTimeout(timerId);
+            window.cancelAnimationFrame(frameId);
         };
     }, [autoFocus, disabled]);
 
@@ -64,7 +88,7 @@ export const PinSquirclesInput: React.FC<PinSquirclesInputProps> = ({
 
     const handleFocusInput = () => {
         if (!disabled) {
-            inputRef.current?.focus();
+            focusInput();
         }
     };
 
@@ -74,11 +98,12 @@ export const PinSquirclesInput: React.FC<PinSquirclesInputProps> = ({
         <div className="relative" onClick={handleFocusInput}>
             <input
                 ref={inputRef}
-                type="text"
+                type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={PIN_LENGTH}
                 autoComplete="one-time-code"
+                autoFocus={autoFocus}
                 value={value}
                 onChange={handleChange}
                 onFocus={() => setIsFocused(true)}

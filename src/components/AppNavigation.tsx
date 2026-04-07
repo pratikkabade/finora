@@ -82,8 +82,8 @@ export const navButton = (
             type="button"
             onClick={() => handleNavigate(path)}
             aria-current={isActive ? 'page' : undefined}
-            className={`group relative flex w-full cursor-pointer items-center gap-3 overflow-hidden rounded-xl px-3 py-3 text-left text-sm font-semibold transition-all duration-300 active:scale-[0.98] ${isActive
-                ? 'text-blue-50 bg-blue-600/95 dark:bg-blue-700'
+            className={`group relative flex w-full cursor-pointer items-center gap-3 overflow-hidden rounded-xl px-3 py-3 text-left text-sm font-semibold transition-all duration-300 active:scale-[0.98] outline-none ${isActive
+                ? 'text-blue-50 bg-blue-600/95 dark:bg-blue-700 border-slate-100 dark:border-slate-700'
                 : 'border text-slate-600 hover:border-slate-200/85 hover:bg-white/62 hover:text-slate-900 dark:text-slate-400 dark:hover:border-slate-700/70 dark:hover:bg-slate-800/55 dark:hover:text-slate-50 border-slate-100 dark:border-slate-700'
                 }`}
             title={desktopLabel}
