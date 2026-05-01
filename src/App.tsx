@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, CalendarDays, Calendar1, ArrowUpDown, LayoutGrid, Table, Download } from 'lucide-react';
 import type { Category, FinanceData, PlannedPaymentRule, Transaction } from './types/finance.types';
@@ -15,6 +15,7 @@ import { ExpensePieChart } from './components/ExpensePieChart';
 import { IncomeExpenseTrendChart } from './components/IncomeExpenseTrendChart';
 import { SkeletonApp } from './components/SkeletonLoader';
 import { LoginPage } from './pages/LoginPage';
+import { AboutPage } from './pages/AboutPage';
 import { PINVerificationModal } from './components/PINVerificationModal';
 import { useAuth } from './context/AuthContext';
 import { getPINStatus } from './services/pinService';
@@ -34,7 +35,15 @@ import {
     NET_BALANCE_ACCOUNT_IDS_PREF_KEY,
     type BalanceSummary,
 } from './services/storageService';
-import { fetchFinanceDataFromFirebase, backupFinanceDataToFirebase } from './services/firebaseService';
+import {
+    backupFinanceDataToFirebase,
+    deleteFinanceDataRecordsFromFirebase,
+    fetchFinanceDataFromFirebase,
+    syncFinanceDataPatchToFirebase,
+    type FirebaseFinanceData,
+    type FinanceDataDeletes,
+    type FinanceDataPatch,
+} from './services/firebaseService';
 import financeDataJson from './data/finance-data.json';
 import './App.css';
 import { formatNumberWithCommas } from './utils/numberFormatterUtils.ts';
@@ -58,6 +67,7 @@ import {
 } from './utils/plannedPaymentUtils';
 
 const GUEST_USER_ID = '__guest__';
+const NORMALIZED_BACKUP_READY_KEY_PREFIX = 'normalizedCloudBackupReady_';
 
 interface AppHeaderProps {
     onLogoClick?: () => void;
@@ -90,9 +100,22 @@ const formatReportDate = (timestamp: number) => {
     });
 };
 
+const getNormalizedBackupReadyKey = (userId: string) => `${NORMALIZED_BACKUP_READY_KEY_PREFIX}${userId}`;
+
+const isStringRecord = (value: unknown): value is Record<string, string> => {
+    return typeof value === 'object'
+        && value !== null
+        && !Array.isArray(value)
+        && Object.values(value).every((entryValue) => typeof entryValue === 'string');
+};
+
 const normalizeFinanceData = (data: FinanceData): FinanceData => {
     return {
-        ...data,
+        accounts: Array.isArray(data.accounts) ? data.accounts : [],
+        categories: Array.isArray(data.categories) ? data.categories : [],
+        settings: Array.isArray(data.settings) ? data.settings : [],
+        transactions: Array.isArray(data.transactions) ? data.transactions : [],
+        sharedPrefs: isStringRecord(data.sharedPrefs) ? data.sharedPrefs : {},
         plannedPaymentRules: Array.isArray(data.plannedPaymentRules)
             ? data.plannedPaymentRules.map((rule) => ({
                 ...rule,
@@ -133,6 +156,7 @@ function App() {
     const { user, isLoading: authLoading, isGuest } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
+    const isAboutPage = location.pathname === '/about' || location.pathname === '/about/';
     const [financeData, setFinanceData] = useState<FinanceData | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPlannedPaymentModalOpen, setIsPlannedPaymentModalOpen] = useState(false);
@@ -154,8 +178,71 @@ function App() {
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const isSessionActive = !!user || isGuest;
     const storageUserId = user?.uid ?? (isGuest ? GUEST_USER_ID : null);
+    const cloudUserId = user?.uid ?? null;
     const [isPINVerified, setIsPINVerified] = useState(false);
     const [showPINModal, setShowPINModal] = useState(false);
+    const pendingCloudSyncCountRef = useRef(0);
+    const hasCloudSyncFailureRef = useRef(false);
+
+    const isNormalizedCloudBackupReady = useCallback(() => {
+        if (!cloudUserId) return false;
+        return localStorage.getItem(getNormalizedBackupReadyKey(cloudUserId)) === 'true';
+    }, [cloudUserId]);
+
+    const markNormalizedCloudBackupReady = useCallback((isReady: boolean) => {
+        if (!cloudUserId) return;
+
+        const key = getNormalizedBackupReadyKey(cloudUserId);
+        if (isReady) {
+            localStorage.setItem(key, 'true');
+            return;
+        }
+
+        localStorage.removeItem(key);
+    }, [cloudUserId]);
+
+    const runBackgroundCloudSync = useCallback((operation: (userId: string) => Promise<void>) => {
+        if (!cloudUserId || !isNormalizedCloudBackupReady()) {
+            return;
+        }
+
+        if (pendingCloudSyncCountRef.current === 0) {
+            hasCloudSyncFailureRef.current = false;
+        }
+
+        pendingCloudSyncCountRef.current += 1;
+
+        void operation(cloudUserId)
+            .catch((error) => {
+                hasCloudSyncFailureRef.current = true;
+                localStorage.setItem('outOfSync', 'true');
+                console.warn('Background Firebase sync failed:', error);
+            })
+            .finally(() => {
+                pendingCloudSyncCountRef.current = Math.max(0, pendingCloudSyncCountRef.current - 1);
+
+                if (pendingCloudSyncCountRef.current === 0 && !hasCloudSyncFailureRef.current) {
+                    const now = Date.now();
+                    localStorage.setItem('lastCloudBackup', now.toString());
+                    localStorage.setItem('outOfSync', 'false');
+                }
+            });
+    }, [cloudUserId, isNormalizedCloudBackupReady]);
+
+    const syncCloudChangeInBackground = useCallback((
+        patch?: FinanceDataPatch,
+        deletes?: FinanceDataDeletes,
+    ) => {
+        runBackgroundCloudSync(async (userId) => {
+            if (patch) {
+                await syncFinanceDataPatchToFirebase(userId, patch);
+            }
+
+            if (deletes) {
+                await deleteFinanceDataRecordsFromFirebase(userId, deletes);
+            }
+        });
+    }, [runBackgroundCloudSync]);
 
     useEffect(() => {
         setIsPINVerified(false);
@@ -225,6 +312,7 @@ function App() {
         }
 
         await backupFinanceDataToFirebase(user.uid, financeData);
+        markNormalizedCloudBackupReady(true);
     };
 
     const validTransactions = useMemo(() => {
@@ -277,6 +365,9 @@ function App() {
     const handleCreateTransaction = (transaction: Transaction) => {
         if (!financeData) return;
 
+        localStorage.setItem('outOfSync', 'true');
+        syncCloudChangeInBackground({ transactions: [transaction] });
+
         if (editingTransaction) {
             setFinanceData({
                 ...financeData,
@@ -301,6 +392,7 @@ function App() {
         };
 
         localStorage.setItem('outOfSync', 'true');
+        syncCloudChangeInBackground({ plannedPaymentRules: [nextRule] });
 
         if (editingPlannedPayment) {
             setFinanceData({
@@ -324,6 +416,7 @@ function App() {
         if (!financeData) return;
 
         localStorage.setItem('outOfSync', 'true');
+        syncCloudChangeInBackground(undefined, { plannedPaymentRules: [plannedPaymentRuleId] });
         setFinanceData({
             ...financeData,
             plannedPaymentRules: financeData.plannedPaymentRules.filter((rule) => rule.id !== plannedPaymentRuleId),
@@ -349,6 +442,12 @@ function App() {
         const advancedRule = advancePlannedPaymentRule(plannedPaymentRule, occurrenceDate);
 
         localStorage.setItem('outOfSync', 'true');
+        syncCloudChangeInBackground(
+            advancedRule
+                ? { transactions: [transaction], plannedPaymentRules: [advancedRule] }
+                : { transactions: [transaction] },
+            advancedRule ? undefined : { plannedPaymentRules: [plannedPaymentRule.id] },
+        );
         setFinanceData({
             ...financeData,
             transactions: [...financeData.transactions, transaction],
@@ -367,6 +466,10 @@ function App() {
         const advancedRule = advancePlannedPaymentRule(plannedPaymentRule, occurrenceDate);
 
         localStorage.setItem('outOfSync', 'true');
+        syncCloudChangeInBackground(
+            advancedRule ? { plannedPaymentRules: [advancedRule] } : undefined,
+            advancedRule ? undefined : { plannedPaymentRules: [plannedPaymentRule.id] },
+        );
         setFinanceData({
             ...financeData,
             plannedPaymentRules: advancedRule
@@ -380,6 +483,8 @@ function App() {
     const handleDeleteTransaction = (transactionId: string) => {
         if (!financeData) return;
 
+        localStorage.setItem('outOfSync', 'true');
+        syncCloudChangeInBackground(undefined, { transactions: [transactionId] });
         setFinanceData({
             ...financeData,
             transactions: financeData.transactions.filter(transaction => transaction.id !== transactionId),
@@ -390,6 +495,8 @@ function App() {
         if (!storageUserId) return;
 
         clearUserData(storageUserId);
+        markNormalizedCloudBackupReady(false);
+        localStorage.setItem('outOfSync', 'true');
         setFinanceData(null);
         setSelectedMonthYear('');
         setDateRange(null);
@@ -403,6 +510,8 @@ function App() {
     };
 
     const handleImportData = (importedData: FinanceData) => {
+        markNormalizedCloudBackupReady(false);
+        localStorage.setItem('outOfSync', 'true');
         setFinanceData(normalizeFinanceData(importedData));
         setSelectedMonthYear('');
         setDateRange(null);
@@ -416,14 +525,17 @@ function App() {
     const handleUpdateNetBalanceAccounts = (accountIds: string[]) => {
         if (!financeData) return;
 
+        const nextSharedPrefs = {
+            ...(financeData.sharedPrefs || {}),
+            [NET_BALANCE_ACCOUNT_IDS_PREF_KEY]: JSON.stringify(accountIds),
+        };
+
         setFinanceData({
             ...financeData,
-            sharedPrefs: {
-                ...(financeData.sharedPrefs || {}),
-                [NET_BALANCE_ACCOUNT_IDS_PREF_KEY]: JSON.stringify(accountIds),
-            },
+            sharedPrefs: nextSharedPrefs,
         });
         localStorage.setItem('outOfSync', 'true');
+        syncCloudChangeInBackground({ sharedPrefs: nextSharedPrefs });
     };
 
     const handleAddCategory = (categoryName: string, color: number): boolean => {
@@ -462,6 +574,7 @@ function App() {
             categories: [...financeData.categories, newCategory],
         });
         localStorage.setItem('outOfSync', 'true');
+        syncCloudChangeInBackground({ categories: [newCategory] });
         return true;
     };
 
@@ -492,17 +605,20 @@ function App() {
             return true;
         }
 
+        const nextCategory: Category = {
+            ...currentCategory,
+            name: trimmedCategoryName,
+            isSynced: false,
+        };
+
         setFinanceData({
             ...financeData,
             categories: financeData.categories.map((category) => category.id === categoryId
-                ? {
-                    ...category,
-                    name: trimmedCategoryName,
-                    isSynced: false,
-                }
+                ? nextCategory
                 : category),
         });
         localStorage.setItem('outOfSync', 'true');
+        syncCloudChangeInBackground({ categories: [nextCategory] });
         return true;
     };
 
@@ -518,17 +634,20 @@ function App() {
             return true;
         }
 
+        const nextCategory: Category = {
+            ...currentCategory,
+            color,
+            isSynced: false,
+        };
+
         setFinanceData({
             ...financeData,
             categories: financeData.categories.map((category) => category.id === categoryId
-                ? {
-                    ...category,
-                    color,
-                    isSynced: false,
-                }
+                ? nextCategory
                 : category),
         });
         localStorage.setItem('outOfSync', 'true');
+        syncCloudChangeInBackground({ categories: [nextCategory] });
         return true;
     };
 
@@ -566,6 +685,7 @@ function App() {
             categories: nextCategories,
         });
         localStorage.setItem('outOfSync', 'true');
+        syncCloudChangeInBackground({ categories: nextCategories });
         return true;
     };
 
@@ -582,6 +702,7 @@ function App() {
             categories: financeData.categories.filter((category) => category.id !== categoryId),
         });
         localStorage.setItem('outOfSync', 'true');
+        syncCloudChangeInBackground(undefined, { categories: [categoryId] });
         return true;
     };
 
@@ -590,19 +711,24 @@ function App() {
         setShowDataSourceModal(false);
     };
 
+    const applyFetchedFirebaseData = (firebaseData: FirebaseFinanceData) => {
+        markNormalizedCloudBackupReady(firebaseData.__source === 'normalized');
+        applyFirebaseData(firebaseData);
+    };
+
     const handleFetchFromFirebase = async () => {
         if (!user) return;
 
         try {
             const firebaseData = await fetchFinanceDataFromFirebase(user.uid);
             if (firebaseData) {
-                applyFirebaseData(firebaseData);
+                applyFetchedFirebaseData(firebaseData);
                 return;
             }
 
             alert('No data found in Firebase. Starting with sample data instead.');
             handleGetSampleData();
-        } catch (error: any) {
+        } catch (error) {
             console.error('Error fetching from Firebase:', error);
             alert('Failed to fetch data from Firebase. Starting with sample data instead.');
             handleGetSampleData();
@@ -619,11 +745,13 @@ function App() {
             throw new Error('No data found in Firebase backup for this account.');
         }
 
-        applyFirebaseData(firebaseData);
+        applyFetchedFirebaseData(firebaseData);
     };
 
     const handleGetSampleData = () => {
         const sampleData = normalizeFinanceData(financeDataJson as FinanceData);
+        markNormalizedCloudBackupReady(false);
+        localStorage.setItem('outOfSync', 'true');
         setFinanceData(sampleData);
         setShowDataSourceModal(false);
     };
@@ -901,9 +1029,9 @@ function App() {
                     <button
                         type="button"
                         onClick={() => setIsModalOpen(true)}
-                        className={`${FreeBlueBtn} app-fab fixed bottom-18 right-4 md:bottom-4 md:right-4 px-5! py-3! rounded-full! active:scale-90!`}
+                        className={`${FreeBlueBtn} fixed bottom-18 right-4 md:bottom-4 md:right-4 px-5! py-3! text-lg! rounded-full! active:scale-90!`}
                     >
-                        <Plus size={18} />
+                        <Plus size={22} />
                         <span>Add</span>
                     </button>
                 )}
@@ -1031,6 +1159,10 @@ function App() {
             window.clearTimeout(timerId);
         };
     }, [isHomeDataReady, hasCompletedInitialHomeReveal, location.pathname]);
+
+    if (isAboutPage) {
+        return <AboutPage />;
+    }
 
     if (!isSessionActive) {
         return <LoginPage />;

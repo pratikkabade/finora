@@ -1,5 +1,5 @@
 const base = {
-    interact: "cursor-pointer select-none transition-[transform,box-shadow,border-color,background-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98]",
+    interact: "cursor-pointer select-none transition-[transform,box-shadow,border-color,background-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-95 transition-all",
     btn: (color: string, shade = 600) =>
         `bg-${color}-${shade} hover:bg-${color}-700`,
     btnRed: "bg-linear-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700",
@@ -47,7 +47,7 @@ export const settingBtnDangerClass = `${freeBtn} ${base.flex} ${base.redBtn} ${b
 
 export const settingBtnDetailTextClass = 'text-xs text-gray-600 dark:text-gray-400 mt-1';
 
-export const transactionCard = `${base.cardFrame} ${standardCardSurface} ${base.cardInteract} p-3 transition-transform duration-200 active:scale-[0.98] sm:p-3 md:p-4`;
+export const transactionCard = `${base.cardFrame} ${standardCardSurface} ${base.cardInteract} p-3 transition-transform duration-200 active:scale-95 transition-all sm:p-3 md:p-4`;
 export const amountCard = `${base.cardFrame} ${softPanelSurface} app-card-spotlight app-section-pop p-4 sm:p-5 md:p-6`;
 export const pieChartCard = `${base.cardFrame} ${softPanelSurface} ${base.cardInteract} app-card-spotlight p-3 sm:p-4 md:p-6 w-full md:flex-1`;
 export const categorySelector = `${base.cardFrame} ${softPanelSurface} app-card-spotlight p-3 sm:p-4 md:p-6 w-full`;

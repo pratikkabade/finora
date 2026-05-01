@@ -28,6 +28,10 @@ const arraysMatch = (left: string[], right: string[]) => {
     return left.length === right.length && left.every((value, index) => value === right[index]);
 };
 
+const getErrorMessage = (error: unknown, fallback: string) => {
+    return error instanceof Error && error.message ? error.message : fallback;
+};
+
 interface SettingsSectionProps {
     eyebrow: string;
     title: string;
@@ -567,10 +571,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             await onBackupToFirebase();
             setActionStatus('backup', setBackupStatus, 'success');
             markCloudAsSynced();
-        } catch (error: any) {
+        } catch (error) {
             console.error('Backup error:', error);
             setActionStatus('backup', setBackupStatus, 'error');
-            const errorMessage = error?.message || 'An unknown error occurred during backup.';
+            const errorMessage = getErrorMessage(error, 'An unknown error occurred during backup.');
             alert('Backup Failed:\n\n' + errorMessage);
         } finally {
             setIsBackingUp(false);
@@ -603,10 +607,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             await onSyncFromFirebase();
             setActionStatus('sync', setSyncStatus, 'success');
             markCloudAsSynced();
-        } catch (error: any) {
+        } catch (error) {
             console.error('Sync error:', error);
             setActionStatus('sync', setSyncStatus, 'error');
-            const errorMessage = error?.message || 'An unknown error occurred during sync.';
+            const errorMessage = getErrorMessage(error, 'An unknown error occurred during sync.');
             alert('Sync Failed:\n\n' + errorMessage);
         } finally {
             setIsSyncing(false);

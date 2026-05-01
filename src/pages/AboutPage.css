@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,500;6..72,700&display=swap');
+
+.about-page {
+    --about-font-sans: 'Manrope', 'Inter', sans-serif;
+    --about-font-serif: 'Newsreader', Georgia, serif;
+    font-family: var(--about-font-sans);
+}
+
+.about-display {
+    font-family: var(--about-font-serif);
+    letter-spacing: -0.045em;
+}
+
+.about-panel {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.82));
+    box-shadow: 0 40px 110px -56px rgba(15, 23, 42, 0.42);
+    backdrop-filter: blur(30px);
+}
+
+.about-panel-dark {
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.22), transparent 42%),
+        linear-gradient(180deg, rgba(2, 6, 23, 0.98), rgba(15, 23, 42, 0.92));
+    box-shadow: 0 44px 130px -62px rgba(2, 6, 23, 0.72);
+}
+
+.about-panel::before,
+.about-panel-dark::before {
+    content: '';
+    position: absolute;
+    inset: auto -8% -32% 38%;
+    height: 16rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.22), rgba(59, 130, 246, 0));
+    filter: blur(24px);
+    pointer-events: none;
+}
+
+.about-hero-glow {
+    background:
+        radial-gradient(circle at 20% 10%, rgba(96, 165, 250, 0.26), transparent 30%),
+        radial-gradient(circle at 80% 0%, rgba(14, 165, 233, 0.18), transparent 24%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.84));
+}
+
+.about-float-card {
+    animation: about-float 9s ease-in-out infinite;
+}
+
+.about-float-card-delay {
+    animation-delay: -4.2s;
+}
+
+.about-float-card-soft {
+    animation: about-float-soft 11s ease-in-out infinite;
+}
+
+.about-mesh {
+    background-image:
+        linear-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148, 163, 184, 0.14) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+
+.about-shimmer {
+    position: relative;
+}
+
+.about-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 20%, rgba(255, 255, 255, 0.42) 50%, transparent 80%);
+    transform: translateX(-110%);
+    animation: about-shimmer 7.5s linear infinite;
+}
+
+.about-pill {
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 14px 34px -26px rgba(15, 23, 42, 0.32);
+    backdrop-filter: blur(18px);
+}
+
+@keyframes about-float {
+    0%,
+    100% {
+        transform: translate3d(0, 0, 0);
+    }
+
+    50% {
+        transform: translate3d(0, -12px, 0);
+    }
+}
+
+@keyframes about-float-soft {
+    0%,
+    100% {
+        transform: translate3d(0, 0, 0);
+    }
+
+    50% {
+        transform: translate3d(0, -8px, 0);
+    }
+}
+
+@keyframes about-shimmer {
+    100% {
+        transform: translateX(110%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .about-float-card,
+    .about-float-card-delay,
+    .about-float-card-soft,
+    .about-shimmer::after {
+        animation: none;
+    }
+}

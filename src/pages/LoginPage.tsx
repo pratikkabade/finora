@@ -1,5 +1,6 @@
 import { FreeBlueBtn, FreeWhiteBtn } from '../constants/TailwindClasses';
 import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 export function LoginPage() {
     const { loginWithGoogle, continueAsGuest, isLoading } = useAuth();
@@ -66,6 +67,13 @@ export function LoginPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                     Sign in with Google for cloud backup and sync. <br />Guest mode stores data only on this device.
                 </p>
+
+                <Link
+                    to="/about"
+                    className="text-sm font-medium text-sky-700 transition-colors hover:text-sky-800 dark:text-sky-300 dark:hover:text-sky-200"
+                >
+                    Learn more about Finora
+                </Link>
             </div>
         </div>
     );

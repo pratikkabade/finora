@@ -1,7 +1,12 @@
-import React, { useMemo } from 'react';
-import { BellRing, CalendarClock, CheckCircle2, Clock3, Pencil, Plus, Repeat2, SkipForward } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { BellRing, CalendarClock, CheckCircle2, ChevronDown, Clock3, Pencil, Plus, Repeat2, SkipForward } from 'lucide-react';
 import type { Account, Category, PlannedPaymentRule } from '../types/finance.types';
-import { AppChartBtn, FreeBlueBtn, FreeWhiteBtn } from '../constants/TailwindClasses';
+import {
+    AppChartBtn,
+    FreeBlueBtn,
+    FreeRedBtn,
+    FreeWhiteBtn,
+} from '../constants/TailwindClasses';
 import { formatNumberWithCommas } from '../utils/numberFormatterUtils';
 import {
     formatPlannedPaymentFrequency,
@@ -54,6 +59,7 @@ const getStatusLabel = (daysUntil: number, urgency: ReturnType<typeof getPlanned
 };
 
 const metaChipClassName = 'inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold text-slate-900 dark:text-slate-100';
+const incomeActionButtonClassName = 'px-4 py-2 rounded-2xl text-sm font-medium backdrop-blur-lg sm:flex-none flex items-center justify-center gap-2 cursor-pointer select-none transition-[transform,box-shadow,border-color,background-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98] bg-linear-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-[0_18px_46px_-26px_rgba(22,163,74,0.58)]';
 
 const getMetaChipStyle = (color: number) => {
     const hexColor = intToHex(color);
@@ -94,6 +100,22 @@ export const PlannedPaymentsPage: React.FC<PlannedPaymentsPageProps> = ({
     onPay,
     onSkip,
 }) => {
+    const [expandedPaymentIds, setExpandedPaymentIds] = useState<Set<string>>(() => new Set());
+
+    const togglePaymentDetails = (plannedPaymentRuleId: string) => {
+        setExpandedPaymentIds((currentExpandedPaymentIds) => {
+            const nextExpandedPaymentIds = new Set(currentExpandedPaymentIds);
+
+            if (nextExpandedPaymentIds.has(plannedPaymentRuleId)) {
+                nextExpandedPaymentIds.delete(plannedPaymentRuleId);
+            } else {
+                nextExpandedPaymentIds.add(plannedPaymentRuleId);
+            }
+
+            return nextExpandedPaymentIds;
+        });
+    };
+
     const alertSummary = useMemo(() => {
         return getPlannedPaymentAlertSummary(plannedPaymentRules);
     }, [plannedPaymentRules]);
@@ -176,6 +198,8 @@ export const PlannedPaymentsPage: React.FC<PlannedPaymentsPageProps> = ({
                         const category = categories.find((item) => item.id === plannedPaymentRule.categoryId);
                         const status = getPlannedPaymentStatus(plannedPaymentRule);
                         const isIncome = plannedPaymentRule.type === 'INCOME';
+                        const isDetailsOpen = expandedPaymentIds.has(plannedPaymentRule.id);
+                        const detailsPanelId = `planned-payment-details-${plannedPaymentRule.id}`;
 
                         return (
                             <article
@@ -192,8 +216,12 @@ export const PlannedPaymentsPage: React.FC<PlannedPaymentsPageProps> = ({
                                                 {getStatusLabel(status.daysUntil, status.urgency)}
                                             </span>
                                         </div>
-                                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                                            Starts on {formatDateTime(plannedPaymentRule.startDate)} and repeats {formatPlannedPaymentFrequency(plannedPaymentRule.intervalN, plannedPaymentRule.intervalType).replace('Every ', '').toLowerCase()}.
+                                        <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                            <CalendarClock size={15} className="text-slate-500 dark:text-slate-400" />
+                                            <span>Next payment</span>
+                                            <span className="font-semibold text-slate-900 dark:text-slate-50">
+                                                {formatDateTime(status.nextDueDate)}
+                                            </span>
                                         </p>
                                     </div>
 
@@ -207,37 +235,44 @@ export const PlannedPaymentsPage: React.FC<PlannedPaymentsPageProps> = ({
                                     </div>
                                 </div>
 
-                                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                                    <div className="rounded-[1.3rem] border border-slate-200/80 bg-slate-50/85 p-3 dark:border-slate-800/80 dark:bg-slate-950/35">
-                                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                                            <CalendarClock size={14} />
-                                            Next Due
-                                        </div>
-                                        <p className="mt-2 text-base font-semibold text-slate-900 dark:text-slate-50">
-                                            {formatDateTime(status.nextDueDate)}
-                                        </p>
-                                    </div>
+                                {isDetailsOpen ? (
+                                    <div
+                                        id={detailsPanelId}
+                                        className="mt-4 rounded-[1.3rem] border border-slate-200/80 bg-slate-50/85 p-3 dark:border-slate-800/80 dark:bg-slate-950/35"
+                                    >
+                                        <div className="flex flex-wrap gap-2.5">
+                                            <div className="flex w-fit max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-full border border-slate-200/80 bg-white/85 px-3 py-2 dark:border-slate-700/80 dark:bg-slate-900/70">
+                                                <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                                    <CalendarClock size={14} />
+                                                    Starts
+                                                </span>
+                                                <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                                                    {formatDateTime(plannedPaymentRule.startDate)}
+                                                </span>
+                                            </div>
 
-                                    <div className="rounded-[1.3rem] border border-slate-200/80 bg-slate-50/85 p-3 dark:border-slate-800/80 dark:bg-slate-950/35">
-                                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                                            <Repeat2 size={14} />
-                                            Frequency
-                                        </div>
-                                        <p className="mt-2 text-base font-semibold text-slate-900 dark:text-slate-50">
-                                            {formatPlannedPaymentFrequency(plannedPaymentRule.intervalN, plannedPaymentRule.intervalType)}
-                                        </p>
-                                    </div>
+                                            <div className="flex w-fit max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-full border border-slate-200/80 bg-white/85 px-3 py-2 dark:border-slate-700/80 dark:bg-slate-900/70">
+                                                <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                                    <Repeat2 size={14} />
+                                                    Frequency
+                                                </span>
+                                                <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                                                    {formatPlannedPaymentFrequency(plannedPaymentRule.intervalN, plannedPaymentRule.intervalType)}
+                                                </span>
+                                            </div>
 
-                                    <div className="rounded-[1.3rem] border border-slate-200/80 bg-slate-50/85 p-3 dark:border-slate-800/80 dark:bg-slate-950/35">
-                                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                                            {status.urgency === 'scheduled' ? <Clock3 size={14} /> : <BellRing size={14} />}
-                                            Status
+                                            <div className="flex w-fit max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-full border border-slate-200/80 bg-white/85 px-3 py-2 dark:border-slate-700/80 dark:bg-slate-900/70">
+                                                <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                                    {status.urgency === 'scheduled' ? <Clock3 size={14} /> : <BellRing size={14} />}
+                                                    Status
+                                                </span>
+                                                <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                                                    {getStatusLabel(status.daysUntil, status.urgency)}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <p className="mt-2 text-base font-semibold text-slate-900 dark:text-slate-50">
-                                            {getStatusLabel(status.daysUntil, status.urgency)}
-                                        </p>
                                     </div>
-                                </div>
+                                ) : null}
 
                                 <div className="mt-4 flex flex-wrap gap-2">
                                     {account ? (
@@ -261,10 +296,10 @@ export const PlannedPaymentsPage: React.FC<PlannedPaymentsPageProps> = ({
                                     <button
                                         type="button"
                                         onClick={() => onPay(plannedPaymentRule)}
-                                        className={`${FreeBlueBtn} whitespace-nowrap`}
+                                        className={`${isIncome ? incomeActionButtonClassName : FreeRedBtn} whitespace-nowrap`}
                                     >
                                         <CheckCircle2 size={16} />
-                                        Pay
+                                        {isIncome ? 'Get' : 'Pay'}
                                     </button>
                                     <button
                                         type="button"
@@ -281,6 +316,19 @@ export const PlannedPaymentsPage: React.FC<PlannedPaymentsPageProps> = ({
                                     >
                                         <Pencil size={16} />
                                         Edit
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => togglePaymentDetails(plannedPaymentRule.id)}
+                                        className={`${FreeWhiteBtn} whitespace-nowrap`}
+                                        aria-expanded={isDetailsOpen}
+                                        aria-controls={detailsPanelId}
+                                    >
+                                        <ChevronDown
+                                            size={16}
+                                            className={`transition-transform duration-300 ${isDetailsOpen ? 'rotate-180' : ''}`}
+                                        />
+                                        Details
                                     </button>
                                 </div>
                             </article>

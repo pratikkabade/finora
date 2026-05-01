@@ -65,6 +65,17 @@ interface TitleSuggestion {
     lastUsedAt: number;
 }
 
+type TransactionModalFormData = {
+    accountId: string;
+    type: TransactionType;
+    amount: string;
+    title: string;
+    categoryId: string;
+    dateTime: string;
+    intervalN: string;
+    intervalType: PlannedPaymentIntervalType;
+};
+
 const OptionPickerModal: React.FC<OptionPickerModalProps> = ({
     isOpen,
     title,
@@ -166,7 +177,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
     lockAccountSelection,
     mode = 'transaction',
 }) => {
-    const initialFormDataRef = useRef<typeof formData | null>(null);
+    const initialFormDataRef = useRef<TransactionModalFormData | null>(null);
     const isPlannedPaymentMode = mode === 'planned-payment';
     const titleInputRef = useRef<HTMLInputElement>(null);
     const amountInputRef = useRef<HTMLInputElement>(null);
@@ -176,7 +187,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
     const [isAccountPickerOpen, setIsAccountPickerOpen] = useState(false);
     const [isCategoryPickerOpen, setIsCategoryPickerOpen] = useState(false);
     const [selectionMode, setSelectionMode] = useState<FilterMode>('expense');
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<TransactionModalFormData>({
         accountId: '',
         type: 'EXPENSE' as TransactionType,
         amount: '',
@@ -197,9 +208,11 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
     useEffect(() => {
         if (!isOpen) return;
 
+        let nextFormData: TransactionModalFormData;
+
         if (isPlannedPaymentMode && editingPlannedPayment) {
             const dueDate = new Date(editingPlannedPayment.nextDueDate || editingPlannedPayment.startDate);
-            setFormData({
+            nextFormData = {
                 accountId: editingPlannedPayment.accountId,
                 type: editingPlannedPayment.type,
                 amount: editingPlannedPayment.amount.toString(),
@@ -208,10 +221,10 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 dateTime: formatLocalDateTime(dueDate),
                 intervalN: editingPlannedPayment.intervalN.toString(),
                 intervalType: editingPlannedPayment.intervalType,
-            });
+            };
         } else if (!isPlannedPaymentMode && editingTransaction) {
             const dateObj = new Date(editingTransaction.dateTime || editingTransaction.dueDate || 0);
-            setFormData({
+            nextFormData = {
                 accountId: editingTransaction.accountId,
                 type: editingTransaction.type,
                 amount: editingTransaction.amount.toString(),
@@ -220,9 +233,9 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 dateTime: formatLocalDateTime(dateObj),
                 intervalN: '1',
                 intervalType: 'MONTH',
-            });
+            };
         } else {
-            setFormData({
+            nextFormData = {
                 accountId: resolvedDefaultAccountId,
                 type: 'EXPENSE',
                 amount: '',
@@ -231,15 +244,15 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 dateTime: formatLocalDateTime(),
                 intervalN: '1',
                 intervalType: 'MONTH',
-            });
+            };
         }
 
+        setFormData(nextFormData);
+        setSelectionMode(nextFormData.type === 'INCOME' ? 'income' : 'expense');
         setIsAccountPickerOpen(false);
         setIsCategoryPickerOpen(false);
 
-        initialFormDataRef.current = {
-            ...formData,
-        };
+        initialFormDataRef.current = nextFormData;
 
     }, [editingTransaction, editingPlannedPayment, isOpen, isPlannedPaymentMode, resolvedDefaultAccountId]);
 
