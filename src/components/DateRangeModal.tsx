@@ -268,7 +268,6 @@ export const DateRangeModal: React.FC<DateRangeModalProps> = ({
 
                 {/* Content */}
                 <div className="app-panel-stagger relative space-y-4 p-4 sm:p-6">
-                    {/* <div className={`${sectionSurfaceClassName} space-y-3 p-2`}> */}
                     <div className={SegmentedToggleShell}>
                         <div className={SegmentedToggleTrack}>
                             <div

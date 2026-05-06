@@ -13,6 +13,7 @@ import { normalizePlannedPaymentIntervalType, PLANNED_PAYMENT_INTERVAL_OPTIONS }
 import { FreeBlueBtn, FreeRedBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp, SegmentedToggleItemSelected, SegmentedToggleItemUnselected, SegmentedToggleShell, SegmentedToggleThumb, SegmentedToggleTrack, transactionFieldClasses } from '../constants/TailwindClasses';
 import { useAnimatedOpen } from '../hooks/useAnimatedOpen';
 import { intToHex } from '../utils/colorUtils';
+import { sortCategoriesByOrder } from '../utils/categoryUtils';
 
 interface CreateTransactionModalBaseProps {
     isOpen: boolean;
@@ -342,12 +343,13 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
     const isEditing = isPlannedPaymentMode ? !!editingPlannedPayment : !!editingTransaction;
     const selectedAccount = accounts.find((account) => account.id === formData.accountId);
     const selectedCategory = categories.find((category) => category.id === formData.categoryId);
+    const orderedCategories = useMemo(() => sortCategoriesByOrder(categories), [categories]);
     const accountOptions: ColorOption[] = accounts.map((account) => ({
         id: account.id,
         name: account.name,
         color: account.color,
     }));
-    const categoryOptions: ColorOption[] = categories.map((category) => ({
+    const categoryOptions: ColorOption[] = orderedCategories.map((category) => ({
         id: category.id,
         name: category.name,
         color: category.color,

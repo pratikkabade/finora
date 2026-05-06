@@ -9,6 +9,7 @@ import { SyncStatusIndicator } from './SyncStatusIndicator';
 import { getIncludedNetBalanceAccountIds } from '../services/storageService';
 import { useAnimatedOpen } from '../hooks/useAnimatedOpen';
 import { intToHex } from '../utils/colorUtils';
+import { sortCategoriesByOrder } from '../utils/categoryUtils';
 
 type ActionStatus = 'idle' | 'success' | 'error';
 type ActionStatusKey = 'backup' | 'sync' | 'import' | 'sample' | 'category';
@@ -145,15 +146,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const orderedCategories = useMemo(() => {
         if (!financeData?.categories) return [];
 
-        return [...financeData.categories].sort((categoryA, categoryB) => {
-            const orderA = Number(categoryA.orderNum) || 0;
-            const orderB = Number(categoryB.orderNum) || 0;
-            if (orderA !== orderB) {
-                return orderA - orderB;
-            }
-
-            return categoryA.name.localeCompare(categoryB.name);
-        });
+        return sortCategoriesByOrder(financeData.categories);
     }, [financeData?.categories]);
 
     const orderedCategoryIds = useMemo(

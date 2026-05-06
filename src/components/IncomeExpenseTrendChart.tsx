@@ -1,20 +1,31 @@
 import React, { useMemo, useState } from 'react';
-import { X } from 'lucide-react';
-import { ResponsiveContainer, BarChart, Bar, CartesianGrid, Tooltip, XAxis, YAxis, Cell } from 'recharts';
+import { CalendarDays, ChevronDown, X } from 'lucide-react';
+import {
+    ResponsiveContainer,
+    BarChart,
+    Bar,
+    CartesianGrid,
+    Tooltip,
+    XAxis,
+    YAxis,
+    Cell,
+    LineChart,
+    Line,
+} from 'recharts';
 import type { Transaction } from '../types/finance.types';
-import { pieChartCard } from '../constants/TailwindClasses';
+import { FreeWhiteBtn, pieChartCard, SegmentedToggleItemSelected, SegmentedToggleItemUnselected, SegmentedToggleShell, SegmentedToggleThumb, SegmentedToggleTrack } from '../constants/TailwindClasses';
 import { formatNumberWithCommas } from '../utils/numberFormatterUtils';
 
 interface IncomeExpenseTrendChartProps {
     transactions: Transaction[];
     selectedMonthKey?: string;
+    rangeValue: string;
+    onSelectRange: (rangeValue: string) => void;
     onSelectMonth: (monthKey: string) => void;
     onClearMonthSelection: () => void;
     isRangeLocked?: boolean;
     rangeLabelOverride?: string;
 }
-
-type TrendRangePreset = 'ytd' | 'year' | 'sixMonths' | 'max';
 
 interface MonthlyTrendDatum {
     key: string;
@@ -42,13 +53,6 @@ const compactNumberFormatter = new Intl.NumberFormat('en-IN', {
     notation: 'compact',
     maximumFractionDigits: 1,
 });
-const trendRangeOptions: Array<{ value: TrendRangePreset; label: string }> = [
-    { value: 'ytd', label: 'Year to Date' },
-    { value: 'year', label: '1 Year' },
-    { value: 'sixMonths', label: '6 Months' },
-    { value: 'max', label: 'Max' },
-];
-
 const getTransactionTimestamp = (transaction: Transaction) => {
     return transaction.dateTime || transaction.dueDate || 0;
 };
@@ -99,13 +103,14 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = ({
     transactions,
     selectedMonthKey = '',
+    rangeValue,
+    onSelectRange,
     onSelectMonth,
     onClearMonthSelection,
     isRangeLocked = false,
     rangeLabelOverride,
 }) => {
-    const [rangePreset, setRangePreset] = useState<TrendRangePreset>('ytd');
-
+    const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
     const allMonthlyTrendData = useMemo(() => {
         const relevantTransactions = transactions.filter(
             (transaction) => transaction.type === 'INCOME' || transaction.type === 'EXPENSE',
@@ -171,6 +176,17 @@ export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = (
         }));
     }, [transactions]);
 
+    const yearOptions = useMemo(() => {
+        return Array.from(new Set(allMonthlyTrendData.map((month) => month.year)))
+            .sort((yearA, yearB) => yearA - yearB)
+            .map((year) => year.toString());
+    }, [allMonthlyTrendData]);
+
+    const activeSelectedYear = yearOptions.includes(rangeValue)
+        ? rangeValue
+        : yearOptions[yearOptions.length - 1] ?? '';
+    const activeRangeValue = rangeValue === 'max' ? 'max' : activeSelectedYear;
+
     const visibleTrendData = useMemo(() => {
         if (allMonthlyTrendData.length === 0) {
             return [];
@@ -180,21 +196,13 @@ export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = (
             return allMonthlyTrendData;
         }
 
-        if (rangePreset === 'max') {
+        if (activeRangeValue === 'max') {
             return allMonthlyTrendData;
         }
 
-        if (rangePreset === 'sixMonths') {
-            return allMonthlyTrendData.slice(-6);
-        }
-
-        if (rangePreset === 'year') {
-            return allMonthlyTrendData.slice(-12);
-        }
-
-        const anchorYear = allMonthlyTrendData[allMonthlyTrendData.length - 1]?.year;
-        return allMonthlyTrendData.filter((month) => month.year === anchorYear);
-    }, [allMonthlyTrendData, isRangeLocked, rangePreset]);
+        const activeYear = Number(activeRangeValue);
+        return allMonthlyTrendData.filter((month) => month.year === activeYear);
+    }, [allMonthlyTrendData, isRangeLocked, activeRangeValue]);
 
     const selectedMonthTrendData = useMemo(() => {
         if (!selectedMonthKey) return null;
@@ -245,11 +253,13 @@ export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = (
 
     const hasTrendData = visibleTrendData.some((month) => month.income > 0 || month.expense > 0);
     const maxBarSize = visibleTrendData.length > 18 ? 14 : 24;
+    const isRangeSelectDisabled = isRangeLocked || yearOptions.length === 0;
+    const activeRangeLabel = activeRangeValue === 'max' ? 'Max' : activeRangeValue;
 
-    const handleBarSelect = (index: number) => {
-        const monthKey = visibleTrendData[index]?.key;
-
-        if (!monthKey) return;
+    const handleBarSelect = (monthKey?: string | number) => {
+        if (!monthKey || typeof monthKey !== 'string') {
+            return;
+        }
 
         onSelectMonth(monthKey);
     };
@@ -267,18 +277,25 @@ export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = (
                         </p>
                     </div>
 
-                    <div className="flex flex-row flex-wrap justify-center items-center gap-2">
-                        <div className="app-border-soft flex min-w-[11rem] flex-col gap-1 rounded-2xl bg-white/40 dark:bg-slate-900/25">
+                    <div className="flex flex-row flex-wrap justify-end items-end gap-2">
+                        <div className={`${FreeWhiteBtn} relative w-36 ${isRangeSelectDisabled ? 'cursor-not-allowed opacity-70' : ''}`}>
+                            <CalendarDays size={16} />
+                            <span className="min-w-0 flex-1 truncate text-left">
+                                {activeRangeLabel || 'Range'}
+                            </span>
+                            <ChevronDown size={16} className="text-slate-500 dark:text-slate-300" />
                             <select
-                                value={rangePreset}
-                                onChange={(event) => setRangePreset(event.target.value as TrendRangePreset)}
-                                disabled={isRangeLocked}
-                                title={isRangeLocked ? 'Using the active report date range' : 'Choose a chart range'}
-                                className="glass-input w-full rounded-xl px-3 py-2 text-sm text-slate-900 disabled:cursor-not-allowed disabled:opacity-70 dark:text-slate-50"
+                                value={activeRangeValue}
+                                onChange={(event) => onSelectRange(event.target.value)}
+                                disabled={isRangeSelectDisabled}
+                                aria-label="Choose a report range"
+                                title={isRangeLocked ? 'Using the active report date range' : 'Choose a report range'}
+                                className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
                             >
-                                {trendRangeOptions.map((option) => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
+                                <option value="max">Max</option>
+                                {yearOptions.map((year) => (
+                                    <option key={year} value={year}>
+                                        {year}
                                     </option>
                                 ))}
                             </select>
@@ -294,13 +311,36 @@ export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = (
                             <button
                                 type="button"
                                 onClick={onClearMonthSelection}
-                                className="app-border-soft flex items-center gap-2 rounded-2xl bg-sky-50/80 px-3 py-2 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-100/85 dark:bg-sky-950/30 dark:text-sky-200 dark:hover:bg-sky-900/40"
+                                className={`${FreeWhiteBtn}`}
                                 title="Clear selected month"
                             >
                                 {selectedMonthLabel}
                                 <X size={14} />
                             </button>
                         )}
+
+                        <div className={`${SegmentedToggleShell} bg-slate-100! dark:bg-slate-800! border-none! p-1! rounded-full!`}>
+                            <div className={SegmentedToggleTrack}>
+                                <div
+                                    className={`${SegmentedToggleThumb} ${chartType === 'line' ? 'translate-x-full dark:bg-slate-700!' : 'translate-x-0 dark:bg-slate-700!'}`}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setChartType('bar')}
+                                    className={`${chartType === 'bar' ? `${SegmentedToggleItemSelected} dark:bg-slate-700!` : SegmentedToggleItemUnselected} py-1!`}
+                                >
+                                    Bar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setChartType('line')}
+                                    className={`${chartType === 'line' ? `${SegmentedToggleItemSelected} dark:bg-slate-700!` : SegmentedToggleItemUnselected} py-1!`}
+                                >
+                                    Line
+                                </button>
+                            </div>
+                        </div>
+
 
                         <div className={`app-border-soft flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold ${trendBalanceTotal >= 0
                             ? 'bg-green-50/80 text-green-700 dark:bg-green-950/30 dark:text-green-200'
@@ -315,74 +355,128 @@ export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = (
                 {hasTrendData ? (
                     <div className="h-[280px] w-full sm:h-[320px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart
-                                data={visibleTrendData}
-                                barCategoryGap="24%"
-                                margin={{ top: 10, right: 4, left: -16, bottom: 0 }}
-                            >
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.18)" />
-                                <XAxis
-                                    dataKey="shortLabel"
-                                    axisLine={false}
-                                    tickLine={false}
-                                    minTickGap={18}
-                                    tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }}
-                                />
-                                <YAxis
-                                    axisLine={false}
-                                    tickLine={false}
-                                    width={56}
-                                    tickFormatter={formatAxisAmount}
-                                    tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }}
-                                />
-                                <Tooltip
-                                    cursor={{ fill: 'rgba(148, 163, 184, 0.12)' }}
-                                    content={<CustomTooltip />}
-                                    shared={false}
-                                />
-                                <Bar
-                                    dataKey="income"
-                                    fill={incomeBarColor}
-                                    radius={[10, 10, 0, 0]}
-                                    maxBarSize={maxBarSize}
-                                    onClick={(_, index) => handleBarSelect(index)}
+                            {chartType === 'bar' ? (
+                                <BarChart
+                                    data={visibleTrendData}
+                                    barCategoryGap="24%"
+                                    margin={{ top: 10, right: 4, left: -16, bottom: 0 }}
                                 >
-                                    {visibleTrendData.map((month) => {
-                                        const isSelected = month.key === selectedMonthKey;
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.18)" />
 
-                                        return (
-                                            <Cell
-                                                key={`income-${month.key}`}
-                                                fill={incomeBarColor}
-                                                fillOpacity={selectedMonthKey && !isSelected ? 0.6 : 1}
-                                                stroke={isSelected ? '#166534' : undefined}
-                                                strokeWidth={isSelected ? 2 : 0}
-                                            />
-                                        );
-                                    })}
-                                </Bar>
-                                <Bar
-                                    dataKey="expense"
-                                    fill={expenseBarColor}
-                                    radius={[10, 10, 0, 0]}
-                                    maxBarSize={maxBarSize}
-                                    onClick={(_, index) => handleBarSelect(index)}
+                                    <XAxis
+                                        dataKey="shortLabel"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        minTickGap={18}
+                                        padding={{ left: 12, right: 20 }}
+                                        tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        width={56}
+                                        tickFormatter={formatAxisAmount}
+                                        tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }}
+                                    />
+
+                                    <Tooltip
+                                        cursor={{ fill: 'rgba(148, 163, 184, 0.12)' }}
+                                        content={<CustomTooltip />}
+                                        shared={false}
+                                    />
+
+                                    <Bar
+                                        dataKey="income"
+                                        fill={incomeBarColor}
+                                        radius={[10, 10, 0, 0]}
+                                        maxBarSize={maxBarSize}
+                                        onClick={(data: any) => handleBarSelect(data?.payload?.key)}
+                                    >
+                                        {visibleTrendData.map((month) => {
+                                            const isSelected = month.key === selectedMonthKey;
+
+                                            return (
+                                                <Cell
+                                                    key={`income-${month.key}`}
+                                                    fill={incomeBarColor}
+                                                    fillOpacity={selectedMonthKey && !isSelected ? 0.6 : 1}
+                                                    stroke={isSelected ? '#166534' : undefined}
+                                                    strokeWidth={isSelected ? 2 : 0}
+                                                />
+                                            );
+                                        })}
+                                    </Bar>
+
+                                    <Bar
+                                        dataKey="expense"
+                                        fill={expenseBarColor}
+                                        radius={[10, 10, 0, 0]}
+                                        maxBarSize={maxBarSize}
+                                        // onClick={(_, index) => handleBarSelect(index)}
+                                        onClick={(data: any) => handleBarSelect(data?.payload?.key)}
+                                    >
+                                        {visibleTrendData.map((month) => {
+                                            const isSelected = month.key === selectedMonthKey;
+
+                                            return (
+                                                <Cell
+                                                    key={`expense-${month.key}`}
+                                                    fill={expenseBarColor}
+                                                    fillOpacity={selectedMonthKey && !isSelected ? 0.6 : 1}
+                                                    stroke={isSelected ? '#991b1b' : undefined}
+                                                    strokeWidth={isSelected ? 2 : 0}
+                                                />
+                                            );
+                                        })}
+                                    </Bar>
+                                </BarChart>
+                            ) : (
+                                <LineChart
+                                    data={visibleTrendData}
+                                    // margin={{ top: 10, right: 10, left: -16, bottom: 0 }}
+                                    margin={{ top: 10, right: 32, left: -8, bottom: 0 }}
                                 >
-                                    {visibleTrendData.map((month) => {
-                                        const isSelected = month.key === selectedMonthKey;
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.18)" />
 
-                                        return (
-                                            <Cell
-                                                key={`expense-${month.key}`}
-                                                fill={expenseBarColor}
-                                                fillOpacity={selectedMonthKey && !isSelected ? 0.6 : 1}
-                                                stroke={isSelected ? '#991b1b' : undefined}
-                                                strokeWidth={isSelected ? 2 : 0}
-                                            />
-                                        );
-                                    })}
-                                </Bar>
-                            </BarChart>
+                                    <XAxis
+                                        dataKey="shortLabel"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        minTickGap={18}
+                                        tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }}
+                                    />
+
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        width={56}
+                                        tickFormatter={formatAxisAmount}
+                                        tick={{ fill: '#94a3b8', fontSize: 12, fontWeight: 600 }}
+                                    />
+
+                                    <Tooltip content={<CustomTooltip />} />
+
+                                    <Line
+                                        type="monotone"
+                                        dataKey="income"
+                                        stroke={incomeBarColor}
+                                        strokeWidth={3}
+                                        dot={{ r: 4 }}
+                                        activeDot={{ r: 6 }}
+                                        onClick={(data: any) => handleBarSelect(data?.payload?.key)}
+                                    />
+
+                                    <Line
+                                        type="monotone"
+                                        dataKey="expense"
+                                        stroke={expenseBarColor}
+                                        strokeWidth={3}
+                                        dot={{ r: 4 }}
+                                        activeDot={{ r: 6 }}
+                                        onClick={(data: any) => handleBarSelect(data?.payload?.key)}
+                                    />
+                                </LineChart>
+                            )}
                         </ResponsiveContainer>
                     </div>
                 ) : (

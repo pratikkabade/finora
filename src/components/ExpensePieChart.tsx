@@ -195,22 +195,24 @@ const CategoryBreakdownSection: React.FC<CategoryBreakdownSectionProps> = ({
                         </div>
                     }
                     <div></div>
-                    <button
-                        type="button"
-                        onClick={() => onSelectAll(areAllCategoriesSelected ? [] : allCategoryIds)}
-                        className="rounded-full border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-800/60 cursor-pointer"
-                    >
-                        {areAllCategoriesSelected ? 'Clear All' : 'Select All'}
-                    </button>
-                    {canToggleAll && (
+                    <div className='flex flex-row gap-2'>
                         <button
                             type="button"
-                            onClick={onToggleShowAll}
+                            onClick={() => onSelectAll(areAllCategoriesSelected ? [] : allCategoryIds)}
                             className="rounded-full border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-800/60 cursor-pointer"
                         >
-                            {showAll ? 'Show Less' : `Show All (${rows.length})`}
+                            {areAllCategoriesSelected ? 'Clear All' : 'Select All'}
                         </button>
-                    )}
+                        {canToggleAll && (
+                            <button
+                                type="button"
+                                onClick={onToggleShowAll}
+                                className="rounded-full border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-800/60 cursor-pointer"
+                            >
+                                {showAll ? 'Show Less' : `Show All (${rows.length})`}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

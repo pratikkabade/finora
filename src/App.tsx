@@ -66,6 +66,7 @@ import {
     getPlannedPaymentAlertSummary,
     normalizePlannedPaymentIntervalType,
 } from './utils/plannedPaymentUtils';
+import { sortCategoriesByOrder } from './utils/categoryUtils';
 
 const GUEST_USER_ID = '__guest__';
 const NORMALIZED_BACKUP_READY_KEY_PREFIX = 'normalizedCloudBackupReady_';
@@ -79,18 +80,6 @@ type ReportTransactionSort = 'date' | 'amount';
 
 const getTransactionTimestamp = (transaction: Transaction) => {
     return transaction.dateTime || transaction.dueDate || 0;
-};
-
-const sortCategoriesByOrder = (categories: Category[]) => {
-    return [...categories].sort((categoryA, categoryB) => {
-        const orderA = Number(categoryA.orderNum) || 0;
-        const orderB = Number(categoryB.orderNum) || 0;
-        if (orderA !== orderB) {
-            return orderA - orderB;
-        }
-
-        return categoryA.name.localeCompare(categoryB.name);
-    });
 };
 
 const keepIfAlreadyEmpty = (values: string[]) => values.length === 0 ? values : [];
@@ -173,6 +162,7 @@ function App() {
     const [showDataSourceModal, setShowDataSourceModal] = useState(false);
     const [selectedMonthYear, setSelectedMonthYear] = useState<string>('');
     const [dateRange, setDateRange] = useState<{ start: number; end: number } | null>(null);
+    const [reportTrendRange, setReportTrendRange] = useState<string>('');
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [editingPlannedPayment, setEditingPlannedPayment] = useState<PlannedPaymentRule | null>(null);
     const [selectedExpenseCategories, setSelectedExpenseCategories] = useState<string[]>([]);
@@ -340,6 +330,29 @@ function App() {
     const monthYearOptions = useMemo(() => {
         return generateMonthYearOptions(validTransactions);
     }, [validTransactions]);
+    const reportYearOptions = useMemo(() => {
+        return Array.from(new Set(monthYearOptions.map((option) => option.year.toString())))
+            .sort((yearA, yearB) => Number(yearA) - Number(yearB));
+    }, [monthYearOptions]);
+    const activeReportTrendRange = useMemo(() => {
+        if (dateRange) {
+            return '';
+        }
+
+        if (selectedMonthYear) {
+            return selectedMonthYear.split('-')[0] ?? '';
+        }
+
+        if (reportTrendRange === 'max') {
+            return 'max';
+        }
+
+        if (reportTrendRange && reportYearOptions.includes(reportTrendRange)) {
+            return reportTrendRange;
+        }
+
+        return reportYearOptions[reportYearOptions.length - 1] ?? '';
+    }, [dateRange, selectedMonthYear, reportTrendRange, reportYearOptions]);
 
     const activeMonthYear = useMemo(() => {
         if (dateRange) {
@@ -778,8 +791,15 @@ function App() {
         setSelectedMonthYear('');
     };
 
+    const handleApplyReportTrendRange = (rangeValue: string) => {
+        setReportTrendRange(rangeValue);
+        setSelectedMonthYear('');
+        setDateRange(null);
+    };
+
     const handleApplyMonthSelection = (monthYear: string) => {
         setSelectedMonthYear(monthYear);
+        setReportTrendRange(monthYear.split('-')[0] ?? '');
         setDateRange(null);
     };
 
@@ -857,15 +877,44 @@ function App() {
             return `${formatReportDate(dateRange.start)} - ${formatReportDate(dateRange.end)}`;
         }
 
-        return monthYearOptions.find((option) => option.value === activeMonthYear)?.label || 'Selected period';
-    }, [dateRange, monthYearOptions, activeMonthYear]);
+        if (selectedMonthYear) {
+            return monthYearOptions.find((option) => option.value === activeMonthYear)?.label || 'Selected period';
+        }
+
+        if (activeReportTrendRange === 'max') {
+            return 'Max';
+        }
+
+        return activeReportTrendRange || 'Selected period';
+    }, [dateRange, selectedMonthYear, monthYearOptions, activeMonthYear, activeReportTrendRange]);
+    const reportPeriodTransactions = useMemo(() => {
+        if (dateRange || selectedMonthYear) {
+            return filteredTransactions;
+        }
+
+        if (activeReportTrendRange === 'max') {
+            return validTransactions;
+        }
+
+        const activeYear = Number(activeReportTrendRange);
+        if (!activeYear) {
+            return [];
+        }
+
+        return validTransactions.filter((transaction) => {
+            const timestamp = getTransactionTimestamp(transaction);
+            if (!timestamp) return false;
+
+            return new Date(timestamp).getFullYear() === activeYear;
+        });
+    }, [dateRange, selectedMonthYear, filteredTransactions, activeReportTrendRange, validTransactions]);
     const selectedReportTransactions = useMemo(() => {
         if (selectedReportCategoryIds.length === 0) return [];
 
         const selectedExpenseCategoryIds = new Set(selectedExpenseCategories);
         const selectedIncomeCategoryIds = new Set(selectedIncomeCategories);
 
-        return filteredTransactions
+        return reportPeriodTransactions
             .filter((transaction) => {
                 const categoryId = transaction.categoryId || '';
 
@@ -898,7 +947,7 @@ function App() {
 
                 return getTransactionTimestamp(transactionB) - getTransactionTimestamp(transactionA);
             });
-    }, [filteredTransactions, selectedReportCategoryIds.length, selectedExpenseCategoryKey, selectedIncomeCategoryKey, reportTransactionSort]);
+    }, [reportPeriodTransactions, selectedReportCategoryIds.length, selectedExpenseCategoryKey, selectedIncomeCategoryKey, reportTransactionSort]);
     const reportTrendTransactions = useMemo(() => {
         const baseTransactions = dateRange ? filteredTransactions : validTransactions;
 
@@ -1186,7 +1235,7 @@ function App() {
         setSelectedExpenseCategories(keepIfAlreadyEmpty);
         setSelectedIncomeCategories(keepIfAlreadyEmpty);
         setIsExportModalOpen(false);
-    }, [selectedMonthYear, dateRange?.start, dateRange?.end]);
+    }, [selectedMonthYear, dateRange?.start, dateRange?.end, activeReportTrendRange]);
 
     const handleHomeLogoRefresh = useCallback(() => {
         if (window.confirm('Refresh homepage now?')) {
@@ -1379,6 +1428,8 @@ function App() {
                     <IncomeExpenseTrendChart
                         transactions={reportTrendTransactions}
                         selectedMonthKey={selectedMonthYear}
+                        rangeValue={activeReportTrendRange}
+                        onSelectRange={handleApplyReportTrendRange}
                         onSelectMonth={handleApplyMonthSelection}
                         onClearMonthSelection={handleClearMonthSelection}
                         isRangeLocked={Boolean(dateRange)}
@@ -1386,7 +1437,7 @@ function App() {
                     />
 
                     <ExpensePieChart
-                        transactions={filteredTransactions}
+                        transactions={reportPeriodTransactions}
                         categories={financeData.categories}
                         selectedExpenseCategories={selectedExpenseCategories}
                         selectedIncomeCategories={selectedIncomeCategories}
