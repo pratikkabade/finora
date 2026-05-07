@@ -71,7 +71,7 @@ export const generateMonthYearOptions = (transactions: any[]) => {
 
   return options.sort((a, b) => {
     if (a.year !== b.year) return b.year - a.year;
-    return b.month - a.month;
+    return a.month - b.month;
   });
 };
 

@@ -48,10 +48,10 @@ const navItems = [
 
 const getBadgeClassName = (tone: PlannedPaymentBadgeTone) => {
     if (tone === 'red') {
-        return 'border-red-300/90 bg-red-500 text-white shadow-[0_10px_22px_-12px_rgba(239,68,68,0.9)]';
+        return 'bg-red-500 text-white shadow-[0_10px_22px_-12px_rgba(239,68,68,0.9)]';
     }
 
-    return 'border-amber-200/90 bg-amber-300 text-slate-950 shadow-[0_10px_22px_-12px_rgba(251,191,36,0.92)]';
+    return 'bg-amber-300 text-slate-950 shadow-[0_10px_22px_-12px_rgba(251,191,36,0.92)]';
 };
 
 const renderBadge = (badge?: PlannedPaymentsNavBadge) => {
@@ -63,7 +63,7 @@ const renderBadge = (badge?: PlannedPaymentsNavBadge) => {
 
     return (
         <span
-            className={`pointer-events-none absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-bold leading-none tabular-nums ${getBadgeClassName(badge.tone)}`}
+            className={`pointer-events-none absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold leading-none tabular-nums ${getBadgeClassName(badge.tone)}`}
         >
             {displayCount}
         </span>
@@ -262,13 +262,6 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView, planne
                                         : 'border border-slate-200/55 text-slate-500 hover:border-slate-300/80 hover:bg-white/35 hover:text-slate-900 hover:shadow-[0_16px_32px_-20px_rgba(15,23,42,0.35)] dark:border-slate-700/55 dark:text-slate-400 dark:hover:border-slate-500/75 dark:hover:bg-slate-800/50 dark:hover:text-slate-50'
                                     }`}
                             >
-                                {badge && badge.count > 0 && badge.tone ? (
-                                    <span
-                                        className={`pointer-events-none absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-bold leading-none tabular-nums ${getBadgeClassName(badge.tone)}`}
-                                    >
-                                        {badge.count > 99 ? '99' : badge.count}
-                                    </span>
-                                ) : null}
                                 <span
                                     className={`pointer-events-none absolute inset-0 bg-linear-to-br from-white/45 via-white/0 to-sky-100/30 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                                         }`}
@@ -280,7 +273,16 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView, planne
                                 <span className={`grid items-center overflow-hidden transition-[grid-template-columns,gap] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${showMobileLabel ? 'grid-cols-[32px_1fr] gap-2' : 'grid-cols-[32px_0fr] gap-0'
                                     }`}>
                                     <span className="relative flex h-8 w-8 items-center justify-center justify-self-center rounded-full">
-                                        <Icon size={18} className={`shrink-0 transition-transform duration-300 ${isActive ? 'scale-105' : 'group-active:scale-95'}`} />
+                                        {badge && badge.count > 0 && badge.tone ? (
+                                            <span
+                                                className={`pointer-events-none absolute inline-flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold leading-none tabular-nums ${getBadgeClassName(badge.tone)}`}
+                                            >
+                                                {badge.count > 99 ? '99' : badge.count}
+                                            </span>
+                                        ) : null}
+                                        {badge && badge.count > 0 && badge.tone ? null : (
+                                            <Icon size={18} className={`shrink-0 transition-transform duration-300 ${isActive ? 'scale-105' : 'group-active:scale-95'}`} />
+                                        )}
                                     </span>
                                     <span className="overflow-hidden">
                                         <span className={`block whitespace-nowrap text-[11px] tracking-[0.02em] transition-[opacity,transform] duration-200 ease-out ${showMobileLabel ? 'translate-x-0 opacity-100' : 'translate-x-1 opacity-0'

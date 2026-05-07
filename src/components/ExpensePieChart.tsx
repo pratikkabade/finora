@@ -10,9 +10,11 @@ interface ExpensePieChartProps {
     transactions: Transaction[];
     categories: Category[];
     selectedExpenseCategories?: string[];
-    selectedIncomeCategory?: string | null;
+    selectedIncomeCategories?: string[];
     onSelectExpenseCategory: (categoryId: string) => void;
     onSelectIncomeCategory: (categoryId: string) => void;
+    onSelectAllExpenseCategories: (categoryIds: string[]) => void;
+    onSelectAllIncomeCategories: (categoryIds: string[]) => void;
 }
 
 interface CategoryBreakdownRow {
@@ -33,6 +35,7 @@ interface CategoryBreakdownSectionProps {
     allowMultiSelect?: boolean;
     showAll: boolean;
     onToggleShowAll: () => void;
+    onSelectAll: (categoryIds: string[]) => void;
 }
 
 const DEFAULT_VISIBLE_CATEGORY_COUNT = 5;
@@ -109,6 +112,7 @@ const CategoryBreakdownSection: React.FC<CategoryBreakdownSectionProps> = ({
     // allowMultiSelect = false,
     showAll,
     onToggleShowAll,
+    onSelectAll,
 }) => {
     if (rows.length === 0) return null;
 
@@ -121,6 +125,8 @@ const CategoryBreakdownSection: React.FC<CategoryBreakdownSectionProps> = ({
     //     ? `Selected Total${selectedCategoryData.length > 1 ? ` (${selectedCategoryData.length})` : ''}`
     //     : 'Total';
     const canToggleAll = rows.length > DEFAULT_VISIBLE_CATEGORY_COUNT;
+    const allCategoryIds = rows.map((row) => row.categoryId);
+    const areAllCategoriesSelected = allCategoryIds.every((categoryId) => selectedCategories.includes(categoryId));
     const visibleRows = showAll || !canToggleAll
         ? rows
         : rows.filter((row, index) => {
@@ -189,6 +195,13 @@ const CategoryBreakdownSection: React.FC<CategoryBreakdownSectionProps> = ({
                         </div>
                     }
                     <div></div>
+                    <button
+                        type="button"
+                        onClick={() => onSelectAll(areAllCategoriesSelected ? [] : allCategoryIds)}
+                        className="rounded-full border border-slate-200/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-800/60 cursor-pointer"
+                    >
+                        {areAllCategoriesSelected ? 'Clear All' : 'Select All'}
+                    </button>
                     {canToggleAll && (
                         <button
                             type="button"
@@ -208,9 +221,11 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
     transactions,
     categories,
     selectedExpenseCategories = [],
-    selectedIncomeCategory = null,
+    selectedIncomeCategories = [],
     onSelectExpenseCategory,
     onSelectIncomeCategory,
+    onSelectAllExpenseCategories,
+    onSelectAllIncomeCategories,
 }) => {
     const [chartHeight, setChartHeight] = useState(250);
     const [showAllExpenseCategories, setShowAllExpenseCategories] = useState(false);
@@ -246,13 +261,23 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
         return incomeByCategory.reduce((sum, category) => sum + category.amount, 0);
     }, [incomeByCategory]);
 
-    const expenseChartData = expensesByCategory.map((category) => ({
+    const visibleExpenseChartRows = selectedExpenseCategories.length > 0
+        ? expensesByCategory.filter((category) => selectedExpenseCategories.includes(category.categoryId))
+        : expensesByCategory;
+
+    const visibleIncomeChartRows = selectedIncomeCategories.length > 0
+        ? incomeByCategory.filter((category) => selectedIncomeCategories.includes(category.categoryId))
+        : incomeByCategory;
+
+    const expenseChartData = visibleExpenseChartRows.map((category) => ({
+        categoryId: category.categoryId,
         name: category.name,
         value: category.amount,
         color: category.color,
     }));
 
-    const incomeChartData = incomeByCategory.map((category) => ({
+    const incomeChartData = visibleIncomeChartRows.map((category) => ({
+        categoryId: category.categoryId,
         name: category.name,
         value: category.amount,
         color: category.color,
@@ -285,9 +310,18 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                                     fill="#8884d8"
                                     dataKey="value"
                                 >
-                                    {expenseChartData.map((entry, index) => (
-                                        <Cell key={`expense-cell-${index}`} fill={entry.color} />
-                                    ))}
+                                    {expenseChartData.map((entry) => {
+                                        const isSelected = selectedExpenseCategories.includes(entry.categoryId);
+
+                                        return (
+                                            <Cell
+                                                key={`expense-cell-${entry.categoryId || entry.name}`}
+                                                fill={entry.color}
+                                                stroke={isSelected ? '#0f172a' : undefined}
+                                                strokeWidth={isSelected ? 2 : 0}
+                                            />
+                                        );
+                                    })}
                                 </Pie>
                                 <Tooltip content={<CustomTooltip />} />
                             </PieChart>
@@ -300,6 +334,7 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                             allowMultiSelect
                             showAll={showAllExpenseCategories}
                             onToggleShowAll={() => setShowAllExpenseCategories((currentValue) => !currentValue)}
+                            onSelectAll={onSelectAllExpenseCategories}
                         />
                     </div>
                 </div>
@@ -328,9 +363,18 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                                     fill="#8884d8"
                                     dataKey="value"
                                 >
-                                    {incomeChartData.map((entry, index) => (
-                                        <Cell key={`income-cell-${index}`} fill={entry.color} />
-                                    ))}
+                                    {incomeChartData.map((entry) => {
+                                        const isSelected = selectedIncomeCategories.includes(entry.categoryId);
+
+                                        return (
+                                            <Cell
+                                                key={`income-cell-${entry.categoryId || entry.name}`}
+                                                fill={entry.color}
+                                                stroke={isSelected ? '#0f172a' : undefined}
+                                                strokeWidth={isSelected ? 2 : 0}
+                                            />
+                                        );
+                                    })}
                                 </Pie>
                                 <Tooltip content={<CustomTooltip />} />
                             </PieChart>
@@ -338,10 +382,11 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                         <CategoryBreakdownSection
                             rows={incomeByCategory}
                             title="Income by Category"
-                            selectedCategories={selectedIncomeCategory ? [selectedIncomeCategory] : []}
+                            selectedCategories={selectedIncomeCategories}
                             onToggleCategory={onSelectIncomeCategory}
                             showAll={showAllIncomeCategories}
                             onToggleShowAll={() => setShowAllIncomeCategories((currentValue) => !currentValue)}
+                            onSelectAll={onSelectAllIncomeCategories}
                         />
                     </div>
                 </div>

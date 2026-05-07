@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { BellRing, CalendarClock, CheckCircle2, ChevronDown, Clock3, Pencil, Plus, Repeat2, SkipForward } from 'lucide-react';
+import { BellRing, CalendarClock, CheckCircle2, Clock3, Pencil, Plus, Repeat2, SkipForward } from 'lucide-react';
 import type { Account, Category, PlannedPaymentRule } from '../types/finance.types';
 import {
     AppChartBtn,
     FreeBlueBtn,
     FreeRedBtn,
     FreeWhiteBtn,
+    transactionCard,
 } from '../constants/TailwindClasses';
 import { formatNumberWithCommas } from '../utils/numberFormatterUtils';
 import {
@@ -204,9 +205,11 @@ export const PlannedPaymentsPage: React.FC<PlannedPaymentsPageProps> = ({
                         return (
                             <article
                                 key={plannedPaymentRule.id}
-                                className="app-border-soft rounded-[1.9rem] bg-white/80 p-5 shadow-[0_24px_60px_-34px_rgba(15,23,42,0.36)] backdrop-blur-2xl dark:bg-slate-900/58"
+                                className={transactionCard}
                             >
-                                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                <div
+                                    onClick={() => togglePaymentDetails(plannedPaymentRule.id)}
+                                    className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between cursor-pointer">
                                     <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <h2 className="truncate text-xl font-bold text-slate-900 dark:text-slate-50">
@@ -238,7 +241,7 @@ export const PlannedPaymentsPage: React.FC<PlannedPaymentsPageProps> = ({
                                 {isDetailsOpen ? (
                                     <div
                                         id={detailsPanelId}
-                                        className="mt-4 rounded-[1.3rem] border border-slate-200/80 bg-slate-50/85 p-3 dark:border-slate-800/80 dark:bg-slate-950/35"
+                                        className="mt-4 rounded-[1.3rem] border border-slate-200/80 bg-slate-50/85 p-3 dark:border-slate-800/80 dark:bg-slate-950/35 fade-in2"
                                     >
                                         <div className="flex flex-wrap gap-2.5">
                                             <div className="flex w-fit max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-full border border-slate-200/80 bg-white/85 px-3 py-2 dark:border-slate-700/80 dark:bg-slate-900/70">
@@ -317,7 +320,7 @@ export const PlannedPaymentsPage: React.FC<PlannedPaymentsPageProps> = ({
                                         <Pencil size={16} />
                                         Edit
                                     </button>
-                                    <button
+                                    {/* <button
                                         type="button"
                                         onClick={() => togglePaymentDetails(plannedPaymentRule.id)}
                                         className={`${FreeWhiteBtn} whitespace-nowrap`}
@@ -329,7 +332,7 @@ export const PlannedPaymentsPage: React.FC<PlannedPaymentsPageProps> = ({
                                             className={`transition-transform duration-300 ${isDetailsOpen ? 'rotate-180' : ''}`}
                                         />
                                         Details
-                                    </button>
+                                    </button> */}
                                 </div>
                             </article>
                         );

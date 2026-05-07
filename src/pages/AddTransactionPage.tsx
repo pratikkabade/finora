@@ -7,14 +7,12 @@ interface AddTransactionPageProps {
     financeData: FinanceData | null;
     onSave: (transaction: Transaction) => void;
     defaultAccountId?: string;
-    lockAccountSelection?: boolean;
 }
 
 export const AddTransactionPage: React.FC<AddTransactionPageProps> = ({
     financeData,
     onSave,
     defaultAccountId,
-    lockAccountSelection,
 }) => {
     const navigate = useNavigate();
 
@@ -51,7 +49,6 @@ export const AddTransactionPage: React.FC<AddTransactionPageProps> = ({
                 categories={financeData.categories}
                 transactions={financeData.transactions}
                 defaultAccountId={defaultAccountId}
-                lockAccountSelection={lockAccountSelection}
             />
         </div>
     );

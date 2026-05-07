@@ -29,6 +29,21 @@ export const PLANNED_PAYMENT_INTERVAL_OPTIONS: Array<{
     { value: 'YEAR', label: 'Year' },
 ];
 
+export const normalizePlannedPaymentIntervalType = (
+    value: unknown,
+): PlannedPaymentIntervalType => {
+    if (typeof value !== 'string') {
+        return 'MONTH';
+    }
+
+    const normalizedValue = value.trim().toUpperCase();
+    const option = PLANNED_PAYMENT_INTERVAL_OPTIONS.find((item) => {
+        return item.value === normalizedValue || item.label.toUpperCase() === normalizedValue;
+    });
+
+    return option?.value ?? 'MONTH';
+};
+
 const toStartOfDay = (value: number | Date) => {
     const date = new Date(value);
     date.setHours(0, 0, 0, 0);
@@ -41,9 +56,10 @@ const addIntervalToDate = (
     intervalType: PlannedPaymentIntervalType,
 ) => {
     const safeInterval = Math.max(1, intervalN || 1);
+    const safeIntervalType = normalizePlannedPaymentIntervalType(intervalType);
     const nextDate = new Date(date);
 
-    switch (intervalType) {
+    switch (safeIntervalType) {
         case 'DAY':
             nextDate.setDate(nextDate.getDate() + safeInterval);
             break;
@@ -68,7 +84,8 @@ export const formatPlannedPaymentFrequency = (
     intervalN: number,
     intervalType: PlannedPaymentIntervalType,
 ) => {
-    const option = PLANNED_PAYMENT_INTERVAL_OPTIONS.find((item) => item.value === intervalType);
+    const safeIntervalType = normalizePlannedPaymentIntervalType(intervalType);
+    const option = PLANNED_PAYMENT_INTERVAL_OPTIONS.find((item) => item.value === safeIntervalType);
     const label = option?.label || 'Month';
     const safeInterval = Math.max(1, intervalN || 1);
     const pluralSuffix = safeInterval === 1 ? '' : 's';
@@ -99,8 +116,10 @@ export const getNextPlannedPaymentDate = (
         return firstDueDate.getTime();
     }
 
-    if (rule.intervalType === 'DAY' || rule.intervalType === 'WEEK') {
-        const intervalDays = Math.max(1, rule.intervalN || 1) * (rule.intervalType === 'WEEK' ? 7 : 1);
+    const safeIntervalType = normalizePlannedPaymentIntervalType(rule.intervalType);
+
+    if (safeIntervalType === 'DAY' || safeIntervalType === 'WEEK') {
+        const intervalDays = Math.max(1, rule.intervalN || 1) * (safeIntervalType === 'WEEK' ? 7 : 1);
         const intervalInMs = intervalDays * DAY_IN_MS;
         const elapsedMs = Math.max(0, referenceDay.getTime() - firstDueDate.getTime());
         const jumps = Math.ceil(elapsedMs / intervalInMs);

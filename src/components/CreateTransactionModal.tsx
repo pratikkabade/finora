@@ -9,7 +9,7 @@ import type {
     TransactionType,
 } from '../types/finance.types';
 import { generateUUID, getCurrentOrPastTransactions } from '../utils/dateUtils';
-import { PLANNED_PAYMENT_INTERVAL_OPTIONS } from '../utils/plannedPaymentUtils';
+import { normalizePlannedPaymentIntervalType, PLANNED_PAYMENT_INTERVAL_OPTIONS } from '../utils/plannedPaymentUtils';
 import { FreeBlueBtn, FreeRedBtn, FreeWhiteBtn, ModalHeader, ModalOut, ModalPopUp, SegmentedToggleItemSelected, SegmentedToggleItemUnselected, SegmentedToggleShell, SegmentedToggleThumb, SegmentedToggleTrack, transactionFieldClasses } from '../constants/TailwindClasses';
 import { useAnimatedOpen } from '../hooks/useAnimatedOpen';
 import { intToHex } from '../utils/colorUtils';
@@ -21,7 +21,6 @@ interface CreateTransactionModalBaseProps {
     categories: Category[];
     transactions: Transaction[];
     defaultAccountId?: string;
-    lockAccountSelection?: boolean;
 }
 
 interface CreateTransactionModeProps extends CreateTransactionModalBaseProps {
@@ -174,7 +173,6 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
     editingTransaction,
     editingPlannedPayment,
     defaultAccountId,
-    lockAccountSelection,
     mode = 'transaction',
 }) => {
     const initialFormDataRef = useRef<TransactionModalFormData | null>(null);
@@ -220,7 +218,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 categoryId: editingPlannedPayment.categoryId || '',
                 dateTime: formatLocalDateTime(dueDate),
                 intervalN: editingPlannedPayment.intervalN.toString(),
-                intervalType: editingPlannedPayment.intervalType,
+                intervalType: normalizePlannedPaymentIntervalType(editingPlannedPayment.intervalType),
             };
         } else if (!isPlannedPaymentMode && editingTransaction) {
             const dateObj = new Date(editingTransaction.dateTime || editingTransaction.dueDate || 0);
@@ -276,7 +274,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 startDate: nextDueDate,
                 nextDueDate,
                 intervalN: safeInterval,
-                intervalType: formData.intervalType,
+                intervalType: normalizePlannedPaymentIntervalType(formData.intervalType),
                 oneTime: false,
                 type: formData.type,
                 accountId: formData.accountId,
@@ -354,8 +352,7 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
         name: category.name,
         color: category.color,
     }));
-    const shouldLockAccountSelection = !isEditing && !!lockAccountSelection && !!selectedAccount;
-    const isAccountButtonDisabled = accounts.length === 0 || shouldLockAccountSelection;
+    const isAccountButtonDisabled = accounts.length === 0;
     const categoryTitleSuggestions = useMemo<TitleSuggestion[]>(() => {
         if (!formData.categoryId) return [];
 
@@ -766,13 +763,8 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                                         {selectedAccount?.name || (accounts.length ? 'Select account' : 'No accounts available')}
                                     </span>
                                 </span>
-                                {!shouldLockAccountSelection && <ChevronDown size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />}
+                                <ChevronDown size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
                             </button>
-                            {shouldLockAccountSelection && (
-                                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                                    Defaulted from your net balance account setting.
-                                </p>
-                            )}
                         </div>
 
                         <div className={formFieldCardClassName}>

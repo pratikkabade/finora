@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { X } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, CartesianGrid, Tooltip, XAxis, YAxis, Cell } from 'recharts';
 import type { Transaction } from '../types/finance.types';
 import { pieChartCard } from '../constants/TailwindClasses';
@@ -8,6 +9,7 @@ interface IncomeExpenseTrendChartProps {
     transactions: Transaction[];
     selectedMonthKey?: string;
     onSelectMonth: (monthKey: string) => void;
+    onClearMonthSelection: () => void;
     isRangeLocked?: boolean;
     rangeLabelOverride?: string;
 }
@@ -98,6 +100,7 @@ export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = (
     transactions,
     selectedMonthKey = '',
     onSelectMonth,
+    onClearMonthSelection,
     isRangeLocked = false,
     rangeLabelOverride,
 }) => {
@@ -193,13 +196,29 @@ export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = (
         return allMonthlyTrendData.filter((month) => month.year === anchorYear);
     }, [allMonthlyTrendData, isRangeLocked, rangePreset]);
 
+    const selectedMonthTrendData = useMemo(() => {
+        if (!selectedMonthKey) return null;
+
+        return allMonthlyTrendData.find((month) => month.key === selectedMonthKey) ?? null;
+    }, [allMonthlyTrendData, selectedMonthKey]);
+
     const trendIncomeTotal = useMemo(() => {
+        if (selectedMonthTrendData) {
+            return selectedMonthTrendData.income;
+        }
+
         return visibleTrendData.reduce((sum, month) => sum + month.income, 0);
-    }, [visibleTrendData]);
+    }, [selectedMonthTrendData, visibleTrendData]);
 
     const trendExpenseTotal = useMemo(() => {
+        if (selectedMonthTrendData) {
+            return selectedMonthTrendData.expense;
+        }
+
         return visibleTrendData.reduce((sum, month) => sum + month.expense, 0);
-    }, [visibleTrendData]);
+    }, [selectedMonthTrendData, visibleTrendData]);
+
+    const trendBalanceTotal = trendIncomeTotal - trendExpenseTotal;
 
     const selectedMonthLabel = useMemo(() => {
         return allMonthlyTrendData.find((month) => month.key === selectedMonthKey)?.monthYearLabel || '';
@@ -272,18 +291,23 @@ export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = (
                         )}
 
                         {selectedMonthLabel && (
-                            <div className="app-border-soft flex items-center gap-2 rounded-2xl bg-sky-50/80 px-3 py-2 text-sm font-semibold text-sky-700 dark:bg-sky-950/30 dark:text-sky-200">
+                            <button
+                                type="button"
+                                onClick={onClearMonthSelection}
+                                className="app-border-soft flex items-center gap-2 rounded-2xl bg-sky-50/80 px-3 py-2 text-sm font-semibold text-sky-700 transition-colors hover:bg-sky-100/85 dark:bg-sky-950/30 dark:text-sky-200 dark:hover:bg-sky-900/40"
+                                title="Clear selected month"
+                            >
                                 {selectedMonthLabel}
-                            </div>
+                                <X size={14} />
+                            </button>
                         )}
 
-                        <div className="app-border-soft flex items-center gap-2 rounded-2xl bg-green-50/80 px-3 py-2 text-sm font-semibold text-green-700 dark:bg-green-950/30 dark:text-green-200">
-                            <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
-                            {formatCurrency(trendIncomeTotal)}
-                        </div>
-                        <div className="app-border-soft flex items-center gap-2 rounded-2xl bg-red-50/80 px-3 py-2 text-sm font-semibold text-red-700 dark:bg-red-950/30 dark:text-red-200">
-                            <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-                            {formatCurrency(trendExpenseTotal)}
+                        <div className={`app-border-soft flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-semibold ${trendBalanceTotal >= 0
+                            ? 'bg-green-50/80 text-green-700 dark:bg-green-950/30 dark:text-green-200'
+                            : 'bg-red-50/80 text-red-700 dark:bg-red-950/30 dark:text-red-200'
+                            }`}>
+                            <span className={`h-2.5 w-2.5 rounded-full ${trendBalanceTotal >= 0 ? 'bg-green-500' : 'bg-red-500'}`} />
+                            Balance: {formatCurrency(trendBalanceTotal)}
                         </div>
                     </div>
                 </div>

@@ -64,6 +64,7 @@ import {
     advancePlannedPaymentRule,
     getNextPlannedPaymentDate,
     getPlannedPaymentAlertSummary,
+    normalizePlannedPaymentIntervalType,
 } from './utils/plannedPaymentUtils';
 
 const GUEST_USER_ID = '__guest__';
@@ -92,6 +93,8 @@ const sortCategoriesByOrder = (categories: Category[]) => {
     });
 };
 
+const keepIfAlreadyEmpty = (values: string[]) => values.length === 0 ? values : [];
+
 const formatReportDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString('en-US', {
         month: 'short',
@@ -119,9 +122,15 @@ const normalizeFinanceData = (data: FinanceData): FinanceData => {
         plannedPaymentRules: Array.isArray(data.plannedPaymentRules)
             ? data.plannedPaymentRules.map((rule) => ({
                 ...rule,
+                intervalN: Math.max(1, Number(rule.intervalN) || 1),
+                intervalType: normalizePlannedPaymentIntervalType(rule.intervalType),
                 nextDueDate: typeof rule.nextDueDate === 'number'
                     ? rule.nextDueDate
-                    : getNextPlannedPaymentDate(rule),
+                    : getNextPlannedPaymentDate({
+                        ...rule,
+                        intervalN: Math.max(1, Number(rule.intervalN) || 1),
+                        intervalType: normalizePlannedPaymentIntervalType(rule.intervalType),
+                    }),
             }))
             : [],
     };
@@ -167,7 +176,7 @@ function App() {
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [editingPlannedPayment, setEditingPlannedPayment] = useState<PlannedPaymentRule | null>(null);
     const [selectedExpenseCategories, setSelectedExpenseCategories] = useState<string[]>([]);
-    const [selectedIncomeCategory, setSelectedIncomeCategory] = useState<string | null>(null);
+    const [selectedIncomeCategories, setSelectedIncomeCategories] = useState<string[]>([]);
     const [homeVisibleCount, setHomeVisibleCount] = useState(20);
     const [balanceSummary, setBalanceSummary] = useState<BalanceSummary | null>(null);
     const [isContentVisible, setIsContentVisible] = useState(false);
@@ -315,10 +324,18 @@ function App() {
         markNormalizedCloudBackupReady(true);
     };
 
+    const netBalanceAccountIds = useMemo(() => {
+        if (!financeData) return [];
+        return getIncludedNetBalanceAccountIds(financeData);
+    }, [financeData]);
+    const visibleAccountIds = useMemo(() => new Set(netBalanceAccountIds), [netBalanceAccountIds]);
+    const defaultTransactionAccountId = netBalanceAccountIds[0] ?? financeData?.accounts?.[0]?.id ?? '';
+
     const validTransactions = useMemo(() => {
         if (!financeData) return [];
-        return getCurrentOrPastTransactions(financeData.transactions);
-    }, [financeData]);
+        return getCurrentOrPastTransactions(financeData.transactions)
+            .filter((transaction) => visibleAccountIds.has(transaction.accountId));
+    }, [financeData, visibleAccountIds]);
 
     const monthYearOptions = useMemo(() => {
         return generateMonthYearOptions(validTransactions);
@@ -504,7 +521,7 @@ function App() {
         setEditingPlannedPayment(null);
         setEditingTransaction(null);
         setSelectedExpenseCategories([]);
-        setSelectedIncomeCategory(null);
+        setSelectedIncomeCategories([]);
         setBalanceSummary(null);
         setShowDataSourceModal(true);
     };
@@ -519,7 +536,7 @@ function App() {
         setEditingPlannedPayment(null);
         setEditingTransaction(null);
         setSelectedExpenseCategories([]);
-        setSelectedIncomeCategory(null);
+        setSelectedIncomeCategories([]);
     };
 
     const handleUpdateNetBalanceAccounts = (accountIds: string[]) => {
@@ -766,6 +783,10 @@ function App() {
         setDateRange(null);
     };
 
+    const handleClearMonthSelection = () => {
+        setSelectedMonthYear('');
+    };
+
     const fallbackLifetimeSummary = useMemo(() => {
         if (!financeData) {
             return {
@@ -786,12 +807,6 @@ function App() {
         return getPlannedPaymentAlertSummary(financeData?.plannedPaymentRules ?? []);
     }, [financeData?.plannedPaymentRules]);
     const isAnyModalOpen = isModalOpen || isPlannedPaymentModalOpen || !!editingPlannedPayment || isDateRangeOpen || showDataSourceModal || !!editingTransaction || isExportModalOpen || showPINModal;
-    const netBalanceAccountIds = useMemo(() => {
-        if (!financeData) return [];
-        return getIncludedNetBalanceAccountIds(financeData);
-    }, [financeData]);
-    const defaultTransactionAccountId = netBalanceAccountIds[0] ?? financeData?.accounts?.[0]?.id ?? '';
-    const lockDefaultTransactionAccount = netBalanceAccountIds.length === 1;
     const loadingView =
         location.pathname === '/report'
             ? 'report'
@@ -804,14 +819,11 @@ function App() {
         return homeTransactions.slice(0, homeVisibleCount);
     }, [homeTransactions, homeVisibleCount]);
     const canLoadMoreHomeTransactions = homeVisibleCount < homeTransactions.length;
+    const selectedExpenseCategoryKey = selectedExpenseCategories.join('|');
+    const selectedIncomeCategoryKey = selectedIncomeCategories.join('|');
     const selectedReportCategoryIds = useMemo(() => {
-        if (selectedExpenseCategories.length > 0) {
-            return selectedExpenseCategories;
-        }
-
-        return selectedIncomeCategory ? [selectedIncomeCategory] : [];
-    }, [selectedExpenseCategories, selectedIncomeCategory]);
-    const selectedReportCategoryType = selectedExpenseCategories.length > 0 ? 'EXPENSE' : selectedIncomeCategory ? 'INCOME' : null;
+        return [...selectedExpenseCategories, ...selectedIncomeCategories];
+    }, [selectedExpenseCategoryKey, selectedIncomeCategoryKey]);
     const selectedReportCategoryNames = useMemo(() => {
         if (selectedReportCategoryIds.length === 0 || !financeData) return [];
 
@@ -830,8 +842,16 @@ function App() {
             return selectedReportCategoryName;
         }
 
-        return `${selectedReportCategoryIds.length} ${selectedReportCategoryType === 'EXPENSE' ? 'Expense' : 'Income'} Categories`;
-    }, [selectedReportCategoryIds.length, selectedReportCategoryName, selectedReportCategoryType]);
+        if (selectedExpenseCategories.length > 0 && selectedIncomeCategories.length === 0) {
+            return `${selectedExpenseCategories.length} Expense Categories`;
+        }
+
+        if (selectedIncomeCategories.length > 0 && selectedExpenseCategories.length === 0) {
+            return `${selectedIncomeCategories.length} Income Categories`;
+        }
+
+        return `${selectedReportCategoryIds.length} Selected Categories`;
+    }, [selectedReportCategoryIds.length, selectedReportCategoryName, selectedExpenseCategories.length, selectedIncomeCategories.length]);
     const activeReportPeriodLabel = useMemo(() => {
         if (dateRange) {
             return `${formatReportDate(dateRange.start)} - ${formatReportDate(dateRange.end)}`;
@@ -840,13 +860,24 @@ function App() {
         return monthYearOptions.find((option) => option.value === activeMonthYear)?.label || 'Selected period';
     }, [dateRange, monthYearOptions, activeMonthYear]);
     const selectedReportTransactions = useMemo(() => {
-        if (selectedReportCategoryIds.length === 0 || !selectedReportCategoryType) return [];
+        if (selectedReportCategoryIds.length === 0) return [];
 
-        const selectedCategoryIds = new Set(selectedReportCategoryIds);
+        const selectedExpenseCategoryIds = new Set(selectedExpenseCategories);
+        const selectedIncomeCategoryIds = new Set(selectedIncomeCategories);
 
         return filteredTransactions
             .filter((transaction) => {
-                return selectedCategoryIds.has(transaction.categoryId || '') && transaction.type === selectedReportCategoryType;
+                const categoryId = transaction.categoryId || '';
+
+                if (transaction.type === 'EXPENSE') {
+                    return selectedExpenseCategoryIds.has(categoryId);
+                }
+
+                if (transaction.type === 'INCOME') {
+                    return selectedIncomeCategoryIds.has(categoryId);
+                }
+
+                return false;
             })
             .sort((transactionA, transactionB) => {
                 if (reportTransactionSort === 'amount') {
@@ -867,7 +898,31 @@ function App() {
 
                 return getTransactionTimestamp(transactionB) - getTransactionTimestamp(transactionA);
             });
-    }, [filteredTransactions, selectedReportCategoryIds, selectedReportCategoryType, reportTransactionSort]);
+    }, [filteredTransactions, selectedReportCategoryIds.length, selectedExpenseCategoryKey, selectedIncomeCategoryKey, reportTransactionSort]);
+    const reportTrendTransactions = useMemo(() => {
+        const baseTransactions = dateRange ? filteredTransactions : validTransactions;
+
+        if (selectedReportCategoryIds.length === 0) {
+            return baseTransactions;
+        }
+
+        const selectedExpenseCategoryIds = new Set(selectedExpenseCategories);
+        const selectedIncomeCategoryIds = new Set(selectedIncomeCategories);
+
+        return baseTransactions.filter((transaction) => {
+            const categoryId = transaction.categoryId || '';
+
+            if (transaction.type === 'EXPENSE') {
+                return selectedExpenseCategoryIds.has(categoryId);
+            }
+
+            if (transaction.type === 'INCOME') {
+                return selectedIncomeCategoryIds.has(categoryId);
+            }
+
+            return false;
+        });
+    }, [dateRange, filteredTransactions, validTransactions, selectedReportCategoryIds.length, selectedExpenseCategoryKey, selectedIncomeCategoryKey]);
     const selectedReportExportTitle = useMemo(() => {
         return selectedReportHeading ? `${selectedReportHeading} Transactions` : 'Report Transactions';
     }, [selectedReportHeading]);
@@ -920,12 +975,24 @@ function App() {
 
             return [...currentCategories, categoryId];
         });
-        setSelectedIncomeCategory(null);
     };
 
     const handleSelectIncomeReportCategory = (categoryId: string) => {
-        setSelectedIncomeCategory((currentCategory) => currentCategory === categoryId ? null : categoryId);
-        setSelectedExpenseCategories([]);
+        setSelectedIncomeCategories((currentCategories) => {
+            if (currentCategories.includes(categoryId)) {
+                return currentCategories.filter((currentCategoryId) => currentCategoryId !== categoryId);
+            }
+
+            return [...currentCategories, categoryId];
+        });
+    };
+
+    const handleSelectAllExpenseReportCategories = (categoryIds: string[]) => {
+        setSelectedExpenseCategories(categoryIds);
+    };
+
+    const handleSelectAllIncomeReportCategories = (categoryIds: string[]) => {
+        setSelectedIncomeCategories(categoryIds);
     };
 
     const handleExportSelectedTransactionsAsPdf = () => {
@@ -978,7 +1045,6 @@ function App() {
                     transactions={financeData.transactions}
                     editingTransaction={editingTransaction}
                     defaultAccountId={defaultTransactionAccountId}
-                    lockAccountSelection={lockDefaultTransactionAccount}
                 />
 
                 <CreateTransactionModal
@@ -995,7 +1061,6 @@ function App() {
                     transactions={financeData.transactions}
                     editingPlannedPayment={editingPlannedPayment}
                     defaultAccountId={defaultTransactionAccountId}
-                    lockAccountSelection={lockDefaultTransactionAccount}
                 />
 
                 <DateRangeModal
@@ -1029,7 +1094,7 @@ function App() {
                     <button
                         type="button"
                         onClick={() => setIsModalOpen(true)}
-                        className={`${FreeBlueBtn} fixed bottom-18 right-4 md:bottom-4 md:right-4 px-5! py-3! text-lg! rounded-full! active:scale-90!`}
+                        className={`${FreeBlueBtn} fixed bottom-18 right-4 md:bottom-4 md:right-4`}
                     >
                         <Plus size={22} />
                         <span>Add</span>
@@ -1118,8 +1183,8 @@ function App() {
     }, [selectedMonthYear, dateRange?.start, dateRange?.end, homeTransactions.length]);
 
     useEffect(() => {
-        setSelectedExpenseCategories([]);
-        setSelectedIncomeCategory(null);
+        setSelectedExpenseCategories(keepIfAlreadyEmpty);
+        setSelectedIncomeCategories(keepIfAlreadyEmpty);
         setIsExportModalOpen(false);
     }, [selectedMonthYear, dateRange?.start, dateRange?.end]);
 
@@ -1175,7 +1240,6 @@ function App() {
                     financeData={financeData}
                     onSave={handleCreateTransaction}
                     defaultAccountId={defaultTransactionAccountId}
-                    lockAccountSelection={lockDefaultTransactionAccount}
                 />
                 {pinVerificationModal}
             </>
@@ -1313,9 +1377,10 @@ function App() {
                     </div>
 
                     <IncomeExpenseTrendChart
-                        transactions={dateRange ? filteredTransactions : validTransactions}
+                        transactions={reportTrendTransactions}
                         selectedMonthKey={selectedMonthYear}
                         onSelectMonth={handleApplyMonthSelection}
+                        onClearMonthSelection={handleClearMonthSelection}
                         isRangeLocked={Boolean(dateRange)}
                         rangeLabelOverride={dateRange ? activeReportPeriodLabel : undefined}
                     />
@@ -1324,9 +1389,11 @@ function App() {
                         transactions={filteredTransactions}
                         categories={financeData.categories}
                         selectedExpenseCategories={selectedExpenseCategories}
-                        selectedIncomeCategory={selectedIncomeCategory}
+                        selectedIncomeCategories={selectedIncomeCategories}
                         onSelectExpenseCategory={handleSelectExpenseReportCategory}
                         onSelectIncomeCategory={handleSelectIncomeReportCategory}
+                        onSelectAllExpenseCategories={handleSelectAllExpenseReportCategories}
+                        onSelectAllIncomeCategories={handleSelectAllIncomeReportCategories}
                     />
 
                     {selectedReportCategoryIds.length > 0 && (
@@ -1337,7 +1404,7 @@ function App() {
                                         {selectedReportHeading} Transactions
                                     </h2>
                                     <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400 sm:mt-1 sm:text-sm">
-                                        Showing {selectedReportTransactions.length} {selectedReportCategoryType?.toLowerCase()} transaction{selectedReportTransactions.length !== 1 ? 's' : ''} for {selectedReportCategoryName} in this report period.
+                                        Showing {selectedReportTransactions.length} transaction{selectedReportTransactions.length !== 1 ? 's' : ''} for {selectedReportCategoryName} in this report period.
                                     </p>
                                 </div>
 
