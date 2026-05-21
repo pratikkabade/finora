@@ -3,8 +3,20 @@ import { getCurrentOrPastTransactions } from '../utils/dateUtils';
 
 const STORAGE_KEY_PREFIX = 'financeAppData_';
 const LAST_SYNC_KEY_PREFIX = 'lastSync_';
+const LAST_CLOUD_BACKUP_DATE_KEY_PREFIX = 'lastCloudBackupDate_';
+const LOCAL_MODIFIED_DATE_KEY_PREFIX = 'localModifiedDate_';
+const LOCAL_SYNC_QUEUE_KEY_PREFIX = 'localSyncQueue_';
 const BALANCE_SUMMARY_KEY_PREFIX = 'balanceSummary_';
 export const NET_BALANCE_ACCOUNT_IDS_PREF_KEY = 'net_balance_account_ids';
+
+export type LocalSyncCollectionName = 'accounts' | 'categories' | 'transactions' | 'plannedPaymentRules' | 'settings';
+
+export interface LocalSyncQueue {
+  needsFullBackup: boolean;
+  updated: Record<LocalSyncCollectionName, string[]>;
+  deleted: Record<LocalSyncCollectionName, string[]>;
+  sharedPrefs: boolean;
+}
 
 export interface BalanceSummary {
   totalIncome: number;
@@ -28,11 +40,160 @@ function getLastSyncKey(userId: string): string {
   return `${LAST_SYNC_KEY_PREFIX}${userId}`;
 }
 
+function getLastCloudBackupDateKey(userId: string): string {
+  return `${LAST_CLOUD_BACKUP_DATE_KEY_PREFIX}${userId}`;
+}
+
+function getLocalModifiedDateKey(userId: string): string {
+  return `${LOCAL_MODIFIED_DATE_KEY_PREFIX}${userId}`;
+}
+
+function getLocalSyncQueueKey(userId: string): string {
+  return `${LOCAL_SYNC_QUEUE_KEY_PREFIX}${userId}`;
+}
+
 /**
  * Get the balance summary key for a user
  */
 function getBalanceSummaryKey(userId: string): string {
   return `${BALANCE_SUMMARY_KEY_PREFIX}${userId}`;
+}
+
+const localSyncCollections: LocalSyncCollectionName[] = [
+  'accounts',
+  'categories',
+  'transactions',
+  'plannedPaymentRules',
+  'settings',
+];
+
+const createEmptyLocalSyncQueue = (): LocalSyncQueue => ({
+  needsFullBackup: false,
+  updated: {
+    accounts: [],
+    categories: [],
+    transactions: [],
+    plannedPaymentRules: [],
+    settings: [],
+  },
+  deleted: {
+    accounts: [],
+    categories: [],
+    transactions: [],
+    plannedPaymentRules: [],
+    settings: [],
+  },
+  sharedPrefs: false,
+});
+
+const uniqueValues = (values: string[]) => Array.from(new Set(values.filter(Boolean)));
+
+const normalizeLocalSyncQueue = (value: unknown): LocalSyncQueue => {
+  const queue = createEmptyLocalSyncQueue();
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return queue;
+  }
+
+  const record = value as Partial<LocalSyncQueue>;
+  queue.needsFullBackup = record.needsFullBackup === true;
+  queue.sharedPrefs = record.sharedPrefs === true;
+
+  localSyncCollections.forEach((collectionName) => {
+    queue.updated[collectionName] = uniqueValues(
+      Array.isArray(record.updated?.[collectionName]) ? record.updated[collectionName] : [],
+    );
+    queue.deleted[collectionName] = uniqueValues(
+      Array.isArray(record.deleted?.[collectionName]) ? record.deleted[collectionName] : [],
+    );
+  });
+
+  return queue;
+};
+
+export function getLocalSyncQueue(userId: string): LocalSyncQueue {
+  try {
+    const rawValue = localStorage.getItem(getLocalSyncQueueKey(userId));
+    return rawValue ? normalizeLocalSyncQueue(JSON.parse(rawValue)) : createEmptyLocalSyncQueue();
+  } catch (error) {
+    console.error('Error getting local sync queue:', error);
+    return createEmptyLocalSyncQueue();
+  }
+}
+
+function saveLocalSyncQueue(userId: string, queue: LocalSyncQueue): void {
+  localStorage.setItem(getLocalSyncQueueKey(userId), JSON.stringify(queue));
+}
+
+export function clearLocalSyncQueue(userId: string): void {
+  try {
+    localStorage.removeItem(getLocalSyncQueueKey(userId));
+  } catch (error) {
+    console.error('Error clearing local sync queue:', error);
+  }
+}
+
+export function markLocalSyncNeedsFullBackup(userId: string): void {
+  try {
+    const queue = getLocalSyncQueue(userId);
+    saveLocalSyncQueue(userId, { ...queue, needsFullBackup: true });
+  } catch (error) {
+    console.error('Error marking full sync required:', error);
+  }
+}
+
+export function queueLocalSyncUpdates(
+  userId: string,
+  collectionName: LocalSyncCollectionName,
+  itemIds: string[],
+): void {
+  try {
+    const queue = getLocalSyncQueue(userId);
+    const nextUpdatedIds = new Set(queue.updated[collectionName]);
+    const nextDeletedIds = new Set(queue.deleted[collectionName]);
+
+    itemIds.filter(Boolean).forEach((itemId) => {
+      nextDeletedIds.delete(itemId);
+      nextUpdatedIds.add(itemId);
+    });
+
+    queue.updated[collectionName] = Array.from(nextUpdatedIds);
+    queue.deleted[collectionName] = Array.from(nextDeletedIds);
+    saveLocalSyncQueue(userId, queue);
+  } catch (error) {
+    console.error('Error queueing local sync update:', error);
+  }
+}
+
+export function queueLocalSyncDeletes(
+  userId: string,
+  collectionName: LocalSyncCollectionName,
+  itemIds: string[],
+): void {
+  try {
+    const queue = getLocalSyncQueue(userId);
+    const nextUpdatedIds = new Set(queue.updated[collectionName]);
+    const nextDeletedIds = new Set(queue.deleted[collectionName]);
+
+    itemIds.filter(Boolean).forEach((itemId) => {
+      nextUpdatedIds.delete(itemId);
+      nextDeletedIds.add(itemId);
+    });
+
+    queue.updated[collectionName] = Array.from(nextUpdatedIds);
+    queue.deleted[collectionName] = Array.from(nextDeletedIds);
+    saveLocalSyncQueue(userId, queue);
+  } catch (error) {
+    console.error('Error queueing local sync delete:', error);
+  }
+}
+
+export function queueLocalSyncSharedPrefs(userId: string): void {
+  try {
+    const queue = getLocalSyncQueue(userId);
+    saveLocalSyncQueue(userId, { ...queue, sharedPrefs: true });
+  } catch (error) {
+    console.error('Error queueing shared preferences sync:', error);
+  }
 }
 
 function parseNetBalanceAccountIdsPreference(rawValue?: string): string[] | null {
@@ -117,14 +278,21 @@ export function calculateBalanceSummary(data: FinanceData): BalanceSummary {
 /**
  * Save finance data to localStorage for a specific user
  */
-export function saveToLocalStorage(userId: string, data: FinanceData): BalanceSummary | null {
+export function saveToLocalStorage(
+  userId: string,
+  data: FinanceData,
+  options: { markModified?: boolean } = {},
+): BalanceSummary | null {
   try {
+    const { markModified = true } = options;
     const key = getUserStorageKey(userId);
     const balanceSummary = calculateBalanceSummary(data);
 
     localStorage.setItem(key, JSON.stringify(data));
     localStorage.setItem(getBalanceSummaryKey(userId), JSON.stringify(balanceSummary));
-    localStorage.setItem(getLastSyncKey(userId), new Date().toISOString());
+    if (markModified) {
+      localStorage.setItem(getLocalModifiedDateKey(userId), new Date().toISOString());
+    }
     return balanceSummary;
   } catch (error) {
     console.error('Error saving to localStorage:', error);
@@ -180,7 +348,7 @@ export function loadBalanceSummaryFromLocalStorage(userId: string): BalanceSumma
  */
 export function getLastSyncTime(userId: string): Date | null {
   try {
-    const key = getLastSyncKey(userId);
+    const key = getLastCloudBackupDateKey(userId);
     const timestamp = localStorage.getItem(key);
     if (timestamp) {
       return new Date(timestamp);
@@ -189,6 +357,41 @@ export function getLastSyncTime(userId: string): Date | null {
   } catch (error) {
     console.error('Error getting last sync time:', error);
     return null;
+  }
+}
+
+export function getLastCloudBackupDate(userId: string): string | null {
+  try {
+    return localStorage.getItem(getLastCloudBackupDateKey(userId));
+  } catch (error) {
+    console.error('Error getting last cloud backup date:', error);
+    return null;
+  }
+}
+
+export function setLastCloudBackupDate(userId: string, timestamp: string): void {
+  try {
+    localStorage.setItem(getLastCloudBackupDateKey(userId), timestamp);
+    localStorage.setItem(getLastSyncKey(userId), timestamp);
+  } catch (error) {
+    console.error('Error setting last cloud backup date:', error);
+  }
+}
+
+export function getLocalModifiedDate(userId: string): string | null {
+  try {
+    return localStorage.getItem(getLocalModifiedDateKey(userId));
+  } catch (error) {
+    console.error('Error getting local modified date:', error);
+    return null;
+  }
+}
+
+export function setLocalModifiedDate(userId: string, timestamp: string): void {
+  try {
+    localStorage.setItem(getLocalModifiedDateKey(userId), timestamp);
+  } catch (error) {
+    console.error('Error setting local modified date:', error);
   }
 }
 
@@ -201,6 +404,9 @@ export function clearUserData(userId: string): void {
     localStorage.removeItem(key);
     localStorage.removeItem(getBalanceSummaryKey(userId));
     localStorage.removeItem(getLastSyncKey(userId));
+    localStorage.removeItem(getLastCloudBackupDateKey(userId));
+    localStorage.removeItem(getLocalModifiedDateKey(userId));
+    localStorage.removeItem(getLocalSyncQueueKey(userId));
   } catch (error) {
     console.error('Error clearing user data:', error);
   }

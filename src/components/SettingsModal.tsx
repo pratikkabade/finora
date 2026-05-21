@@ -10,6 +10,7 @@ import { getIncludedNetBalanceAccountIds } from '../services/storageService';
 import { useAnimatedOpen } from '../hooks/useAnimatedOpen';
 import { intToHex } from '../utils/colorUtils';
 import { sortCategoriesByOrder } from '../utils/categoryUtils';
+import type { SyncStatusSnapshot } from '../App';
 
 type ActionStatus = 'idle' | 'success' | 'error';
 type ActionStatusKey = 'backup' | 'sync' | 'import' | 'sample' | 'category';
@@ -72,6 +73,7 @@ interface SettingsModalProps {
     pinUserId?: string | null;
     onBackupToFirebase?: () => Promise<void>;
     onSyncFromFirebase?: () => Promise<void>;
+    syncStatusSnapshot?: SyncStatusSnapshot;
     onGetSampleData?: () => void;
     onResetClick?: () => void;
     variant?: 'modal' | 'page';
@@ -92,6 +94,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     pinUserId,
     onBackupToFirebase,
     onSyncFromFirebase,
+    syncStatusSnapshot,
     onGetSampleData,
     onResetClick,
     variant = 'modal',
@@ -107,11 +110,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const dragBodyStylesRef = useRef<{ userSelect: string; cursor: string } | null>(null);
     const previousCategoryRowTopsRef = useRef<Record<string, number>>({});
     const { shouldRender, isVisible } = useAnimatedOpen(isOpen);
-    const [cloudSyncStatus, setCloudSyncStatus] = useState({ isSynced: true, lastSyncTime: localStorage.getItem('lastCloudBackup') ? parseInt(localStorage.getItem('lastCloudBackup') as string, 10) : 0 });
     const [isBackingUp, setIsBackingUp] = useState(false);
     const [backupStatus, setBackupStatus] = useState<ActionStatus>('idle');
     const [isSyncing, setIsSyncing] = useState(false);
-    const [syncStatus, setSyncStatus] = useState<ActionStatus>('idle');
+    const [restoreStatus, setRestoreStatus] = useState<ActionStatus>('idle');
     const [importStatus, setImportStatus] = useState<ActionStatus>('idle');
     const [sampleDataStatus, setSampleDataStatus] = useState<ActionStatus>('idle');
     const [categoryStatus, setCategoryStatus] = useState<ActionStatus>('idle');
@@ -280,17 +282,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         return `${settingBtnInteractiveClass} ${ACTION_IDLE_CLASSES} ${ACTION_BASE_CLASSES}`;
     };
 
-    const markCloudAsSynced = () => {
-        const now = Date.now();
-        setCloudSyncStatus({ isSynced: true, lastSyncTime: now });
-        localStorage.setItem('lastCloudBackup', now.toString());
-        localStorage.setItem('outOfSync', 'false');
-    };
-
-    const markCloudAsOutOfSync = () => {
-        setCloudSyncStatus({ isSynced: false, lastSyncTime: Date.now() });
-    };
-
     const handleToggleNetBalanceAccount = (accountId: string) => {
         if (!onUpdateNetBalanceAccounts) return;
 
@@ -346,7 +337,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         cancelCategoryNameEdit();
         showCategoryFeedback('success', 'Category renamed.');
-        markCloudAsOutOfSync();
     };
 
     const handleCategoryColorChange = (category: Category, hexColor: string) => {
@@ -364,7 +354,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         }
 
         showCategoryFeedback('success', 'Category color updated.');
-        markCloudAsOutOfSync();
     };
 
     const restoreDragBodyStyles = () => {
@@ -422,7 +411,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             resetCategoryDragState(true);
             showCategoryFeedback('success', 'Category order updated.');
-            markCloudAsOutOfSync();
             return;
         }
 
@@ -528,7 +516,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             return;
         }
         showCategoryFeedback('success', 'Category deleted.');
-        markCloudAsOutOfSync();
     };
 
     const handleAddCategory = (event: React.FormEvent) => {
@@ -551,7 +538,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         setNewCategoryName('');
         setNewCategoryColorHex('#3B82F6');
         showCategoryFeedback('success', 'Category added.');
-        markCloudAsOutOfSync();
     };
 
     const handleBackupToFirebase = async () => {
@@ -563,7 +549,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         try {
             await onBackupToFirebase();
             setActionStatus('backup', setBackupStatus, 'success');
-            markCloudAsSynced();
         } catch (error) {
             console.error('Backup error:', error);
             setActionStatus('backup', setBackupStatus, 'error');
@@ -595,14 +580,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         if (!window.confirm('Restore local data from Firebase backup now? This replaces current local data.')) return;
 
         setIsSyncing(true);
-        setActionStatus('sync', setSyncStatus, 'idle');
+        setActionStatus('sync', setRestoreStatus, 'idle');
         try {
             await onSyncFromFirebase();
-            setActionStatus('sync', setSyncStatus, 'success');
-            markCloudAsSynced();
+            setActionStatus('sync', setRestoreStatus, 'success');
         } catch (error) {
             console.error('Sync error:', error);
-            setActionStatus('sync', setSyncStatus, 'error');
+            setActionStatus('sync', setRestoreStatus, 'error');
             const errorMessage = getErrorMessage(error, 'An unknown error occurred during sync.');
             alert('Sync Failed:\n\n' + errorMessage);
         } finally {
@@ -676,7 +660,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         fileInputRef.current.value = '';
                     }
                     setActionStatus('import', setImportStatus, 'success');
-                    markCloudAsOutOfSync();
                 } else {
                     setActionStatus('import', setImportStatus, 'error');
                     alert('Invalid data format in the imported file.');
@@ -994,14 +977,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                     <div className="flex flex-col items-start">
                                         <span>
                                             {isBackingUp
-                                                ? 'Backing up...'
+                                                ? 'Syncing...'
                                                 : backupStatus === 'success'
-                                                    ? 'Backup successful!'
+                                                    ? 'Sync successful!'
                                                     : backupStatus === 'error'
-                                                        ? 'Backup failed'
-                                                        : 'Backup to cloud'}
+                                                        ? 'Sync failed'
+                                                        : 'Sync to cloud'}
                                         </span>
-                                        <SyncStatusIndicator isSynced={cloudSyncStatus.isSynced} lastSyncTime={cloudSyncStatus.lastSyncTime} />
+                                        {syncStatusSnapshot && <SyncStatusIndicator status={syncStatusSnapshot} />}
                                     </div>
                                 </button>
                             )}
@@ -1010,16 +993,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 <button
                                     onClick={handleSyncFromFirebase}
                                     disabled={isSyncing}
-                                    className={getActionButtonClasses(syncStatus)}
+                                    className={getActionButtonClasses(restoreStatus)}
                                 >
                                     <Cloud size={18} />
                                     <div className="flex flex-col items-start">
                                         <span>
                                             {isSyncing
                                                 ? 'Syncing...'
-                                                : syncStatus === 'success'
+                                                : restoreStatus === 'success'
                                                     ? 'Sync successful!'
-                                                    : syncStatus === 'error'
+                                                    : restoreStatus === 'error'
                                                         ? 'Sync failed'
                                                         : 'Restore from cloud'}
                                         </span>
@@ -1062,7 +1045,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 onClick={() => {
                                     if (!handleGetSampleData()) return;
                                     setActionStatus('sample', setSampleDataStatus, 'success');
-                                    markCloudAsOutOfSync();
                                 }}
                                 className={getActionButtonClasses(sampleDataStatus)}
                             >

@@ -32,17 +32,27 @@ import {
     clearUserData,
     calculateBalanceSummary,
     getIncludedNetBalanceAccountIds,
+    getLastCloudBackupDate,
+    getLocalModifiedDate,
+    getLocalSyncQueue,
+    clearLocalSyncQueue,
+    markLocalSyncNeedsFullBackup,
     NET_BALANCE_ACCOUNT_IDS_PREF_KEY,
+    queueLocalSyncDeletes,
+    queueLocalSyncSharedPrefs,
+    queueLocalSyncUpdates,
+    setLastCloudBackupDate,
+    setLocalModifiedDate,
     type BalanceSummary,
+    type LocalSyncCollectionName,
 } from './services/storageService';
 import {
     backupFinanceDataToFirebase,
-    deleteFinanceDataRecordsFromFirebase,
+    fetchFirebaseBackupMetadata,
     fetchFinanceDataFromFirebase,
     syncFinanceDataPatchToFirebase,
     type FirebaseFinanceData,
     type FinanceDataDeletes,
-    type FinanceDataPatch,
 } from './services/firebaseService';
 import financeDataJson from './data/finance-data.json';
 import './App.css';
@@ -73,10 +83,19 @@ const NORMALIZED_BACKUP_READY_KEY_PREFIX = 'normalizedCloudBackupReady_';
 
 interface AppHeaderProps {
     onLogoClick?: () => void;
+    syncStatus?: SyncDisplayState;
 }
 
 type ReportTransactionView = 'cards' | 'table';
 type ReportTransactionSort = 'date' | 'amount';
+export type SyncDisplayState = 'upToDate' | 'pending' | 'outOfSync' | 'localOnly' | 'unknown';
+
+export interface SyncStatusSnapshot {
+    state: SyncDisplayState;
+    lastBackupDate: string | null;
+    cloudBackupDate: string | null;
+    localModifiedDate: string | null;
+}
 
 const getTransactionTimestamp = (transaction: Transaction) => {
     return transaction.dateTime || transaction.dueDate || 0;
@@ -125,8 +144,26 @@ const normalizeFinanceData = (data: FinanceData): FinanceData => {
     };
 };
 
-export const AppHeader = ({ onLogoClick }: AppHeaderProps) => {
+const getDateTime = (dateValue: string | null) => {
+    if (!dateValue) return 0;
+    const timestamp = new Date(dateValue).getTime();
+    return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+const getItemsByIds = <T extends { id: string }>(items: T[], itemIds: string[]) => {
+    const wantedIds = new Set(itemIds);
+    return items.filter((item) => wantedIds.has(item.id));
+};
+
+export const AppHeader = ({ onLogoClick, syncStatus }: AppHeaderProps) => {
     const logo = <img src="/finora-icon.svg" alt="Finora Logo" className="mx-auto h-24 w-24 sm:mx-0" />;
+    const syncConfig = syncStatus === 'upToDate'
+        ? { dot: 'bg-green-500', text: 'uptodate', textClass: 'text-green-700 dark:text-green-400' }
+        : syncStatus === 'pending'
+            ? { dot: 'bg-yellow-400', text: 'sync pending', textClass: 'text-yellow-700 dark:text-yellow-400' }
+            : syncStatus === 'outOfSync'
+                ? { dot: 'bg-red-500', text: 'out of sync', textClass: 'text-red-700 dark:text-red-400' }
+                : null;
 
     return (
         <div className="app-section mb-6 flex flex-row items-center gap-4 pt-5 sm:mb-8">
@@ -144,6 +181,12 @@ export const AppHeader = ({ onLogoClick }: AppHeaderProps) => {
             <div className="text-left">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50 sm:text-4xl md:text-5xl">Finora</h1>
                 <p className="mt-1 text-xs text-gray-600 dark:text-gray-400 sm:mt-2 sm:text-sm md:text-base">Clear financial insights for better decisions</p>
+                {syncConfig && (
+                    <div className={`mt-1 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.18em] ${syncConfig.textClass}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${syncConfig.dot}`} />
+                        <span>{syncConfig.text}</span>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -180,13 +223,9 @@ function App() {
     const cloudUserId = user?.uid ?? null;
     const [isPINVerified, setIsPINVerified] = useState(false);
     const [showPINModal, setShowPINModal] = useState(false);
-    const pendingCloudSyncCountRef = useRef(0);
-    const hasCloudSyncFailureRef = useRef(false);
-
-    const isNormalizedCloudBackupReady = useCallback(() => {
-        if (!cloudUserId) return false;
-        return localStorage.getItem(getNormalizedBackupReadyKey(cloudUserId)) === 'true';
-    }, [cloudUserId]);
+    const [cloudLastBackupDate, setCloudLastBackupDate] = useState<string | null>(null);
+    const [syncMetadataVersion, setSyncMetadataVersion] = useState(0);
+    const shouldMarkNextLocalSaveModifiedRef = useRef(false);
 
     const markNormalizedCloudBackupReady = useCallback((isReady: boolean) => {
         if (!cloudUserId) return;
@@ -200,48 +239,56 @@ function App() {
         localStorage.removeItem(key);
     }, [cloudUserId]);
 
-    const runBackgroundCloudSync = useCallback((operation: (userId: string) => Promise<void>) => {
-        if (!cloudUserId || !isNormalizedCloudBackupReady()) {
+    const markNextLocalSaveAsModified = useCallback(() => {
+        shouldMarkNextLocalSaveModifiedRef.current = true;
+        setSyncMetadataVersion((version) => version + 1);
+    }, []);
+
+    const queueChangedItems = useCallback((collectionName: LocalSyncCollectionName, itemIds: string[]) => {
+        if (!storageUserId) return;
+        queueLocalSyncUpdates(storageUserId, collectionName, itemIds);
+    }, [storageUserId]);
+
+    const queueDeletedItems = useCallback((collectionName: LocalSyncCollectionName, itemIds: string[]) => {
+        if (!storageUserId) return;
+        queueLocalSyncDeletes(storageUserId, collectionName, itemIds);
+    }, [storageUserId]);
+
+    const queueFullBackup = useCallback(() => {
+        if (!storageUserId) return;
+        markLocalSyncNeedsFullBackup(storageUserId);
+    }, [storageUserId]);
+
+    const queueSharedPrefsChange = useCallback(() => {
+        if (!storageUserId) return;
+        queueLocalSyncSharedPrefs(storageUserId);
+    }, [storageUserId]);
+
+    const markNextLocalSaveAsUnmodified = useCallback(() => {
+        shouldMarkNextLocalSaveModifiedRef.current = false;
+    }, []);
+
+    const refreshCloudBackupMetadata = useCallback(async () => {
+        if (!cloudUserId) {
+            setCloudLastBackupDate(null);
             return;
         }
 
-        if (pendingCloudSyncCountRef.current === 0) {
-            hasCloudSyncFailureRef.current = false;
+        const metadata = await fetchFirebaseBackupMetadata(cloudUserId);
+        setCloudLastBackupDate(metadata?.lastBackupDate ?? null);
+        markNormalizedCloudBackupReady(metadata?.backupFormat === 'normalized' || metadata?.schemaVersion === 2);
+    }, [cloudUserId, markNormalizedCloudBackupReady]);
+
+    useEffect(() => {
+        if (!cloudUserId || authLoading) {
+            setCloudLastBackupDate(null);
+            return;
         }
 
-        pendingCloudSyncCountRef.current += 1;
-
-        void operation(cloudUserId)
-            .catch((error) => {
-                hasCloudSyncFailureRef.current = true;
-                localStorage.setItem('outOfSync', 'true');
-                console.warn('Background Firebase sync failed:', error);
-            })
-            .finally(() => {
-                pendingCloudSyncCountRef.current = Math.max(0, pendingCloudSyncCountRef.current - 1);
-
-                if (pendingCloudSyncCountRef.current === 0 && !hasCloudSyncFailureRef.current) {
-                    const now = Date.now();
-                    localStorage.setItem('lastCloudBackup', now.toString());
-                    localStorage.setItem('outOfSync', 'false');
-                }
-            });
-    }, [cloudUserId, isNormalizedCloudBackupReady]);
-
-    const syncCloudChangeInBackground = useCallback((
-        patch?: FinanceDataPatch,
-        deletes?: FinanceDataDeletes,
-    ) => {
-        runBackgroundCloudSync(async (userId) => {
-            if (patch) {
-                await syncFinanceDataPatchToFirebase(userId, patch);
-            }
-
-            if (deletes) {
-                await deleteFinanceDataRecordsFromFirebase(userId, deletes);
-            }
+        void refreshCloudBackupMetadata().catch((error) => {
+            console.warn('Could not refresh Firebase backup metadata:', error);
         });
-    }, [runBackgroundCloudSync]);
+    }, [cloudUserId, authLoading, refreshCloudBackupMetadata]);
 
     useEffect(() => {
         setIsPINVerified(false);
@@ -279,6 +326,7 @@ function App() {
 
                 const localData = loadFromLocalStorage(storageUserId);
                 if (localData) {
+                    markNextLocalSaveAsUnmodified();
                     setFinanceData(normalizeFinanceData(localData));
                     setBalanceSummary(loadBalanceSummaryFromLocalStorage(storageUserId));
                     setShowDataSourceModal(false);
@@ -297,8 +345,11 @@ function App() {
 
     useEffect(() => {
         if (financeData && storageUserId) {
-            const summary = saveToLocalStorage(storageUserId, financeData);
+            const markModified = shouldMarkNextLocalSaveModifiedRef.current;
+            shouldMarkNextLocalSaveModifiedRef.current = false;
+            const summary = saveToLocalStorage(storageUserId, financeData, { markModified });
             setBalanceSummary(summary);
+            setSyncMetadataVersion((version) => version + 1);
             return;
         }
 
@@ -306,13 +357,80 @@ function App() {
     }, [financeData, storageUserId]);
 
     const handleBackupToFirebase = async () => {
-        if (!user || !financeData) {
+        if (!user || !financeData || !storageUserId) {
             throw new Error('User not authenticated or no data to backup');
         }
 
-        await backupFinanceDataToFirebase(user.uid, financeData);
+        const syncQueue = getLocalSyncQueue(storageUserId);
+        const queuedUpdates = syncQueue.updated;
+        const queuedDeletes = syncQueue.deleted;
+        const hasQueuedUpdates = Object.values(queuedUpdates).some((itemIds) => itemIds.length > 0);
+        const hasQueuedDeletes = Object.values(queuedDeletes).some((itemIds) => itemIds.length > 0);
+        const shouldUseFullBackup = syncQueue.needsFullBackup
+            || syncStatusSnapshot.state === 'outOfSync'
+            || !syncStatusSnapshot.lastBackupDate
+            || (!hasQueuedUpdates && !hasQueuedDeletes && !syncQueue.sharedPrefs);
+
+        const backupDate = shouldUseFullBackup
+            ? await backupFinanceDataToFirebase(user.uid, financeData)
+            : await syncFinanceDataPatchToFirebase(
+                user.uid,
+                {
+                    accounts: getItemsByIds(financeData.accounts, queuedUpdates.accounts),
+                    categories: getItemsByIds(financeData.categories, queuedUpdates.categories),
+                    transactions: getItemsByIds(financeData.transactions, queuedUpdates.transactions),
+                    plannedPaymentRules: getItemsByIds(financeData.plannedPaymentRules, queuedUpdates.plannedPaymentRules),
+                    settings: getItemsByIds(financeData.settings, queuedUpdates.settings),
+                    ...(syncQueue.sharedPrefs ? { sharedPrefs: financeData.sharedPrefs } : {}),
+                },
+                {
+                    deletes: queuedDeletes as FinanceDataDeletes,
+                    snapshotData: financeData,
+                },
+            );
+
+        setLastCloudBackupDate(storageUserId, backupDate);
+        setLocalModifiedDate(storageUserId, backupDate);
+        clearLocalSyncQueue(storageUserId);
+        setCloudLastBackupDate(backupDate);
+        setSyncMetadataVersion((version) => version + 1);
         markNormalizedCloudBackupReady(true);
     };
+
+    const syncStatusSnapshot = useMemo<SyncStatusSnapshot>(() => {
+        if (!storageUserId || !cloudUserId) {
+            return {
+                state: 'localOnly',
+                lastBackupDate: null,
+                cloudBackupDate: null,
+                localModifiedDate: null,
+            };
+        }
+
+        const lastBackupDate = getLastCloudBackupDate(storageUserId);
+        const localModifiedDate = getLocalModifiedDate(storageUserId);
+        const localBackupTime = getDateTime(lastBackupDate);
+        const localModifiedTime = getDateTime(localModifiedDate);
+        const cloudBackupTime = getDateTime(cloudLastBackupDate);
+
+        if (cloudBackupTime > localBackupTime) {
+            return { state: 'outOfSync', lastBackupDate, cloudBackupDate: cloudLastBackupDate, localModifiedDate };
+        }
+
+        if (localModifiedTime > localBackupTime) {
+            return { state: 'pending', lastBackupDate, cloudBackupDate: cloudLastBackupDate, localModifiedDate };
+        }
+
+        if (cloudBackupTime > 0 && localBackupTime > 0 && cloudBackupTime === localBackupTime) {
+            return { state: 'upToDate', lastBackupDate, cloudBackupDate: cloudLastBackupDate, localModifiedDate };
+        }
+
+        if (localBackupTime > 0 && !cloudLastBackupDate) {
+            return { state: 'unknown', lastBackupDate, cloudBackupDate: cloudLastBackupDate, localModifiedDate };
+        }
+
+        return { state: localModifiedDate ? 'pending' : 'localOnly', lastBackupDate, cloudBackupDate: cloudLastBackupDate, localModifiedDate };
+    }, [cloudLastBackupDate, cloudUserId, storageUserId, syncMetadataVersion]);
 
     const netBalanceAccountIds = useMemo(() => {
         if (!financeData) return [];
@@ -395,8 +513,8 @@ function App() {
     const handleCreateTransaction = (transaction: Transaction) => {
         if (!financeData) return;
 
-        localStorage.setItem('outOfSync', 'true');
-        syncCloudChangeInBackground({ transactions: [transaction] });
+        markNextLocalSaveAsModified();
+        queueChangedItems('transactions', [transaction.id]);
 
         if (editingTransaction) {
             setFinanceData({
@@ -421,8 +539,8 @@ function App() {
             nextDueDate: plannedPaymentRule.nextDueDate ?? plannedPaymentRule.startDate,
         };
 
-        localStorage.setItem('outOfSync', 'true');
-        syncCloudChangeInBackground({ plannedPaymentRules: [nextRule] });
+        markNextLocalSaveAsModified();
+        queueChangedItems('plannedPaymentRules', [nextRule.id]);
 
         if (editingPlannedPayment) {
             setFinanceData({
@@ -445,8 +563,8 @@ function App() {
     const handleDeletePlannedPayment = (plannedPaymentRuleId: string) => {
         if (!financeData) return;
 
-        localStorage.setItem('outOfSync', 'true');
-        syncCloudChangeInBackground(undefined, { plannedPaymentRules: [plannedPaymentRuleId] });
+        markNextLocalSaveAsModified();
+        queueDeletedItems('plannedPaymentRules', [plannedPaymentRuleId]);
         setFinanceData({
             ...financeData,
             plannedPaymentRules: financeData.plannedPaymentRules.filter((rule) => rule.id !== plannedPaymentRuleId),
@@ -471,13 +589,13 @@ function App() {
         };
         const advancedRule = advancePlannedPaymentRule(plannedPaymentRule, occurrenceDate);
 
-        localStorage.setItem('outOfSync', 'true');
-        syncCloudChangeInBackground(
-            advancedRule
-                ? { transactions: [transaction], plannedPaymentRules: [advancedRule] }
-                : { transactions: [transaction] },
-            advancedRule ? undefined : { plannedPaymentRules: [plannedPaymentRule.id] },
-        );
+        markNextLocalSaveAsModified();
+        queueChangedItems('transactions', [transaction.id]);
+        if (advancedRule) {
+            queueChangedItems('plannedPaymentRules', [advancedRule.id]);
+        } else {
+            queueDeletedItems('plannedPaymentRules', [plannedPaymentRule.id]);
+        }
         setFinanceData({
             ...financeData,
             transactions: [...financeData.transactions, transaction],
@@ -495,11 +613,12 @@ function App() {
         const occurrenceDate = getNextPlannedPaymentDate(plannedPaymentRule);
         const advancedRule = advancePlannedPaymentRule(plannedPaymentRule, occurrenceDate);
 
-        localStorage.setItem('outOfSync', 'true');
-        syncCloudChangeInBackground(
-            advancedRule ? { plannedPaymentRules: [advancedRule] } : undefined,
-            advancedRule ? undefined : { plannedPaymentRules: [plannedPaymentRule.id] },
-        );
+        markNextLocalSaveAsModified();
+        if (advancedRule) {
+            queueChangedItems('plannedPaymentRules', [advancedRule.id]);
+        } else {
+            queueDeletedItems('plannedPaymentRules', [plannedPaymentRule.id]);
+        }
         setFinanceData({
             ...financeData,
             plannedPaymentRules: advancedRule
@@ -513,8 +632,8 @@ function App() {
     const handleDeleteTransaction = (transactionId: string) => {
         if (!financeData) return;
 
-        localStorage.setItem('outOfSync', 'true');
-        syncCloudChangeInBackground(undefined, { transactions: [transactionId] });
+        markNextLocalSaveAsModified();
+        queueDeletedItems('transactions', [transactionId]);
         setFinanceData({
             ...financeData,
             transactions: financeData.transactions.filter(transaction => transaction.id !== transactionId),
@@ -526,7 +645,8 @@ function App() {
 
         clearUserData(storageUserId);
         markNormalizedCloudBackupReady(false);
-        localStorage.setItem('outOfSync', 'true');
+        setCloudLastBackupDate(null);
+        setSyncMetadataVersion((version) => version + 1);
         setFinanceData(null);
         setSelectedMonthYear('');
         setDateRange(null);
@@ -541,7 +661,8 @@ function App() {
 
     const handleImportData = (importedData: FinanceData) => {
         markNormalizedCloudBackupReady(false);
-        localStorage.setItem('outOfSync', 'true');
+        markNextLocalSaveAsModified();
+        queueFullBackup();
         setFinanceData(normalizeFinanceData(importedData));
         setSelectedMonthYear('');
         setDateRange(null);
@@ -564,8 +685,8 @@ function App() {
             ...financeData,
             sharedPrefs: nextSharedPrefs,
         });
-        localStorage.setItem('outOfSync', 'true');
-        syncCloudChangeInBackground({ sharedPrefs: nextSharedPrefs });
+        markNextLocalSaveAsModified();
+        queueSharedPrefsChange();
     };
 
     const handleAddCategory = (categoryName: string, color: number): boolean => {
@@ -603,8 +724,8 @@ function App() {
             ...financeData,
             categories: [...financeData.categories, newCategory],
         });
-        localStorage.setItem('outOfSync', 'true');
-        syncCloudChangeInBackground({ categories: [newCategory] });
+        markNextLocalSaveAsModified();
+        queueChangedItems('categories', [newCategory.id]);
         return true;
     };
 
@@ -647,8 +768,8 @@ function App() {
                 ? nextCategory
                 : category),
         });
-        localStorage.setItem('outOfSync', 'true');
-        syncCloudChangeInBackground({ categories: [nextCategory] });
+        markNextLocalSaveAsModified();
+        queueChangedItems('categories', [nextCategory.id]);
         return true;
     };
 
@@ -676,8 +797,8 @@ function App() {
                 ? nextCategory
                 : category),
         });
-        localStorage.setItem('outOfSync', 'true');
-        syncCloudChangeInBackground({ categories: [nextCategory] });
+        markNextLocalSaveAsModified();
+        queueChangedItems('categories', [nextCategory.id]);
         return true;
     };
 
@@ -714,8 +835,8 @@ function App() {
             ...financeData,
             categories: nextCategories,
         });
-        localStorage.setItem('outOfSync', 'true');
-        syncCloudChangeInBackground({ categories: nextCategories });
+        markNextLocalSaveAsModified();
+        queueChangedItems('categories', nextCategories.map((category) => category.id));
         return true;
     };
 
@@ -731,19 +852,28 @@ function App() {
             ...financeData,
             categories: financeData.categories.filter((category) => category.id !== categoryId),
         });
-        localStorage.setItem('outOfSync', 'true');
-        syncCloudChangeInBackground(undefined, { categories: [categoryId] });
+        markNextLocalSaveAsModified();
+        queueDeletedItems('categories', [categoryId]);
         return true;
     };
 
-    const applyFirebaseData = (firebaseData: FinanceData) => {
+    const applyFirebaseData = (firebaseData: FinanceData, lastBackupDate?: string | null) => {
+        markNextLocalSaveAsUnmodified();
+        if (storageUserId) {
+            const restoredBackupDate = lastBackupDate ?? new Date().toISOString();
+            setLastCloudBackupDate(storageUserId, restoredBackupDate);
+            setLocalModifiedDate(storageUserId, restoredBackupDate);
+            clearLocalSyncQueue(storageUserId);
+            setCloudLastBackupDate(restoredBackupDate);
+            setSyncMetadataVersion((version) => version + 1);
+        }
         setFinanceData(normalizeFinanceData(firebaseData));
         setShowDataSourceModal(false);
     };
 
     const applyFetchedFirebaseData = (firebaseData: FirebaseFinanceData) => {
         markNormalizedCloudBackupReady(firebaseData.__source === 'normalized');
-        applyFirebaseData(firebaseData);
+        applyFirebaseData(firebaseData, firebaseData.lastBackupDate);
     };
 
     const handleFetchFromFirebase = async () => {
@@ -781,7 +911,8 @@ function App() {
     const handleGetSampleData = () => {
         const sampleData = normalizeFinanceData(financeDataJson as FinanceData);
         markNormalizedCloudBackupReady(false);
-        localStorage.setItem('outOfSync', 'true');
+        markNextLocalSaveAsModified();
+        queueFullBackup();
         setFinanceData(sampleData);
         setShowDataSourceModal(false);
     };
@@ -1325,6 +1456,7 @@ function App() {
                     pinUserId={storageUserId}
                     onBackupToFirebase={user ? handleBackupToFirebase : undefined}
                     onSyncFromFirebase={user ? handleSyncFromFirebase : undefined}
+                    syncStatusSnapshot={syncStatusSnapshot}
                     onGetSampleData={handleGetSampleData}
                 />
             </AppShell>
@@ -1541,7 +1673,7 @@ function App() {
             <div className="relative">
                 <div className={`transition-opacity duration-500 ease-out ${isContentVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
                     <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-                        <AppHeader onLogoClick={handleHomeLogoRefresh} />
+                        <AppHeader onLogoClick={handleHomeLogoRefresh} syncStatus={syncStatusSnapshot.state} />
 
                         <div className={`${amountCard} w-full sm:max-w-xs`}>
                             <p className="mb-1 text-xs font-medium text-gray-700 dark:text-gray-300 sm:mb-2 sm:text-sm">Net Balance</p>

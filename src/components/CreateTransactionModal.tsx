@@ -284,7 +284,6 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                 title: formData.title.trim(),
             };
 
-            localStorage.setItem('outOfSync', 'true');
             (onSave as (plannedPaymentRule: PlannedPaymentRule) => void)(plannedPaymentRule);
             onClose();
             return;
@@ -301,7 +300,6 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
             isSynced: false,
         };
 
-        localStorage.setItem('outOfSync', 'true');
         (onSave as (transaction: Transaction) => void)(transaction);
         onClose();
     };
