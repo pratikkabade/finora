@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { CloudOff, Check, Clock, X } from 'lucide-react';
 import { updateTime } from '../utils/dateUtils';
 import { settingBtnDetailTextClass } from '../constants/TailwindClasses';
 import type { SyncStatusSnapshot } from '../App';
@@ -25,21 +24,13 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
     }, [lastSyncTime]);
 
     return (
-        <div
-            // className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors w-40 slide-up2 ${isSynced && !needSync && displayTime
-            //     ? 'bg-green-50/50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border border-green-200/50 dark:border-green-800/50'
-            //     : 'bg-yellow-50/50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-300 border border-yellow-200/50 dark:border-yellow-800/50'
-            //     }`}
-            className={settingBtnDetailTextClass}
-        >
+        <div className={settingBtnDetailTextClass}>
             {status.state === 'outOfSync' ? (
-                <div className='flex flex-row gap-2 text-red-700 dark:text-red-400'>
-                    <X size={14} />
-                    <span>Out of sync</span>
+                <div className='flex flex-row gap-1 text-red-700 dark:text-red-400'>
+                    <span>Out of sync, Please restore from cloud</span>
                 </div>
             ) : status.state === 'upToDate' ? (
-                <div className={`flex flex-row gap-2 ${!needSync ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
-                    <Check size={14} />
+                <div className={`flex flex-row gap-1 ${!needSync ? 'text-green-700 dark:text-green-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
                     <div className='flex flex-row gap-1'>
                         <span>Synced</span>
                         <span className='text-xs'>
@@ -48,18 +39,15 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
                     </div>
                 </div>
             ) : status.state === 'pending' ? (
-                <div className='flex flex-row gap-2 text-yellow-700 dark:text-yellow-400'>
-                    <Clock size={14} />
+                <div className='flex flex-row gap-1 text-yellow-700 dark:text-yellow-400'>
                     <span>Sync pending</span>
                 </div>
             ) : status.state === 'unknown' ? (
-                <div className='flex flex-row gap-2 text-yellow-700 dark:text-yellow-400'>
-                    <CloudOff size={14} />
+                <div className='flex flex-row gap-1 text-yellow-700 dark:text-yellow-400'>
                     <span>Cloud status unknown</span>
                 </div>
             ) : (
-                <div className='flex flex-row gap-2 text-yellow-700 dark:text-yellow-400'>
-                    <CloudOff size={14} />
+                <div className='flex flex-row gap-1 text-yellow-700 dark:text-yellow-400'>
                     <span>Local only</span>
                 </div>
             )}

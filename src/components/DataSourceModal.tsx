@@ -53,7 +53,7 @@ export const DataSourceModal: React.FC<DataSourceModalProps> = ({
                             <button
                                 onClick={handleFetchFirebase}
                                 disabled={isLoadingFirebase}
-                                className="group w-full rounded-[1.6rem] border border-sky-200/70 bg-linear-to-r from-sky-500 via-blue-600 to-cyan-500 px-5 py-4 text-left text-white shadow-[0_24px_60px_-26px_rgba(37,99,235,0.72)] transition-[box-shadow,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:brightness-105 hover:shadow-[0_28px_68px_-26px_rgba(37,99,235,0.82)] disabled:cursor-not-allowed disabled:opacity-50"
+                                className="group w-full rounded-[1.6rem] border border-sky-200/70 bg-linear-to-r from-sky-500 via-blue-600 to-cyan-500 px-5 py-4 text-left text-white shadow-[0_24px_60px_-26px_rgba(37,99,235,0.72)] transition-[box-shadow,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:brightness-105 hover:shadow-[0_28px_68px_-26px_rgba(37,99,235,0.82)] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
                             >
                                 <div className="flex items-start justify-between gap-4">
                                     <div>

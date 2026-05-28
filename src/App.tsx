@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, CalendarDays, Calendar1, ArrowUpDown, LayoutGrid, Table, Download } from 'lucide-react';
-import type { Category, FinanceData, PlannedPaymentRule, Transaction } from './types/finance.types';
+import { Plus, CalendarDays, Calendar1, ArrowUpDown, LayoutGrid, Table, Download, Search } from 'lucide-react';
+import type { Account, Category, FinanceData, PlannedPaymentRule, Transaction } from './types/finance.types';
 import { CreateTransactionModal } from './components/CreateTransactionModal';
 import { AddTransactionPage } from './pages/AddTransactionPage';
 import { PlannedPaymentsPage } from './pages/PlannedPaymentsPage';
@@ -102,6 +102,43 @@ const getTransactionTimestamp = (transaction: Transaction) => {
 };
 
 const keepIfAlreadyEmpty = (values: string[]) => values.length === 0 ? values : [];
+
+const normalizeSearchValue = (value: unknown) => String(value ?? '').toLocaleLowerCase().trim();
+
+const getTransactionSearchDateValues = (timestamp: number) => {
+    if (!timestamp) return [];
+
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return [];
+
+    return [
+        date.toLocaleDateString('en-US'),
+        date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        date.toISOString().slice(0, 10),
+    ];
+};
+
+const transactionMatchesSearch = (
+    transaction: Transaction,
+    account: Account | undefined,
+    category: Category | undefined,
+    normalizedQuery: string,
+) => {
+    const timestamp = getTransactionTimestamp(transaction);
+    const searchValues = [
+        transaction.title,
+        transaction.description,
+        transaction.type,
+        transaction.amount,
+        transaction.toAmount,
+        account?.name,
+        category?.name,
+        ...getTransactionSearchDateValues(timestamp),
+    ];
+
+    return searchValues.some((value) => normalizeSearchValue(value).includes(normalizedQuery));
+};
 
 const formatReportDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString('en-US', {
@@ -211,6 +248,8 @@ function App() {
     const [selectedExpenseCategories, setSelectedExpenseCategories] = useState<string[]>([]);
     const [selectedIncomeCategories, setSelectedIncomeCategories] = useState<string[]>([]);
     const [homeVisibleCount, setHomeVisibleCount] = useState(20);
+    const [transactionSearchQuery, setTransactionSearchQuery] = useState('');
+    const [searchWithinSelectedRange, setSearchWithinSelectedRange] = useState(false);
     const [balanceSummary, setBalanceSummary] = useState<BalanceSummary | null>(null);
     const [isContentVisible, setIsContentVisible] = useState(false);
     const [showSkeletonOverlay, setShowSkeletonOverlay] = useState(true);
@@ -445,6 +484,14 @@ function App() {
             .filter((transaction) => visibleAccountIds.has(transaction.accountId));
     }, [financeData, visibleAccountIds]);
 
+    const accountById = useMemo(() => {
+        return new Map((financeData?.accounts ?? []).map((account) => [account.id, account]));
+    }, [financeData?.accounts]);
+
+    const categoryById = useMemo(() => {
+        return new Map((financeData?.categories ?? []).map((category) => [category.id, category]));
+    }, [financeData?.categories]);
+
     const monthYearOptions = useMemo(() => {
         return generateMonthYearOptions(validTransactions);
     }, [validTransactions]);
@@ -509,6 +556,74 @@ function App() {
             return getTransactionTimestamp(transactionB) - getTransactionTimestamp(transactionA);
         });
     }, [filteredTransactions, validTransactions, dateRange, selectedMonthYear]);
+
+    const activeSearchMonthYear = useMemo(() => {
+        if (selectedMonthYear && monthYearOptions.some((option) => option.value === selectedMonthYear)) {
+            return selectedMonthYear;
+        }
+
+        return '';
+    }, [selectedMonthYear, monthYearOptions]);
+
+    const hasSelectedTransactionSearchRange = Boolean(dateRange || activeSearchMonthYear);
+
+    const selectedTransactionSearchRangeLabel = useMemo(() => {
+        if (dateRange) {
+            return `${formatReportDate(dateRange.start)} - ${formatReportDate(dateRange.end)}`;
+        }
+
+        if (activeSearchMonthYear) {
+            return monthYearOptions.find((option) => option.value === activeSearchMonthYear)?.label || 'Selected range';
+        }
+
+        return 'No range selected';
+    }, [dateRange, activeSearchMonthYear, monthYearOptions]);
+
+    const selectedRangeSearchTransactions = useMemo(() => {
+        if (!financeData || !hasSelectedTransactionSearchRange) return [];
+
+        if (dateRange) {
+            return financeData.transactions.filter((transaction) => {
+                const txDate = getTransactionTimestamp(transaction);
+                return txDate >= dateRange.start && txDate <= dateRange.end;
+            });
+        }
+
+        const [year, month] = activeSearchMonthYear.split('-').map(Number);
+        return filterTransactionsByMonth(financeData.transactions, month, year);
+    }, [financeData, hasSelectedTransactionSearchRange, dateRange, activeSearchMonthYear]);
+
+    const normalizedTransactionSearchQuery = normalizeSearchValue(transactionSearchQuery);
+    const hasActiveTransactionSearch = normalizedTransactionSearchQuery.length > 0;
+
+    const transactionSearchSourceTransactions = useMemo(() => {
+        if (!financeData) return [];
+
+        const sourceTransactions = searchWithinSelectedRange && hasSelectedTransactionSearchRange
+            ? selectedRangeSearchTransactions
+            : financeData.transactions;
+
+        return [...sourceTransactions].sort((transactionA, transactionB) => {
+            return getTransactionTimestamp(transactionB) - getTransactionTimestamp(transactionA);
+        });
+    }, [financeData, searchWithinSelectedRange, hasSelectedTransactionSearchRange, selectedRangeSearchTransactions]);
+
+    const transactionSearchResults = useMemo(() => {
+        if (!hasActiveTransactionSearch) return [];
+
+        return transactionSearchSourceTransactions.filter((transaction) => {
+            return transactionMatchesSearch(
+                transaction,
+                accountById.get(transaction.accountId),
+                categoryById.get(transaction.categoryId || ''),
+                normalizedTransactionSearchQuery,
+            );
+        });
+    }, [transactionSearchSourceTransactions, accountById, categoryById, hasActiveTransactionSearch, normalizedTransactionSearchQuery]);
+
+    const transactionSearchScopeLabel = searchWithinSelectedRange && hasSelectedTransactionSearchRange
+        ? selectedTransactionSearchRangeLabel
+        : 'Entire database';
 
     const handleCreateTransaction = (transaction: Transaction) => {
         if (!financeData) return;
@@ -1363,6 +1478,12 @@ function App() {
     }, [selectedMonthYear, dateRange?.start, dateRange?.end, homeTransactions.length]);
 
     useEffect(() => {
+        if (!hasSelectedTransactionSearchRange) {
+            setSearchWithinSelectedRange(false);
+        }
+    }, [hasSelectedTransactionSearchRange]);
+
+    useEffect(() => {
         setSelectedExpenseCategories(keepIfAlreadyEmpty);
         setSelectedIncomeCategories(keepIfAlreadyEmpty);
         setIsExportModalOpen(false);
@@ -1706,6 +1827,58 @@ function App() {
                                 >
                                     Load All
                                 </button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="app-section mt-6">
+                        <div className="mb-4 flex flex-col gap-2 xs:flex-row xs:items-center xs:justify-between xs:gap-4">
+                            <div className="min-w-0">
+                                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl">
+                                    Search Transactions
+                                </h2>
+                                <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400 sm:mt-1 sm:text-sm">
+                                    {hasActiveTransactionSearch
+                                        ? `${transactionSearchResults.length} result${transactionSearchResults.length !== 1 ? 's' : ''} | ${transactionSearchScopeLabel}`
+                                        : transactionSearchScopeLabel}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="app-border-soft flex flex-col gap-3 rounded-[1.75rem] bg-white/78 p-3 shadow-[0_18px_48px_-30px_rgba(15,23,42,0.34)] backdrop-blur-2xl dark:bg-slate-900/58 sm:flex-row sm:items-center">
+                            <label htmlFor="transaction-search-input" className="relative flex min-w-0 flex-1 items-center">
+                                <Search size={18} className="pointer-events-none absolute left-3.5 text-slate-400 dark:text-slate-500" />
+                                <input
+                                    id="transaction-search-input"
+                                    type="search"
+                                    value={transactionSearchQuery}
+                                    onChange={(event) => setTransactionSearchQuery(event.target.value)}
+                                    placeholder="Search transactions"
+                                    autoComplete="off"
+                                    className="h-12 w-full rounded-2xl border border-slate-200/80 bg-white/88 pl-11 pr-4 text-sm font-medium text-slate-900 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.34)] outline-none transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.16)] dark:border-slate-700/70 dark:bg-slate-950/45 dark:text-slate-50 dark:placeholder:text-slate-500 dark:focus:border-blue-500/70"
+                                />
+                            </label>
+
+                            <label
+                                htmlFor="transaction-search-range-toggle"
+                                className={`app-border-soft flex h-12 shrink-0 cursor-pointer items-center gap-2 rounded-2xl bg-slate-50/82 px-3 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.34)] transition-colors duration-200 dark:bg-slate-950/35 dark:text-slate-200 ${hasSelectedTransactionSearchRange ? 'hover:bg-sky-50 dark:hover:bg-sky-500/10' : 'cursor-not-allowed opacity-55'}`}
+                                title={hasSelectedTransactionSearchRange ? selectedTransactionSearchRangeLabel : 'No range selected'}
+                            >
+                                <input
+                                    id="transaction-search-range-toggle"
+                                    type="checkbox"
+                                    checked={searchWithinSelectedRange && hasSelectedTransactionSearchRange}
+                                    disabled={!hasSelectedTransactionSearchRange}
+                                    onChange={(event) => setSearchWithinSelectedRange(event.target.checked)}
+                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 accent-blue-600 disabled:cursor-not-allowed"
+                                />
+                                <span className="whitespace-nowrap">Selected range</span>
+                            </label>
+                        </div>
+
+                        {hasActiveTransactionSearch && (
+                            <div className="mt-4">
+                                {renderTransactionGrid(transactionSearchResults)}
                             </div>
                         )}
                     </div>

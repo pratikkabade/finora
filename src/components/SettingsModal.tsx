@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { X, RotateCcw, Download, Upload, Cloud, LogOut, Zap, Landmark, Plus, GripVertical } from 'lucide-react';
+import { X, RotateCcw, Download, Upload, Cloud, LogOut, Zap, Landmark, Plus, GripVertical, Check, Clock, CloudOff } from 'lucide-react';
 import type { Category, FinanceData } from '../types/finance.types';
 import { useAuth } from '../context/AuthContext';
 // import { useDarkMode } from '../context/DarkModeContext';
@@ -970,10 +970,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             {user && (
                                 <button
                                     onClick={handleBackupToFirebase}
-                                    disabled={isBackingUp}
+                                    disabled={isBackingUp || syncStatusSnapshot && syncStatusSnapshot.state === 'outOfSync'}
                                     className={getActionButtonClasses(backupStatus)}
                                 >
-                                    <Cloud size={18} />
+                                    {/* <Cloud size={18} /> */}
+                                    {syncStatusSnapshot ? (syncStatusSnapshot.state === 'outOfSync' ? (
+                                        <div className='flex flex-row gap-1 text-red-700 dark:text-red-400'>
+                                            <X size={18} />
+                                        </div>
+                                    ) : syncStatusSnapshot.state === 'upToDate' ? (
+                                        <div className={`flex flex-row gap-1 text-green-700 dark:text-green-400`}>
+                                            <Check size={18} />
+                                        </div>
+                                    ) : syncStatusSnapshot.state === 'pending' ? (
+                                        <div className='flex flex-row gap-1 text-yellow-700 dark:text-yellow-400'>
+                                            <Clock size={18} />
+                                        </div>
+                                    ) : syncStatusSnapshot.state === 'unknown' ? (
+                                        <div className='flex flex-row gap-1 text-yellow-700 dark:text-yellow-400'>
+                                            <CloudOff size={18} />
+                                        </div>
+                                    ) : (
+                                        <div className='flex flex-row gap-1 text-yellow-700 dark:text-yellow-400'>
+                                            <CloudOff size={18} />
+                                        </div>
+                                    )) : ""}
+
+                                    {/* {syncStatusSnapshot ? syncStatusSnapshot.state : ""} */}
                                     <div className="flex flex-col items-start">
                                         <span>
                                             {isBackingUp
@@ -992,13 +1015,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             {user && (
                                 <button
                                     onClick={handleSyncFromFirebase}
-                                    disabled={isSyncing}
+                                    disabled={isSyncing || syncStatusSnapshot && syncStatusSnapshot.state === 'pending'}
                                     className={getActionButtonClasses(restoreStatus)}
                                 >
                                     <Cloud size={18} />
                                     <div className="flex flex-col items-start">
                                         <span>
-                                            {isSyncing
+                                            {syncStatusSnapshot && syncStatusSnapshot.state === 'pending'?
+                                            'Cloud is out of date':
+                                            isSyncing
                                                 ? 'Syncing...'
                                                 : restoreStatus === 'success'
                                                     ? 'Sync successful!'
@@ -1011,29 +1036,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                 </button>
                             )}
 
-                            <button
-                                onClick={triggerImportFlow}
-                                className={getActionButtonClasses(importStatus)}
-                            >
-                                <Upload size={18} />
-                                <div className="flex flex-col items-start">
-                                    <span>
-                                        {importStatus === 'success'
-                                            ? 'Import successful!'
-                                            : importStatus === 'error'
-                                                ? 'Import failed'
-                                                : 'Import from file'}
-                                    </span>
-                                    <span className={settingBtnDetailTextClass}>Upload a JSON backup from your device</span>
-                                </div>
-                            </button>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                accept=".json"
-                                onChange={handleImport}
-                                className="hidden"
-                            />
                         </SettingsSection>
 
                         <SettingsSection
@@ -1060,6 +1062,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                                     <span className={settingBtnDetailTextClass}>Load sample data to explore the app</span>
                                 </div>
                             </button>
+
+                            <button
+                                onClick={triggerImportFlow}
+                                className={getActionButtonClasses(importStatus)}
+                            >
+                                <Upload size={18} />
+                                <div className="flex flex-col items-start">
+                                    <span>
+                                        {importStatus === 'success'
+                                            ? 'Import successful!'
+                                            : importStatus === 'error'
+                                                ? 'Import failed'
+                                                : 'Import from file'}
+                                    </span>
+                                    <span className={settingBtnDetailTextClass}>Upload a JSON backup from your device</span>
+                                </div>
+                            </button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".json"
+                                onChange={handleImport}
+                                className="hidden"
+                            />
                         </SettingsSection>
 
                         <SettingsSection
