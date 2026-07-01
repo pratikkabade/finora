@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CalendarDays } from 'lucide-react';
+// import { CalendarDays } from 'lucide-react';
 import type { PlannedPaymentRule, Transaction } from '../types/finance.types';
 import { pieChartCard } from '../constants/TailwindClasses';
 import { getFollowingPlannedPaymentDate } from '../utils/plannedPaymentUtils';
