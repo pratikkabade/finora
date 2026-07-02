@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, CalendarDays, Calendar1, ArrowUpDown, LayoutGrid, Table, Download, Search } from 'lucide-react';
+import { Plus, CalendarDays, Calendar1, ArrowUpDown, LayoutGrid, Table, Download, Search, ChevronDown, X } from 'lucide-react';
 import type { Account, Category, FinanceData, PlannedPaymentRule, Transaction } from './types/finance.types';
 import { CreateTransactionModal } from './components/CreateTransactionModal';
 import { AddTransactionPage } from './pages/AddTransactionPage';
@@ -13,6 +13,7 @@ import { TransactionTable } from './components/TransactionTable';
 import { ExportTransactionsModal } from './components/ExportTransactionsModal';
 import { ExpensePieChart } from './components/ExpensePieChart';
 import { IncomeExpenseTrendChart } from './components/IncomeExpenseTrendChart';
+import { YearlyCashflowHeatmap } from './components/YearlyCashflowHeatmap';
 import { SkeletonApp } from './components/SkeletonLoader';
 import { LoginPage } from './pages/LoginPage';
 import { AboutPage } from './pages/AboutPage';
@@ -72,6 +73,7 @@ import { AppShell } from './components/AppShell';
 import { exportTransactionsToExcel, exportTransactionsToPdf } from './utils/reportExportUtils';
 import {
     advancePlannedPaymentRule,
+    getFollowingPlannedPaymentDate,
     getNextPlannedPaymentDate,
     getPlannedPaymentAlertSummary,
     normalizePlannedPaymentIntervalType,
@@ -99,6 +101,46 @@ export interface SyncStatusSnapshot {
 
 const getTransactionTimestamp = (transaction: Transaction) => {
     return transaction.dateTime || transaction.dueDate || 0;
+};
+
+const isSyntheticPlannedReportTransaction = (transaction: Transaction) => {
+    return transaction.id.startsWith('__planned-');
+};
+
+const toReportStartOfDay = (value: number | Date) => {
+    const date = new Date(value);
+    date.setHours(0, 0, 0, 0);
+    return date;
+};
+
+const getReportDateKey = (value: number | Date) => {
+    const date = toReportStartOfDay(value);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${date.getFullYear()}-${month}-${day}`;
+};
+
+const getReportDateFromKey = (dateKey: string) => {
+    const [year, month, day] = dateKey.split('-').map(Number);
+
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
+        return null;
+    }
+
+    return toReportStartOfDay(new Date(year, month - 1, day));
+};
+
+const formatReportDateKey = (dateKey: string) => {
+    const date = getReportDateFromKey(dateKey);
+
+    if (!date) return '';
+
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+    });
 };
 
 const keepIfAlreadyEmpty = (values: string[]) => values.length === 0 ? values : [];
@@ -250,6 +292,7 @@ function App() {
     const [homeVisibleCount, setHomeVisibleCount] = useState(20);
     const [transactionSearchQuery, setTransactionSearchQuery] = useState('');
     const [searchWithinSelectedRange, setSearchWithinSelectedRange] = useState(false);
+    const [selectedReportDateKey, setSelectedReportDateKey] = useState('');
     const [balanceSummary, setBalanceSummary] = useState<BalanceSummary | null>(null);
     const [isContentVisible, setIsContentVisible] = useState(false);
     const [showSkeletonOverlay, setShowSkeletonOverlay] = useState(true);
@@ -496,9 +539,41 @@ function App() {
         return generateMonthYearOptions(validTransactions);
     }, [validTransactions]);
     const reportYearOptions = useMemo(() => {
-        return Array.from(new Set(monthYearOptions.map((option) => option.year.toString())))
+        const yearSet = new Set(monthYearOptions.map((option) => option.year.toString()));
+        const currentYear = new Date().getFullYear();
+        const plannedYearLimit = currentYear + 5;
+
+        yearSet.add(currentYear.toString());
+
+        (financeData?.transactions ?? []).forEach((transaction) => {
+            const timestamp = getTransactionTimestamp(transaction);
+            if (!timestamp) return;
+
+            yearSet.add(new Date(timestamp).getFullYear().toString());
+        });
+
+        (financeData?.plannedPaymentRules ?? []).forEach((rule) => {
+            if (!visibleAccountIds.has(rule.accountId)) return;
+            if (rule.type !== 'EXPENSE') return;
+
+            let occurrenceDate = toReportStartOfDay(rule.nextDueDate ?? rule.startDate).getTime();
+            let safetyCounter = 0;
+
+            while (new Date(occurrenceDate).getFullYear() <= plannedYearLimit && safetyCounter < 800) {
+                yearSet.add(new Date(occurrenceDate).getFullYear().toString());
+
+                if (rule.oneTime) break;
+
+                const nextOccurrenceDate = getFollowingPlannedPaymentDate(rule, occurrenceDate);
+                if (nextOccurrenceDate <= occurrenceDate) break;
+                occurrenceDate = toReportStartOfDay(nextOccurrenceDate).getTime();
+                safetyCounter += 1;
+            }
+        });
+
+        return Array.from(yearSet)
             .sort((yearA, yearB) => Number(yearA) - Number(yearB));
-    }, [monthYearOptions]);
+    }, [financeData?.plannedPaymentRules, financeData?.transactions, monthYearOptions, visibleAccountIds]);
     const activeReportTrendRange = useMemo(() => {
         if (dateRange) {
             return '';
@@ -516,7 +591,10 @@ function App() {
             return reportTrendRange;
         }
 
-        return reportYearOptions[reportYearOptions.length - 1] ?? '';
+        const currentYear = new Date().getFullYear().toString();
+        return reportYearOptions.includes(currentYear)
+            ? currentYear
+            : reportYearOptions[reportYearOptions.length - 1] ?? '';
     }, [dateRange, selectedMonthYear, reportTrendRange, reportYearOptions]);
 
     const activeMonthYear = useMemo(() => {
@@ -1035,18 +1113,21 @@ function App() {
     const handleApplyDateRange = (startDate: number, endDate: number) => {
         setDateRange({ start: startDate, end: endDate });
         setSelectedMonthYear('');
+        setSelectedReportDateKey('');
     };
 
     const handleApplyReportTrendRange = (rangeValue: string) => {
         setReportTrendRange(rangeValue);
         setSelectedMonthYear('');
         setDateRange(null);
+        setSelectedReportDateKey('');
     };
 
     const handleApplyMonthSelection = (monthYear: string) => {
         setSelectedMonthYear(monthYear);
         setReportTrendRange(monthYear.split('-')[0] ?? '');
         setDateRange(null);
+        setSelectedReportDateKey('');
     };
 
     const handleClearMonthSelection = () => {
@@ -1218,15 +1299,130 @@ function App() {
             return false;
         });
     }, [dateRange, filteredTransactions, validTransactions, selectedReportCategoryIds.length, selectedExpenseCategoryKey, selectedIncomeCategoryKey]);
+    const reportHeatmapYear = useMemo(() => {
+        if (dateRange) {
+            return new Date(dateRange.start).getFullYear();
+        }
+
+        if (selectedMonthYear) {
+            const selectedYear = Number(selectedMonthYear.split('-')[0]);
+            if (Number.isFinite(selectedYear)) {
+                return selectedYear;
+            }
+        }
+
+        if (activeReportTrendRange !== 'max') {
+            const activeYear = Number(activeReportTrendRange);
+            if (Number.isFinite(activeYear) && activeYear > 0) {
+                return activeYear;
+            }
+        }
+
+        const latestTransactionYear = reportTrendTransactions.reduce((latestYear, transaction) => {
+            const timestamp = getTransactionTimestamp(transaction);
+            if (!timestamp) return latestYear;
+
+            return Math.max(latestYear, new Date(timestamp).getFullYear());
+        }, 0);
+
+        return latestTransactionYear || new Date().getFullYear();
+    }, [dateRange, selectedMonthYear, activeReportTrendRange, reportTrendTransactions]);
+    const reportRangeSelectValue = activeReportTrendRange === 'max'
+        ? 'max'
+        : `${reportHeatmapYear}`;
+    const reportRangeSelectLabel = reportRangeSelectValue === 'max' ? 'Max' : reportRangeSelectValue;
+    const isReportRangeSelectDisabled = Boolean(dateRange) || reportYearOptions.length === 0;
+    const reportHeatmapPlannedPaymentRules = useMemo(() => {
+        if (!financeData) return [];
+
+        const selectedExpenseCategoryIds = new Set(selectedExpenseCategories);
+        const hasCategorySelection = selectedReportCategoryIds.length > 0;
+
+        return financeData.plannedPaymentRules.filter((rule) => {
+            if (!visibleAccountIds.has(rule.accountId)) return false;
+            if (rule.type !== 'EXPENSE') return false;
+
+            if (!hasCategorySelection) {
+                return true;
+            }
+
+            if (rule.type === 'EXPENSE') {
+                return selectedExpenseCategoryIds.has(rule.categoryId);
+            }
+
+            return false;
+        });
+    }, [financeData, visibleAccountIds, selectedReportCategoryIds.length, selectedExpenseCategories]);
+    const selectedReportDateLabel = useMemo(() => {
+        return selectedReportDateKey ? formatReportDateKey(selectedReportDateKey) : '';
+    }, [selectedReportDateKey]);
+    const selectedReportDateTransactions = useMemo(() => {
+        if (!selectedReportDateKey) return [];
+
+        const selectedDate = getReportDateFromKey(selectedReportDateKey);
+        if (!selectedDate) return [];
+
+        const selectedTimestamp = selectedDate.getTime();
+        const todayTimestamp = toReportStartOfDay(new Date()).getTime();
+        const actualTransactions = reportTrendTransactions.filter((transaction) => {
+            const timestamp = getTransactionTimestamp(transaction);
+            if (!timestamp) return false;
+
+            return getReportDateKey(timestamp) === selectedReportDateKey;
+        });
+        const plannedTransactions = selectedTimestamp < todayTimestamp
+            ? []
+            : reportHeatmapPlannedPaymentRules.flatMap((rule): Transaction[] => {
+                let occurrenceDate = toReportStartOfDay(rule.nextDueDate ?? rule.startDate).getTime();
+                let safetyCounter = 0;
+
+                while (!rule.oneTime && occurrenceDate < selectedTimestamp && safetyCounter < 800) {
+                    const nextOccurrenceDate = getFollowingPlannedPaymentDate(rule, occurrenceDate);
+                    if (nextOccurrenceDate <= occurrenceDate) break;
+                    occurrenceDate = toReportStartOfDay(nextOccurrenceDate).getTime();
+                    safetyCounter += 1;
+                }
+
+                if (occurrenceDate !== selectedTimestamp) {
+                    return [];
+                }
+
+                return [{
+                    id: `__planned-${rule.id}-${selectedReportDateKey}`,
+                    accountId: rule.accountId,
+                    type: rule.type,
+                    amount: rule.amount,
+                    title: `${rule.title || 'Planned payment'} (Planned)`,
+                    dueDate: selectedTimestamp,
+                    categoryId: rule.categoryId,
+                    recurringRuleId: rule.id,
+                    isSynced: false,
+                }];
+            });
+
+        return [...actualTransactions, ...plannedTransactions].sort((transactionA, transactionB) => {
+            return getTransactionTimestamp(transactionB) - getTransactionTimestamp(transactionA);
+        });
+    }, [reportHeatmapPlannedPaymentRules, reportTrendTransactions, selectedReportDateKey]);
+    const reportDrilldownTransactions = selectedReportDateKey
+        ? selectedReportDateTransactions
+        : selectedReportTransactions;
+    const hasReportDrilldown = Boolean(selectedReportDateKey || selectedReportCategoryIds.length > 0);
+    const reportDrilldownHeading = selectedReportDateKey
+        ? `${selectedReportDateLabel || 'Selected day'} Transactions`
+        : `${selectedReportHeading} Transactions`;
+    const reportDrilldownDescription = selectedReportDateKey
+        ? `Showing ${reportDrilldownTransactions.length} transaction${reportDrilldownTransactions.length !== 1 ? 's' : ''} for ${selectedReportDateLabel || 'the selected day'}${selectedReportCategoryName ? ` filtered by ${selectedReportCategoryName}` : ''}.`
+        : `Showing ${reportDrilldownTransactions.length} transaction${reportDrilldownTransactions.length !== 1 ? 's' : ''} for ${selectedReportCategoryName} in this report period.`;
     const selectedReportExportTitle = useMemo(() => {
-        return selectedReportHeading ? `${selectedReportHeading} Transactions` : 'Report Transactions';
-    }, [selectedReportHeading]);
+        return reportDrilldownHeading || 'Report Transactions';
+    }, [reportDrilldownHeading]);
     const selectedReportExportSubtitle = useMemo(() => {
-        return `${activeReportPeriodLabel} | ${selectedReportTransactions.length} selected transaction${selectedReportTransactions.length !== 1 ? 's' : ''}`;
-    }, [activeReportPeriodLabel, selectedReportTransactions.length]);
+        return `${activeReportPeriodLabel} | ${reportDrilldownTransactions.length} selected transaction${reportDrilldownTransactions.length !== 1 ? 's' : ''}`;
+    }, [activeReportPeriodLabel, reportDrilldownTransactions.length]);
     const selectedReportExportFileBase = useMemo(() => {
-        return `${selectedReportHeading || 'report-transactions'}-${activeReportPeriodLabel}`;
-    }, [selectedReportHeading, activeReportPeriodLabel]);
+        return `${reportDrilldownHeading || 'report-transactions'}-${activeReportPeriodLabel}`;
+    }, [reportDrilldownHeading, activeReportPeriodLabel]);
     const pinVerificationModal = storageUserId ? (
         <PINVerificationModal
             isOpen={showPINModal}
@@ -1236,7 +1432,10 @@ function App() {
         />
     ) : null;
 
-    const renderTransactionGrid = (transactions: Transaction[]) => {
+    const renderTransactionGrid = (
+        transactions: Transaction[],
+        isTransactionEditable: (transaction: Transaction) => boolean = () => true,
+    ) => {
         if (!financeData) return null;
 
         if (transactions.length === 0) {
@@ -1255,7 +1454,7 @@ function App() {
                         transaction={transaction}
                         account={financeData.accounts.find(account => account.id === transaction.accountId)}
                         category={financeData.categories.find(category => category.id === transaction.categoryId)}
-                        onEdit={(transactionToEdit) => setEditingTransaction(transactionToEdit)}
+                        onEdit={isTransactionEditable(transaction) ? (transactionToEdit) => setEditingTransaction(transactionToEdit) : undefined}
                     />
                 ))}
             </div>
@@ -1291,13 +1490,13 @@ function App() {
     };
 
     const handleExportSelectedTransactionsAsPdf = () => {
-        if (!financeData || selectedReportTransactions.length === 0) {
+        if (!financeData || reportDrilldownTransactions.length === 0) {
             alert('No selected transactions are available to export.');
             return;
         }
 
         exportTransactionsToPdf({
-            transactions: selectedReportTransactions,
+            transactions: reportDrilldownTransactions,
             accounts: financeData.accounts,
             categories: financeData.categories,
             title: selectedReportExportTitle,
@@ -1307,13 +1506,13 @@ function App() {
     };
 
     const handleExportSelectedTransactionsAsExcel = () => {
-        if (!financeData || selectedReportTransactions.length === 0) {
+        if (!financeData || reportDrilldownTransactions.length === 0) {
             alert('No selected transactions are available to export.');
             return;
         }
 
         exportTransactionsToExcel({
-            transactions: selectedReportTransactions,
+            transactions: reportDrilldownTransactions,
             accounts: financeData.accounts,
             categories: financeData.categories,
             title: selectedReportExportTitle,
@@ -1380,7 +1579,7 @@ function App() {
                     onClose={() => setIsExportModalOpen(false)}
                     onExportPdf={handleExportSelectedTransactionsAsPdf}
                     onExportExcel={handleExportSelectedTransactionsAsExcel}
-                    transactionCount={selectedReportTransactions.length}
+                    transactionCount={reportDrilldownTransactions.length}
                     title={selectedReportExportTitle}
                     subtitle={selectedReportExportSubtitle}
                 />
@@ -1677,10 +1876,36 @@ function App() {
                             </p>
                         </div>
 
-                        <div className="flex flex-col gap-2 self-start">
+                        <div className="flex flex-row flex-wrap gap-2 self-start">
+                            <div className={`${FreeWhiteBtn} relative w-36! ${isReportRangeSelectDisabled ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                <CalendarDays size={16} />
+                                <span className="min-w-0 flex-1 truncate text-left">
+                                    {reportRangeSelectLabel || 'Year'}
+                                </span>
+                                <ChevronDown size={16} className="text-slate-500 dark:text-slate-300" />
+                                <select
+                                    value={reportRangeSelectValue}
+                                    onChange={(event) => handleApplyReportTrendRange(event.target.value)}
+                                    disabled={isReportRangeSelectDisabled}
+                                    aria-label="Choose report year"
+                                    title={dateRange ? 'Using the active report date range' : 'Choose report year'}
+                                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                                >
+                                    <option value="max">Max</option>
+                                    {reportYearOptions.map((year) => (
+                                        <option key={year} value={year}>
+                                            {year}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {dateRange ? (
                                 <button
-                                    onClick={() => setDateRange(null)}
+                                    onClick={() => {
+                                        setDateRange(null);
+                                        setSelectedReportDateKey('');
+                                    }}
                                     className={`${FreeWhiteBtn} w-36!`}
                                     title="Clear date range"
                                 >
@@ -1700,6 +1925,15 @@ function App() {
                         </div>
                     </div>
 
+                    <YearlyCashflowHeatmap
+                        transactions={reportTrendTransactions}
+                        plannedPaymentRules={reportHeatmapPlannedPaymentRules}
+                        year={reportHeatmapYear}
+                        rangeLabel={dateRange ? activeReportPeriodLabel : `${reportHeatmapYear}`}
+                        selectedDateKey={selectedReportDateKey}
+                        onSelectDate={setSelectedReportDateKey}
+                    />
+
                     <IncomeExpenseTrendChart
                         transactions={reportTrendTransactions}
                         selectedMonthKey={selectedMonthYear}
@@ -1709,6 +1943,7 @@ function App() {
                         onClearMonthSelection={handleClearMonthSelection}
                         isRangeLocked={Boolean(dateRange)}
                         rangeLabelOverride={dateRange ? activeReportPeriodLabel : undefined}
+                        showRangeSelector={false}
                     />
 
                     <ExpensePieChart
@@ -1722,19 +1957,31 @@ function App() {
                         onSelectAllIncomeCategories={handleSelectAllIncomeReportCategories}
                     />
 
-                    {selectedReportCategoryIds.length > 0 && (
+                    {hasReportDrilldown && (
                         <div className="app-section mt-6">
                             <div className="mb-4 flex flex-col flex-wrap gap-3 lg:flex-row lg:items-center lg:justify-between">
                                 <div className="min-w-0">
                                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl">
-                                        {selectedReportHeading} Transactions
+                                        {reportDrilldownHeading}
                                     </h2>
                                     <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400 sm:mt-1 sm:text-sm">
-                                        Showing {selectedReportTransactions.length} transaction{selectedReportTransactions.length !== 1 ? 's' : ''} for {selectedReportCategoryName} in this report period.
+                                        {reportDrilldownDescription}
                                     </p>
                                 </div>
 
                                 <div className="flex max-sm:flex-col max-sm:items-start gap-2">
+                                    {selectedReportDateKey && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedReportDateKey('')}
+                                            className={`${FreeWhiteBtn} whitespace-nowrap`}
+                                            title="Clear selected date"
+                                        >
+                                            {selectedReportDateLabel || 'Selected date'}
+                                            <X size={14} />
+                                        </button>
+                                    )}
+
                                     <div className={SegmentedToggleShell}>
                                         <div className={SegmentedToggleTrack}>
                                             <div
@@ -1787,13 +2034,17 @@ function App() {
 
                             {reportTransactionView === 'table' ? (
                                 <TransactionTable
-                                    transactions={selectedReportTransactions}
+                                    transactions={reportDrilldownTransactions}
                                     accounts={financeData.accounts}
                                     categories={financeData.categories}
                                     onEdit={(transactionToEdit) => setEditingTransaction(transactionToEdit)}
+                                    isTransactionEditable={(transaction) => !isSyntheticPlannedReportTransaction(transaction)}
                                 />
                             ) : (
-                                renderTransactionGrid(selectedReportTransactions)
+                                renderTransactionGrid(
+                                    reportDrilldownTransactions,
+                                    (transaction) => !isSyntheticPlannedReportTransaction(transaction),
+                                )
                             )}
                         </div>
                     )}

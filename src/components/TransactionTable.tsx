@@ -7,6 +7,7 @@ interface TransactionTableProps {
     accounts: Account[];
     categories: Category[];
     onEdit?: (transaction: Transaction) => void;
+    isTransactionEditable?: (transaction: Transaction) => boolean;
 }
 
 const formatDate = (timestamp: number) => {
@@ -89,6 +90,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
     accounts,
     categories,
     onEdit,
+    isTransactionEditable = () => true,
 }) => {
     if (transactions.length === 0) {
         return (
@@ -117,7 +119,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                             const account = accounts.find((item) => item.id === transaction.accountId);
                             const category = categories.find((item) => item.id === transaction.categoryId);
                             const timestamp = getTransactionTimestamp(transaction);
-                            const isClickable = !!onEdit;
+                            const isClickable = !!onEdit && isTransactionEditable(transaction);
 
                             const handleKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>) => {
                                 if (!isClickable) return;
@@ -131,7 +133,11 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                             return (
                                 <tr
                                     key={transaction.id}
-                                    onClick={() => onEdit?.(transaction)}
+                                    onClick={() => {
+                                        if (isClickable) {
+                                            onEdit?.(transaction);
+                                        }
+                                    }}
                                     onKeyDown={handleKeyDown}
                                     role={isClickable ? 'button' : undefined}
                                     tabIndex={isClickable ? 0 : undefined}

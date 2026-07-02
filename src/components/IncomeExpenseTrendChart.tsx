@@ -25,6 +25,7 @@ interface IncomeExpenseTrendChartProps {
     onClearMonthSelection: () => void;
     isRangeLocked?: boolean;
     rangeLabelOverride?: string;
+    showRangeSelector?: boolean;
 }
 
 interface MonthlyTrendDatum {
@@ -109,6 +110,7 @@ export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = (
     onClearMonthSelection,
     isRangeLocked = false,
     rangeLabelOverride,
+    showRangeSelector = true,
 }) => {
     const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
     const allMonthlyTrendData = useMemo(() => {
@@ -278,28 +280,30 @@ export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = (
                     </div>
 
                     <div className="flex flex-row flex-wrap justify-end items-end gap-2">
-                        <div className={`${FreeWhiteBtn} relative w-36 ${isRangeSelectDisabled ? 'cursor-not-allowed opacity-70' : ''}`}>
-                            <CalendarDays size={16} />
-                            <span className="min-w-0 flex-1 truncate text-left">
-                                {activeRangeLabel || 'Range'}
-                            </span>
-                            <ChevronDown size={16} className="text-slate-500 dark:text-slate-300" />
-                            <select
-                                value={activeRangeValue}
-                                onChange={(event) => onSelectRange(event.target.value)}
-                                disabled={isRangeSelectDisabled}
-                                aria-label="Choose a report range"
-                                title={isRangeLocked ? 'Using the active report date range' : 'Choose a report range'}
-                                className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
-                            >
-                                <option value="max">Max</option>
-                                {yearOptions.map((year) => (
-                                    <option key={year} value={year}>
-                                        {year}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        {showRangeSelector && (
+                            <div className={`${FreeWhiteBtn} relative w-36 ${isRangeSelectDisabled ? 'cursor-not-allowed opacity-70' : ''}`}>
+                                <CalendarDays size={16} />
+                                <span className="min-w-0 flex-1 truncate text-left">
+                                    {activeRangeLabel || 'Range'}
+                                </span>
+                                <ChevronDown size={16} className="text-slate-500 dark:text-slate-300" />
+                                <select
+                                    value={activeRangeValue}
+                                    onChange={(event) => onSelectRange(event.target.value)}
+                                    disabled={isRangeSelectDisabled}
+                                    aria-label="Choose a report range"
+                                    title={isRangeLocked ? 'Using the active report date range' : 'Choose a report range'}
+                                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                                >
+                                    <option value="max">Max</option>
+                                    {yearOptions.map((year) => (
+                                        <option key={year} value={year}>
+                                            {year}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
                         {isRangeLocked && (
                             <div className="app-border-soft flex items-center gap-2 rounded-2xl bg-slate-100/85 px-3 py-2 text-sm font-semibold text-slate-700 dark:bg-slate-800/70 dark:text-slate-200">
