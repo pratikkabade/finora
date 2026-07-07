@@ -1420,19 +1420,41 @@ function App() {
         const body = document.body;
         const previousHtmlOverscroll = html.style.overscrollBehaviorY;
         const previousBodyOverscroll = body.style.overscrollBehaviorY;
+        const interactiveTouchTargetSelector = [
+            'button',
+            'a',
+            'input',
+            'select',
+            'textarea',
+            '[role="button"]',
+            '[role="link"]',
+            '[tabindex]',
+            '.cursor-pointer',
+            '[contenteditable="true"]',
+        ].join(',');
+        const pullToRefreshDragThresholdPx = 12;
         let touchStartY = 0;
+        let shouldBlockPullToRefresh = false;
+
+        const isInteractiveTouchTarget = (target: EventTarget | null) => {
+            return target instanceof Element && Boolean(target.closest(interactiveTouchTargetSelector));
+        };
 
         const handleTouchStart = (event: TouchEvent) => {
             if (event.touches.length === 1) {
                 touchStartY = event.touches[0].clientY;
+                shouldBlockPullToRefresh = !isInteractiveTouchTarget(event.target);
+                return;
             }
+
+            shouldBlockPullToRefresh = false;
         };
 
         const handleTouchMove = (event: TouchEvent) => {
-            if (event.touches.length !== 1) return;
+            if (!shouldBlockPullToRefresh || event.touches.length !== 1) return;
 
             const currentTouchY = event.touches[0].clientY;
-            const isPullingDown = currentTouchY > touchStartY;
+            const isPullingDown = currentTouchY - touchStartY > pullToRefreshDragThresholdPx;
             const isPageAtTop = window.scrollY <= 0;
 
             if (isPageAtTop && isPullingDown && event.cancelable) {

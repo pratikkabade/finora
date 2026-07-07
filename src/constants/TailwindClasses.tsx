@@ -1,5 +1,5 @@
 const base = {
-    interact: "cursor-pointer select-none transition-[transform,box-shadow,border-color,background-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-95 transition-all",
+    interact: "cursor-pointer select-none touch-manipulation transition-[transform,box-shadow,border-color,background-color,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-95 transition-all",
     btn: (color: string, shade = 600) =>
         `bg-${color}-${shade} hover:bg-${color}-700`,
     btnRed: "bg-linear-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700",

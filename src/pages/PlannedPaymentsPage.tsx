@@ -88,23 +88,6 @@ const getMetaChipStyle = (color: number) => {
     };
 };
 
-const SummaryCard: React.FC<{
-    label: string;
-    value: string;
-    accentClassName: string;
-}> = ({ label, value, accentClassName }) => {
-    return (
-        <div className="app-border-soft rounded-[1.75rem] bg-white/78 p-5 shadow-[0_20px_56px_-34px_rgba(15,23,42,0.34)] backdrop-blur-2xl dark:bg-slate-900/58">
-            <p className="text-md font-bold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">
-                {label}
-            </p>
-            <p className={`mt-3 text-3xl font-bold ${accentClassName}`}>
-                {value}
-            </p>
-        </div>
-    );
-};
-
 export const PlannedPaymentsPage: React.FC<PlannedPaymentsPageProps> = ({
     plannedPaymentRules,
     accounts,
@@ -292,44 +275,46 @@ export const PlannedPaymentsPage: React.FC<PlannedPaymentsPageProps> = ({
     return (
         <div className="space-y-6 sm:space-y-7">
             <div className="app-section mb-6 flex flex-col justify-between gap-4 xl:flex-row xl:items-start">
-                <div className="max-w-2xl">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-sky-600/80 dark:text-sky-300/75">
-                        Planning
-                    </p>
-                    <h1 className="mt-2 text-3xl font-bold text-slate-900 dark:text-slate-50 sm:text-4xl">
-                        Planned Payments
-                    </h1>
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 sm:text-base">
-                        Track repeating payments, surface dues for today, and flag anything landing within the next 3 days.
-                    </p>
+                <div className='flex flex-row justify-between items-center max-lg:flex-col gap-5 max-lg:items-start'>
+                    <div className="max-w-lg">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-sky-600/80 dark:text-sky-300/75">
+                            Planning
+                        </p>
+                        <h1 className="mt-2 text-3xl font-bold text-slate-900 dark:text-slate-50 sm:text-4xl">
+                            Planned Payments
+                        </h1>
+                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 sm:text-base">
+                            Track repeating payments, surface dues for today, and flag anything landing within the next 3 days.
+                        </p>
+                    </div>
+                    <div className="app-border-soft rounded-[1.75rem] bg-white/78 p-5 shadow-[0_20px_56px_-34px_rgba(15,23,42,0.34)] backdrop-blur-2xl dark:bg-slate-900/58 w-64 max-lg:w-full h-fit">
+                        <div className='flex flex-row justify-between'>
+                            <div>
+                                <p className="text-md font-bold uppercase tracking-[0.28em] text-slate-500 dark:text-slate-400">
+                                    Due Today
+                                </p>
+                                <p className={`text-3xl font-bold ${alertSummary.dueCount > 0 ?
+                                    "text-red-600 dark:text-red-400"
+                                    : alertSummary.upcomingCount > 0 ?
+                                        "text-amber-600 dark:text-amber-400"
+                                        :
+                                        "text-sky-600 dark:text-sky-400"}`}>
+                                    {alertSummary.dueCount > 0 ?
+                                        String(alertSummary.dueCount + " / " + plannedPaymentRules.length)
+                                        :
+                                        String(alertSummary.upcomingCount + " / " + plannedPaymentRules.length)}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={onCreate}
+                                className={FreeBlueBtn}
+                            >
+                                <Plus size={18} />
+                            </button>
+                        </div>
+                    </div>
                 </div>
-
-                <button
-                    type="button"
-                    onClick={onCreate}
-                    className={`${FreeBlueBtn} self-start whitespace-nowrap`}
-                >
-                    <Plus size={18} />
-                    Create Planned Transaction
-                </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <SummaryCard
-                    label="Due Today"
-                    value={String(alertSummary.dueCount)}
-                    accentClassName="text-red-600 dark:text-red-400"
-                />
-                <SummaryCard
-                    label="Next 3 Days"
-                    value={String(alertSummary.upcomingCount)}
-                    accentClassName="text-amber-500 dark:text-amber-300"
-                />
-                <SummaryCard
-                    label="Total Rules"
-                    value={String(plannedPaymentRules.length)}
-                    accentClassName="text-sky-600 dark:text-sky-300"
-                />
             </div>
 
             {!hasPlannedPayments ? (

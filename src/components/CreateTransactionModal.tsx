@@ -657,12 +657,20 @@ export const CreateTransactionModal: React.FC<CreateTransactionModalProps> = ({
                                 className={`w-full ${transactionFieldClasses}`}
                                 placeholder="Description"
                                 autoComplete="off"
-                                onBlur={() => {
+                                onKeyDown={(event) => {
+                                    if (event.key !== 'Enter') {
+                                        return;
+                                    }
+
+                                    event.preventDefault();
+
                                     const el =
                                         amountInputRef.current && amountInputRef.current.offsetWidth > 0
                                             ? amountInputRef.current
                                             : amountInputRefDesktop.current;
+
                                     if (el) {
+                                        el.focus();
                                         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                     }
                                 }}
