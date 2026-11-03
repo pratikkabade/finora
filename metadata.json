@@ -1,0 +1,8 @@
+{
+  "name": "Finora",
+  "description": "Clear financial insights for better decisions. Personal finance tracker with cashflow analytics, budgets, and planned payments.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

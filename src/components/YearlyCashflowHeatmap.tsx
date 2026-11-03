@@ -12,6 +12,7 @@ interface YearlyCashflowHeatmapProps {
     rangeLabel?: string;
     selectedDateKey?: string;
     onSelectDate?: (dateKey: string) => void;
+    onSelectMonth?: (year: number, monthIndex: number) => void;
 }
 
 interface DayBucket {
@@ -36,8 +37,11 @@ interface HeatmapCell {
 
 interface MonthGroup {
     label: string;
+    monthIndex: number;
     cells: Array<HeatmapCell | null>;
     weekCount: number;
+    monthIncome: number;
+    monthExpense: number;
 }
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -280,6 +284,7 @@ export const YearlyCashflowHeatmap: React.FC<YearlyCashflowHeatmapProps> = ({
     rangeLabel,
     selectedDateKey = '',
     onSelectDate,
+    onSelectMonth,
 }) => {
     const safeYear = Number.isFinite(year) ? year : new Date().getFullYear();
     const buckets = useMemo(() => {
@@ -310,11 +315,16 @@ export const YearlyCashflowHeatmap: React.FC<YearlyCashflowHeatmapProps> = ({
                 };
             });
             const trailingBlankCells = Array.from({ length: slotCount - blankStartCells.length - activityCells.length }, () => null);
+            const monthIncome = activityCells.reduce((sum, cell) => sum + (cell?.bucket.income || 0), 0);
+            const monthExpense = activityCells.reduce((sum, cell) => sum + (cell?.bucket.expense || 0), 0);
 
             return {
                 label,
+                monthIndex,
                 cells: [...blankStartCells, ...activityCells, ...trailingBlankCells],
                 weekCount: slotCount / 7,
+                monthIncome,
+                monthExpense,
             };
         });
     }, [bucketByKey, safeYear]);
@@ -450,8 +460,6 @@ export const YearlyCashflowHeatmap: React.FC<YearlyCashflowHeatmapProps> = ({
                                                     onFocus={() => setHoveredDayKey(cell.key)}
                                                     onClick={() => onSelectDate?.(cell.key)}
                                                     data-activity-summary={buildTooltipText(cell.bucket)}
-                                                    // title={buildTooltipText(cell.bucket)}
-                                                    // aria-label={buildTooltipText(cell.bucket)}
                                                     className={`h-[var(--heatmap-cell-size)] w-[var(--heatmap-cell-size)] rounded-[3px] border transition-[transform,box-shadow,border-color] duration-200 hover:scale-125 focus-visible:scale-125 focus-visible:outline-2 focus-visible:outline-sky-500 ${isSelected ? 'shadow-[0_0_0_2px_rgba(2,132,199,0.75)]' : isActive ? 'shadow-[0_0_0_2px_rgba(14,165,233,0.45)]' : ''}`}
                                                     style={{
                                                         backgroundColor: tone.backgroundColor,
@@ -461,6 +469,20 @@ export const YearlyCashflowHeatmap: React.FC<YearlyCashflowHeatmapProps> = ({
                                             );
                                         })}
                                     </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => onSelectMonth?.(safeYear, monthGroup.monthIndex)}
+                                        title={`Filter transactions for ${monthGroup.label} ${safeYear} and scroll down`}
+                                        className="mt-2.5 flex flex-col items-start gap-0.5 rounded-lg p-1 text-[9px] font-semibold leading-tight hover:bg-slate-200/60 dark:hover:bg-slate-800/80 transition-all cursor-pointer group text-left w-full"
+                                    >
+                                        <span className="text-green-600 dark:text-green-400 tabular-nums">
+                                            +₹{formatNumberWithCommas(Math.round(monthGroup.monthIncome))}
+                                        </span>
+                                        <span className="text-red-600 dark:text-red-400 tabular-nums">
+                                            -₹{formatNumberWithCommas(Math.round(monthGroup.monthExpense))}
+                                        </span>
+                                    </button>
                                 </div>
                             ))}
                         </div>

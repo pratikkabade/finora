@@ -245,7 +245,7 @@ export const AppHeader = ({ onLogoClick, syncStatus }: AppHeaderProps) => {
                 : null;
 
     return (
-        <div className="app-section mb-6 flex flex-row items-center gap-4 pt-5 sm:mb-8">
+        <div className="app-section mb-6 flex flex-row items-center gap-4 pt-1 sm:pt-2 sm:mb-8">
             {onLogoClick ? (
                 <button
                     type="button"
@@ -1110,6 +1110,34 @@ function App() {
         setShowDataSourceModal(false);
     };
 
+    const handleStartFreshData = () => {
+        const baseFinanceData = financeDataJson as FinanceData;
+        const freshData: FinanceData = {
+            accounts: baseFinanceData.accounts?.length ? baseFinanceData.accounts : [
+                {
+                    id: generateUUID(),
+                    name: 'Main Account',
+                    currency: 'INR',
+                    color: -15414114,
+                    icon: 'bank',
+                    orderNum: 0,
+                    isSynced: true,
+                }
+            ],
+            categories: baseFinanceData.categories || [],
+            settings: [],
+            transactions: [],
+            plannedPaymentRules: [],
+            sharedPrefs: {},
+        };
+        const normalizedFreshData = normalizeFinanceData(freshData);
+        markNormalizedCloudBackupReady(false);
+        markNextLocalSaveAsModified();
+        queueFullBackup();
+        setFinanceData(normalizedFreshData);
+        setShowDataSourceModal(false);
+    };
+
     const handleApplyDateRange = (startDate: number, endDate: number) => {
         setDateRange({ start: startDate, end: endDate });
         setSelectedMonthYear('');
@@ -1132,6 +1160,20 @@ function App() {
 
     const handleClearMonthSelection = () => {
         setSelectedMonthYear('');
+    };
+
+    const handleHeatmapSelectMonth = (year: number, monthIndex: number) => {
+        const monthKey = `${year}-${monthIndex}`;
+        handleApplyMonthSelection(monthKey);
+        setSelectedReportDateKey('');
+        setTimeout(() => {
+            const drilldownEl = document.getElementById('report-drilldown-section');
+            if (drilldownEl) {
+                drilldownEl.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            }
+        }, 120);
     };
 
     const fallbackLifetimeSummary = useMemo(() => {
@@ -1406,14 +1448,20 @@ function App() {
     }, [reportHeatmapPlannedPaymentRules, reportTrendTransactions, selectedReportDateKey]);
     const reportDrilldownTransactions = selectedReportDateKey
         ? selectedReportDateTransactions
-        : selectedReportTransactions;
-    const hasReportDrilldown = Boolean(selectedReportDateKey || selectedReportCategoryIds.length > 0);
+        : selectedReportCategoryIds.length > 0
+            ? selectedReportTransactions
+            : reportPeriodTransactions;
+    const hasReportDrilldown = Boolean(selectedReportDateKey || selectedReportCategoryIds.length > 0 || selectedMonthYear);
     const reportDrilldownHeading = selectedReportDateKey
         ? `${selectedReportDateLabel || 'Selected day'} Transactions`
-        : `${selectedReportHeading} Transactions`;
+        : selectedReportCategoryIds.length > 0
+            ? `${selectedReportHeading} Transactions`
+            : `${activeReportPeriodLabel} Transactions`;
     const reportDrilldownDescription = selectedReportDateKey
         ? `Showing ${reportDrilldownTransactions.length} transaction${reportDrilldownTransactions.length !== 1 ? 's' : ''} for ${selectedReportDateLabel || 'the selected day'}${selectedReportCategoryName ? ` filtered by ${selectedReportCategoryName}` : ''}.`
-        : `Showing ${reportDrilldownTransactions.length} transaction${reportDrilldownTransactions.length !== 1 ? 's' : ''} for ${selectedReportCategoryName} in this report period.`;
+        : selectedReportCategoryIds.length > 0
+            ? `Showing ${reportDrilldownTransactions.length} transaction${reportDrilldownTransactions.length !== 1 ? 's' : ''} for ${selectedReportCategoryName} in this report period.`
+            : `Showing ${reportDrilldownTransactions.length} transaction${reportDrilldownTransactions.length !== 1 ? 's' : ''} for ${activeReportPeriodLabel}.`;
     const selectedReportExportTitle = useMemo(() => {
         return reportDrilldownHeading || 'Report Transactions';
     }, [reportDrilldownHeading]);
@@ -1571,6 +1619,7 @@ function App() {
                     isOpen={showDataSourceModal}
                     onFetchFirebase={handleFetchFromFirebase}
                     onGetDummyData={handleGetSampleData}
+                    onStartFresh={handleStartFreshData}
                     showCloudOption={!!user}
                 />
 
@@ -1610,70 +1659,7 @@ function App() {
         };
     }, [isAnyModalOpen]);
 
-    useEffect(() => {
-        if (location.pathname !== '/' || isAnyModalOpen) {
-            return;
-        }
 
-        const html = document.documentElement;
-        const body = document.body;
-        const previousHtmlOverscroll = html.style.overscrollBehaviorY;
-        const previousBodyOverscroll = body.style.overscrollBehaviorY;
-        const interactiveTouchTargetSelector = [
-            'button',
-            'a',
-            'input',
-            'select',
-            'textarea',
-            '[role="button"]',
-            '[role="link"]',
-            '[tabindex]',
-            '.cursor-pointer',
-            '[contenteditable="true"]',
-        ].join(',');
-        const pullToRefreshDragThresholdPx = 12;
-        let touchStartY = 0;
-        let shouldBlockPullToRefresh = false;
-
-        const isInteractiveTouchTarget = (target: EventTarget | null) => {
-            return target instanceof Element && Boolean(target.closest(interactiveTouchTargetSelector));
-        };
-
-        const handleTouchStart = (event: TouchEvent) => {
-            if (event.touches.length === 1) {
-                touchStartY = event.touches[0].clientY;
-                shouldBlockPullToRefresh = !isInteractiveTouchTarget(event.target);
-                return;
-            }
-
-            shouldBlockPullToRefresh = false;
-        };
-
-        const handleTouchMove = (event: TouchEvent) => {
-            if (!shouldBlockPullToRefresh || event.touches.length !== 1) return;
-
-            const currentTouchY = event.touches[0].clientY;
-            const isPullingDown = currentTouchY - touchStartY > pullToRefreshDragThresholdPx;
-            const isPageAtTop = window.scrollY <= 0;
-
-            if (isPageAtTop && isPullingDown && event.cancelable) {
-                event.preventDefault();
-            }
-        };
-
-        html.style.overscrollBehaviorY = 'none';
-        body.style.overscrollBehaviorY = 'none';
-
-        document.addEventListener('touchstart', handleTouchStart, { passive: true });
-        document.addEventListener('touchmove', handleTouchMove, { passive: false });
-
-        return () => {
-            html.style.overscrollBehaviorY = previousHtmlOverscroll;
-            body.style.overscrollBehaviorY = previousBodyOverscroll;
-            document.removeEventListener('touchstart', handleTouchStart);
-            document.removeEventListener('touchmove', handleTouchMove);
-        };
-    }, [location.pathname, isAnyModalOpen]);
 
     useEffect(() => {
         if (location.pathname !== '/report') {
@@ -1778,6 +1764,7 @@ function App() {
                         isOpen={showDataSourceModal}
                         onFetchFirebase={handleFetchFromFirebase}
                         onGetDummyData={handleGetSampleData}
+                        onStartFresh={handleStartFreshData}
                         showCloudOption={!!user}
                     />
                 )}
@@ -1817,6 +1804,7 @@ function App() {
                                 isOpen={showDataSourceModal}
                                 onFetchFirebase={handleFetchFromFirebase}
                                 onGetDummyData={handleGetSampleData}
+                                onStartFresh={handleStartFreshData}
                                 showCloudOption={!!user}
                             />
                             {pinVerificationModal}
@@ -1932,6 +1920,7 @@ function App() {
                         rangeLabel={dateRange ? activeReportPeriodLabel : `${reportHeatmapYear}`}
                         selectedDateKey={selectedReportDateKey}
                         onSelectDate={setSelectedReportDateKey}
+                        onSelectMonth={handleHeatmapSelectMonth}
                     />
 
                     <IncomeExpenseTrendChart
@@ -1958,7 +1947,7 @@ function App() {
                     />
 
                     {hasReportDrilldown && (
-                        <div className="app-section mt-6">
+                        <div id="report-drilldown-section" className="app-section mt-6">
                             <div className="mb-4 flex flex-col flex-wrap gap-3 lg:flex-row lg:items-center lg:justify-between">
                                 <div className="min-w-0">
                                     <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl">

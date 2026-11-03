@@ -357,7 +357,7 @@ export const IncomeExpenseTrendChart: React.FC<IncomeExpenseTrendChartProps> = (
                 </div>
 
                 {hasTrendData ? (
-                    <div className="h-[280px] w-full sm:h-[320px]">
+                    <div className="h-[280px] w-full sm:h-[320px] outline-none focus:outline-none focus:ring-0 select-none [&_.recharts-wrapper]:outline-none [&_.recharts-surface]:outline-none [&_svg]:outline-none [&_svg]:focus:outline-none">
                         <ResponsiveContainer width="100%" height="100%">
                             {chartType === 'bar' ? (
                                 <BarChart

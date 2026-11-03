@@ -159,29 +159,8 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView, planne
             return;
         }
 
-        const completeNavigation = () => {
-            navigate(path);
-            window.requestAnimationFrame(() => {
-                window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-            });
-        };
-
-        const documentWithViewTransition = document as Document & {
-            startViewTransition?: (callback: () => void) => void;
-        };
-
-        try {
-            if (documentWithViewTransition.startViewTransition) {
-                documentWithViewTransition.startViewTransition(() => {
-                    completeNavigation();
-                });
-                return;
-            }
-        } catch (error) {
-            console.error('View transition failed, falling back to standard navigation.', error);
-        }
-
-        completeNavigation();
+        navigate(path);
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     };
 
     return (
@@ -252,15 +231,18 @@ export const AppNavigation: React.FC<AppNavigationProps> = ({ activeView, planne
                                 onClick={() => handleNavigate(path)}
                                 aria-current={isActive ? 'page' : undefined}
                                 aria-label={label}
-                                className={`group relative flex cursor-pointer items-center justify-center overflow-hidden rounded-[1.45rem] border text-[11px] font-semibold touch-manipulation transition-[width,height,background-color,color,box-shadow,border-color,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.96] ${isMobileNavCompact
-                                    ? 'h-11 w-11'
+                                className={`group relative flex cursor-pointer select-none items-center justify-center overflow-hidden rounded-[1.45rem] border text-[11px] font-semibold transition-[width,background-color,color,box-shadow,border-color,transform] duration-200 active:scale-[0.96] ${isMobileNavCompact
+                                    ? isActive
+                                        ? 'h-12 w-12'
+                                        : 'h-12 w-12'
                                     : isActive
                                         ? 'h-12 w-[6.4rem]'
                                         : 'h-12 w-12'
                                     } ${isActive
                                         ? 'app-border-surface bg-white/82 text-slate-950 shadow-[0_16px_30px_-18px_rgba(15,23,42,0.55)] dark:bg-slate-100 dark:text-slate-950 border-slate-300'
-                                        : 'border border-slate-200/55 text-slate-500 hover:border-slate-300/80 hover:bg-white/35 hover:text-slate-900 hover:shadow-[0_16px_32px_-20px_rgba(15,23,42,0.35)] dark:border-slate-700/55 dark:text-slate-400 dark:hover:border-slate-500/75 dark:hover:bg-slate-800/50 dark:hover:text-slate-50'
+                                        : 'border border-slate-200/55 text-slate-500 hover:border-slate-300/80 hover:bg-white/35 hover:text-slate-900 dark:border-slate-700/55 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-50'
                                     }`}
+                                style={{ touchAction: 'manipulation' }}
                             >
                                 <span
                                     className={`pointer-events-none absolute inset-0 bg-linear-to-br from-white/45 via-white/0 to-sky-100/30 transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'

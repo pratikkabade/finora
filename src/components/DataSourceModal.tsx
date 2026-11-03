@@ -7,6 +7,7 @@ interface DataSourceModalProps {
     isOpen: boolean;
     onFetchFirebase?: () => Promise<void>;
     onGetDummyData: () => void;
+    onStartFresh?: () => void;
     showCloudOption?: boolean;
 }
 
@@ -14,6 +15,7 @@ export const DataSourceModal: React.FC<DataSourceModalProps> = ({
     isOpen,
     onFetchFirebase,
     onGetDummyData,
+    onStartFresh,
     showCloudOption = true,
 }) => {
     const [isLoadingFirebase, setIsLoadingFirebase] = React.useState(false);
@@ -63,6 +65,24 @@ export const DataSourceModal: React.FC<DataSourceModalProps> = ({
                                         </p>
                                     </div>
                                     <Cloud size={22} className="shrink-0 transition-transform duration-300 group-hover:scale-105" />
+                                </div>
+                            </button>
+                        )}
+
+                        {onStartFresh && (
+                            <button
+                                onClick={onStartFresh}
+                                disabled={isLoadingFirebase}
+                                className="group w-full rounded-[1.6rem] border border-emerald-200/70 bg-linear-to-r from-emerald-500 via-teal-600 to-cyan-600 px-5 py-4 text-left text-white shadow-[0_24px_60px_-26px_rgba(16,185,129,0.72)] transition-[box-shadow,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:brightness-105 hover:shadow-[0_28px_68px_-26px_rgba(16,185,129,0.82)] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                            >
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <p className="text-lg font-semibold">Start Fresh</p>
+                                        <p className="mt-1 text-sm text-white/85">
+                                            Start with 0 transactions, baseline accounts, and standard categories.
+                                        </p>
+                                    </div>
+                                    <Sparkles size={22} className="shrink-0 transition-transform duration-300 group-hover:scale-105" />
                                 </div>
                             </button>
                         )}

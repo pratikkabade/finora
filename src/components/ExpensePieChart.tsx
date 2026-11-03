@@ -187,14 +187,21 @@ const CategoryBreakdownSection: React.FC<CategoryBreakdownSectionProps> = ({
                     })}
                 </div>
 
-                <div className="app-border-soft mt-1 flex flex-row bg-white/55 px-3 py-3 font-bold text-gray-900 dark:bg-slate-900/32 dark:text-gray-50 justify-between items-center rounded-lg">
-                    {hasSelectedCategories && selectedPercentage !== '100.00' &&
-                        <div className='flex flex-row items-center gap-1' title={`${hasSelectedCategories ? selectedPercentage : '100.00'}% of total ${total.toFixed(2)}`}>
-                            <span className="text-right">₹{(hasSelectedCategories ? selectedTotal : total).toFixed(2)}</span>
-                            {/* <span className="text-right text-xs font-normal text-gray-500 dark:text-gray-400"></span> */}
+                <div className="app-border-soft mt-1 flex flex-row bg-white/55 px-3 py-2.5 font-bold text-gray-900 dark:bg-slate-900/32 dark:text-gray-50 justify-between items-center rounded-lg">
+                    {hasSelectedCategories && selectedPercentage !== '100.00' ? (
+                        <div className='flex flex-row items-baseline gap-1.5' title={`${selectedPercentage}% of total ₹${total.toFixed(2)}`}>
+                            <span className="text-sm font-bold text-slate-900 dark:text-slate-50 tabular-nums">
+                                Selected: ₹{selectedTotal.toFixed(2)}
+                            </span>
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                                ({selectedPercentage}%)
+                            </span>
                         </div>
-                    }
-                    <div></div>
+                    ) : (
+                        <div className="text-sm font-semibold text-slate-600 dark:text-slate-300 tabular-nums">
+                            Total: ₹{total.toFixed(2)}
+                        </div>
+                    )}
                     <div className='flex flex-row gap-2'>
                         <button
                             type="button"
@@ -263,6 +270,28 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
         return incomeByCategory.reduce((sum, category) => sum + category.amount, 0);
     }, [incomeByCategory]);
 
+    const selectedExpenseTotal = useMemo(() => {
+        if (selectedExpenseCategories.length === 0) return reportTotalExpense;
+        return expensesByCategory
+            .filter((category) => selectedExpenseCategories.includes(category.categoryId))
+            .reduce((sum, category) => sum + category.amount, 0);
+    }, [expensesByCategory, selectedExpenseCategories, reportTotalExpense]);
+
+    const selectedIncomeTotal = useMemo(() => {
+        if (selectedIncomeCategories.length === 0) return reportTotalIncome;
+        return incomeByCategory
+            .filter((category) => selectedIncomeCategories.includes(category.categoryId))
+            .reduce((sum, category) => sum + category.amount, 0);
+    }, [incomeByCategory, selectedIncomeCategories, reportTotalIncome]);
+
+    const expenseSelectedPercentage = reportTotalExpense > 0
+        ? ((selectedExpenseTotal / reportTotalExpense) * 100).toFixed(1)
+        : '0';
+
+    const incomeSelectedPercentage = reportTotalIncome > 0
+        ? ((selectedIncomeTotal / reportTotalIncome) * 100).toFixed(1)
+        : '0';
+
     const visibleExpenseChartRows = selectedExpenseCategories.length > 0
         ? expensesByCategory.filter((category) => selectedExpenseCategories.includes(category.categoryId))
         : expensesByCategory;
@@ -298,7 +327,16 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                             {totalCount > 0 && `(${totalCount} categories)`}
                         </span>
                     </h2>
-                    <p className="text-xl font-bold text-red-600 sm:text-2xl md:text-3xl">₹ {formatNumberWithCommas(reportTotalExpense)}</p>
+                    <div className="flex flex-wrap items-baseline gap-2">
+                        <p className="text-xl font-bold text-red-600 sm:text-2xl md:text-3xl tabular-nums">
+                            ₹ {formatNumberWithCommas(Number(selectedExpenseTotal.toFixed(2)))}
+                        </p>
+                        {selectedExpenseCategories.length > 0 && selectedExpenseCategories.length < expensesByCategory.length && (
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                                ({expenseSelectedPercentage}% of ₹{formatNumberWithCommas(Number(reportTotalExpense.toFixed(2)))})
+                            </span>
+                        )}
+                    </div>
                     <div className=''>
                         <ResponsiveContainer width="100%" height={chartHeight}>
                             <PieChart>
@@ -351,7 +389,16 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({
                         </span>
                     </h2>
 
-                    <p className="text-xl font-bold text-green-600 sm:text-2xl md:text-3xl">₹ {formatNumberWithCommas(reportTotalIncome)}</p>
+                    <div className="flex flex-wrap items-baseline gap-2">
+                        <p className="text-xl font-bold text-green-600 sm:text-2xl md:text-3xl tabular-nums">
+                            ₹ {formatNumberWithCommas(Number(selectedIncomeTotal.toFixed(2)))}
+                        </p>
+                        {selectedIncomeCategories.length > 0 && selectedIncomeCategories.length < incomeByCategory.length && (
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                                ({incomeSelectedPercentage}% of ₹{formatNumberWithCommas(Number(reportTotalIncome.toFixed(2)))})
+                            </span>
+                        )}
+                    </div>
                     <div className=''>
                         <ResponsiveContainer width="100%" height={chartHeight}>
                             <PieChart>
