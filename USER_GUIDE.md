@@ -35,8 +35,9 @@ Think of it as a **smart notebook for your money** that never forgets and always
 When you open Finora, you'll see a **Dashboard** with:
 
 - **Net Balance** - Your total money across all accounts
-- **Charts** - Visual breakdown of where your money goes
+- **Category Budgets** - Real-time tracking of monthly spending limits for specific categories
 - **Recent Transactions** - List of your latest income and expenses
+- **Search Transactions** - Click the magnifying glass icon in Recent Transactions to search and filter transactions inline
 - **Sync Status** - Whether your data is backed up to the cloud
 
 ---
@@ -155,7 +156,32 @@ Now this category will appear when you add transactions!
 
 ---
 
-### 4. Understanding Your Spending - Charts & Analytics
+### 4. Tracking Category Budgets (Home Page)
+
+Take control of your monthly spending by setting target budgets for specific categories directly on your Home Dashboard.
+
+#### **What You See on the Home Page:**
+- **Overall Budget Summary**: Total allocated budget, total spent this month, remaining balance, and an overall progress meter.
+- **Category Progress Cards**: For each budgeted category:
+  - Spent amount vs. Budget target (e.g., ₹4,200 of ₹5,000)
+  - Color-coded progress bar (Green for <80%, Amber for 80-100%, Red for >100%)
+  - Remaining allowance or over-budget warning (e.g., "+₹450 over limit")
+  - Number of transactions recorded this month
+  - Quick "View" shortcut to search and view that category's transactions instantly
+- **Month Navigator**: Use the `<` and `>` buttons to inspect how you stayed within budget in previous months, or click to jump back to the current month.
+
+#### **How to Set or Edit Category Budgets:**
+1. Click **"Manage Budgets"** (or **"+ Set Category Budgets"**) on the home page.
+2. In the modal, browse or search for any expense category.
+3. Enter your monthly limit in rupees (₹) for the categories you want to track (e.g., ₹5,000 for Food & Drinks).
+4. Tip: Click the **"Suggest"** button beside any category to automatically base your budget on your current month's actual spending!
+5. Click **"Save Budgets"** ✓.
+
+Your budgets are saved automatically to your device and backed up to the cloud if you're signed in with Google.
+
+---
+
+### 5. Understanding Your Spending - Charts & Analytics
 
 Finora shows you **where your money goes** with beautiful, easy-to-read charts.
 
@@ -204,7 +230,7 @@ You can also **click on any month** to drill down and see exactly what you spent
 
 ---
 
-### 5. Planned Payments - Never Miss a Bill Again
+### 6. Planned Payments - Never Miss a Bill Again
 
 A **Planned Payment** is a recurring reminder for bills or regular income you expect.
 
@@ -258,7 +284,7 @@ Instead of remembering every bill, Finora reminds you and even creates the trans
 
 ---
 
-### 6. Exporting Your Financial Reports
+### 7. Exporting Your Financial Reports
 
 Want to **share your financial data** or **file your taxes**? Export everything!
 
@@ -298,7 +324,7 @@ A spreadsheet with all transactions that you can:
 
 ---
 
-### 7. Keeping Your Data Secure
+### 8. Keeping Your Data Secure
 
 #### **🔐 PIN Protection**
 
@@ -336,7 +362,7 @@ If you use as a **Guest:**
 
 ---
 
-### 8. Appearance - Light & Dark Mode
+### 9. Appearance - Light & Dark Mode
 
 Finora adapts to your preference:
 

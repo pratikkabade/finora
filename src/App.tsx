@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useCallback, useLayoutEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useLayoutEffect, useRef, useDeferredValue } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, CalendarDays, Calendar1, ArrowUpDown, LayoutGrid, Table, Download, Search, ChevronDown, X } from 'lucide-react';
-import type { Account, Category, FinanceData, PlannedPaymentRule, Transaction } from './types/finance.types';
+import type { Category, FinanceData, PlannedPaymentRule, Transaction } from './types/finance.types';
 import { CreateTransactionModal } from './components/CreateTransactionModal';
 import { AddTransactionPage } from './pages/AddTransactionPage';
 import { PlannedPaymentsPage } from './pages/PlannedPaymentsPage';
@@ -11,6 +11,9 @@ import { DataSourceModal } from './components/DataSourceModal';
 import { TransactionCard } from './components/TransactionCard';
 import { TransactionTable } from './components/TransactionTable';
 import { ExportTransactionsModal } from './components/ExportTransactionsModal';
+import { CategoryBudgetTracker } from './components/CategoryBudgetTracker';
+import { CategoryBudgetModal } from './components/CategoryBudgetModal';
+import { MonthlyWrapModal } from './components/MonthlyWrapModal';
 import { ExpensePieChart } from './components/ExpensePieChart';
 import { IncomeExpenseTrendChart } from './components/IncomeExpenseTrendChart';
 import { YearlyCashflowHeatmap } from './components/YearlyCashflowHeatmap';
@@ -39,6 +42,8 @@ import {
     clearLocalSyncQueue,
     markLocalSyncNeedsFullBackup,
     NET_BALANCE_ACCOUNT_IDS_PREF_KEY,
+    CATEGORY_BUDGETS_PREF_KEY,
+    parseCategoryBudgetsPreference,
     queueLocalSyncDeletes,
     queueLocalSyncSharedPrefs,
     queueLocalSyncUpdates,
@@ -79,6 +84,7 @@ import {
     normalizePlannedPaymentIntervalType,
 } from './utils/plannedPaymentUtils';
 import { sortCategoriesByOrder } from './utils/categoryUtils';
+import { getCategoryMonthlyExpenses } from './utils/budgetUtils';
 
 const GUEST_USER_ID = '__guest__';
 const NORMALIZED_BACKUP_READY_KEY_PREFIX = 'normalizedCloudBackupReady_';
@@ -147,39 +153,41 @@ const keepIfAlreadyEmpty = (values: string[]) => values.length === 0 ? values : 
 
 const normalizeSearchValue = (value: unknown) => String(value ?? '').toLocaleLowerCase().trim();
 
-const getTransactionSearchDateValues = (timestamp: number) => {
-    if (!timestamp) return [];
+const MONTH_NAMES_LOWER = [
+    'january', 'february', 'march', 'april', 'may', 'june',
+    'july', 'august', 'september', 'october', 'november', 'december'
+];
+const MONTH_SHORT_LOWER = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
-    const date = new Date(timestamp);
-    if (Number.isNaN(date.getTime())) return [];
+const buildTransactionSearchString = (
+    transaction: Transaction,
+    accountName = '',
+    categoryName = '',
+): string => {
+    const timestamp = getTransactionTimestamp(transaction);
+    let dateStr = '';
+    if (timestamp) {
+        const d = new Date(timestamp);
+        if (!Number.isNaN(d.getTime())) {
+            const y = d.getFullYear();
+            const m = d.getMonth();
+            const day = d.getDate();
+            const mPad = String(m + 1).padStart(2, '0');
+            const dPad = String(day).padStart(2, '0');
+            dateStr = `${y}-${mPad}-${dPad} ${m + 1}/${day}/${y} ${day} ${MONTH_SHORT_LOWER[m]} ${MONTH_NAMES_LOWER[m]} ${y}`;
+        }
+    }
 
     return [
-        date.toLocaleDateString('en-US'),
-        date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-        date.toISOString().slice(0, 10),
-    ];
-};
-
-const transactionMatchesSearch = (
-    transaction: Transaction,
-    account: Account | undefined,
-    category: Category | undefined,
-    normalizedQuery: string,
-) => {
-    const timestamp = getTransactionTimestamp(transaction);
-    const searchValues = [
-        transaction.title,
-        transaction.description,
-        transaction.type,
-        transaction.amount,
-        transaction.toAmount,
-        account?.name,
-        category?.name,
-        ...getTransactionSearchDateValues(timestamp),
-    ];
-
-    return searchValues.some((value) => normalizeSearchValue(value).includes(normalizedQuery));
+        transaction.title || '',
+        transaction.description || '',
+        transaction.type || '',
+        transaction.amount != null ? String(transaction.amount) : '',
+        transaction.toAmount != null ? String(transaction.toAmount) : '',
+        accountName,
+        categoryName,
+        dateStr,
+    ].join(' ').toLowerCase();
 };
 
 const formatReportDate = (timestamp: number) => {
@@ -251,8 +259,8 @@ export const AppHeader = ({ onLogoClick, syncStatus }: AppHeaderProps) => {
                     type="button"
                     onClick={onLogoClick}
                     className="cursor-pointer rounded-full transition-transform duration-300 hover:scale-[1.03] active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-blue-500"
-                    title="Refresh homepage"
-                    aria-label="Refresh homepage"
+                    title="Open Monthly Wrap"
+                    aria-label="Open Monthly Wrap"
                 >
                     {logo}
                 </button>
@@ -289,8 +297,12 @@ function App() {
     const [editingPlannedPayment, setEditingPlannedPayment] = useState<PlannedPaymentRule | null>(null);
     const [selectedExpenseCategories, setSelectedExpenseCategories] = useState<string[]>([]);
     const [selectedIncomeCategories, setSelectedIncomeCategories] = useState<string[]>([]);
-    const [homeVisibleCount, setHomeVisibleCount] = useState(20);
+    const [homeVisibleCount, setHomeVisibleCount] = useState(8);
     const [transactionSearchQuery, setTransactionSearchQuery] = useState('');
+    const deferredSearchQuery = useDeferredValue(transactionSearchQuery);
+    const [searchVisibleCount, setSearchVisibleCount] = useState(24);
+    const [isHomeSearchOpen, setIsHomeSearchOpen] = useState(false);
+    const homeSearchInputRef = useRef<HTMLInputElement>(null);
     const [searchWithinSelectedRange, setSearchWithinSelectedRange] = useState(false);
     const [selectedReportDateKey, setSelectedReportDateKey] = useState('');
     const [balanceSummary, setBalanceSummary] = useState<BalanceSummary | null>(null);
@@ -300,6 +312,9 @@ function App() {
     const [reportTransactionView, setReportTransactionView] = useState<ReportTransactionView>('cards');
     const [reportTransactionSort, setReportTransactionSort] = useState<ReportTransactionSort>('date');
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+    const [budgetModalTargetCategoryId, setBudgetModalTargetCategoryId] = useState<string | null>(null);
+    const [isMonthlyWrapOpen, setIsMonthlyWrapOpen] = useState(false);
     const isSessionActive = !!user || isGuest;
     const storageUserId = user?.uid ?? (isGuest ? GUEST_USER_ID : null);
     const cloudUserId = user?.uid ?? null;
@@ -535,6 +550,16 @@ function App() {
         return new Map((financeData?.categories ?? []).map((category) => [category.id, category]));
     }, [financeData?.categories]);
 
+    const categoryBudgets = useMemo(() => {
+        if (!financeData?.sharedPrefs) return {};
+        return parseCategoryBudgetsPreference(financeData.sharedPrefs[CATEGORY_BUDGETS_PREF_KEY]);
+    }, [financeData?.sharedPrefs]);
+
+    const currentMonthExpensesByCategory = useMemo(() => {
+        const now = new Date();
+        return getCategoryMonthlyExpenses(validTransactions, now.getMonth(), now.getFullYear());
+    }, [validTransactions]);
+
     const monthYearOptions = useMemo(() => {
         return generateMonthYearOptions(validTransactions);
     }, [validTransactions]);
@@ -671,8 +696,32 @@ function App() {
         return filterTransactionsByMonth(financeData.transactions, month, year);
     }, [financeData, hasSelectedTransactionSearchRange, dateRange, activeSearchMonthYear]);
 
-    const normalizedTransactionSearchQuery = normalizeSearchValue(transactionSearchQuery);
-    const hasActiveTransactionSearch = normalizedTransactionSearchQuery.length > 0;
+    useEffect(() => {
+        setSearchVisibleCount(24);
+    }, [deferredSearchQuery]);
+
+    const transactionSearchDocById = useMemo(() => {
+        if (!financeData?.transactions) return new Map<string, string>();
+
+        const docMap = new Map<string, string>();
+        for (const tx of financeData.transactions) {
+            const account = accountById.get(tx.accountId);
+            const category = tx.categoryId ? categoryById.get(tx.categoryId) : undefined;
+            docMap.set(tx.id, buildTransactionSearchString(tx, account?.name, category?.name));
+        }
+
+        return docMap;
+    }, [financeData?.transactions, accountById, categoryById]);
+
+    const normalizedTransactionSearchQuery = useMemo(() => {
+        return normalizeSearchValue(deferredSearchQuery);
+    }, [deferredSearchQuery]);
+
+    const searchTokens = useMemo(() => {
+        return normalizedTransactionSearchQuery.split(/\s+/).filter(Boolean);
+    }, [normalizedTransactionSearchQuery]);
+
+    const hasActiveTransactionSearch = searchTokens.length > 0;
 
     const transactionSearchSourceTransactions = useMemo(() => {
         if (!financeData) return [];
@@ -687,17 +736,20 @@ function App() {
     }, [financeData, searchWithinSelectedRange, hasSelectedTransactionSearchRange, selectedRangeSearchTransactions]);
 
     const transactionSearchResults = useMemo(() => {
-        if (!hasActiveTransactionSearch) return [];
+        if (!hasActiveTransactionSearch || searchTokens.length === 0) return [];
 
         return transactionSearchSourceTransactions.filter((transaction) => {
-            return transactionMatchesSearch(
-                transaction,
-                accountById.get(transaction.accountId),
-                categoryById.get(transaction.categoryId || ''),
-                normalizedTransactionSearchQuery,
-            );
+            const searchDoc = transactionSearchDocById.get(transaction.id);
+            if (!searchDoc) return false;
+            return searchTokens.every((token) => searchDoc.includes(token));
         });
-    }, [transactionSearchSourceTransactions, accountById, categoryById, hasActiveTransactionSearch, normalizedTransactionSearchQuery]);
+    }, [transactionSearchSourceTransactions, transactionSearchDocById, hasActiveTransactionSearch, searchTokens]);
+
+    const visibleSearchResults = useMemo(() => {
+        return transactionSearchResults.slice(0, searchVisibleCount);
+    }, [transactionSearchResults, searchVisibleCount]);
+
+    const canLoadMoreSearchResults = searchVisibleCount < transactionSearchResults.length;
 
     const transactionSearchScopeLabel = searchWithinSelectedRange && hasSelectedTransactionSearchRange
         ? selectedTransactionSearchRangeLabel
@@ -880,6 +932,51 @@ function App() {
         });
         markNextLocalSaveAsModified();
         queueSharedPrefsChange();
+    };
+
+    const handleUpdateCategoryBudgets = (nextBudgets: Record<string, number>) => {
+        if (!financeData) return;
+
+        const nextSharedPrefs = {
+            ...(financeData.sharedPrefs || {}),
+            [CATEGORY_BUDGETS_PREF_KEY]: JSON.stringify(nextBudgets),
+        };
+
+        setFinanceData({
+            ...financeData,
+            sharedPrefs: nextSharedPrefs,
+        });
+        markNextLocalSaveAsModified();
+        queueSharedPrefsChange();
+    };
+
+    const handleOpenBudgetModal = (categoryId?: string) => {
+        setBudgetModalTargetCategoryId(categoryId ?? null);
+        setIsBudgetModalOpen(true);
+    };
+
+    const handleOpenHomeSearch = () => {
+        setIsHomeSearchOpen(true);
+        setTimeout(() => {
+            homeSearchInputRef.current?.focus();
+        }, 50);
+    };
+
+    const handleCloseHomeSearch = () => {
+        setIsHomeSearchOpen(false);
+        setTransactionSearchQuery('');
+    };
+
+    const handleFilterByCategoryFromBudget = (categoryName: string) => {
+        setIsHomeSearchOpen(true);
+        setTransactionSearchQuery(categoryName);
+        setTimeout(() => {
+            homeSearchInputRef.current?.focus();
+            const recentSection = document.getElementById('recent-transactions-section');
+            if (recentSection) {
+                recentSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 50);
     };
 
     const handleAddCategory = (categoryName: string, color: number): boolean => {
@@ -1195,7 +1292,7 @@ function App() {
     const plannedPaymentAlertSummary = useMemo(() => {
         return getPlannedPaymentAlertSummary(financeData?.plannedPaymentRules ?? []);
     }, [financeData?.plannedPaymentRules]);
-    const isAnyModalOpen = isModalOpen || isPlannedPaymentModalOpen || !!editingPlannedPayment || isDateRangeOpen || showDataSourceModal || !!editingTransaction || isExportModalOpen || showPINModal;
+    const isAnyModalOpen = isModalOpen || isPlannedPaymentModalOpen || !!editingPlannedPayment || isDateRangeOpen || showDataSourceModal || !!editingTransaction || isExportModalOpen || showPINModal || isBudgetModalOpen || isMonthlyWrapOpen;
     const loadingView =
         location.pathname === '/report'
             ? 'report'
@@ -1500,8 +1597,8 @@ function App() {
                     <TransactionCard
                         key={transaction.id}
                         transaction={transaction}
-                        account={financeData.accounts.find(account => account.id === transaction.accountId)}
-                        category={financeData.categories.find(category => category.id === transaction.categoryId)}
+                        account={accountById.get(transaction.accountId)}
+                        category={transaction.categoryId ? categoryById.get(transaction.categoryId) : undefined}
                         onEdit={isTransactionEditable(transaction) ? (transactionToEdit) => setEditingTransaction(transactionToEdit) : undefined}
                     />
                 ))}
@@ -1633,6 +1730,30 @@ function App() {
                     subtitle={selectedReportExportSubtitle}
                 />
 
+                <CategoryBudgetModal
+                    isOpen={isBudgetModalOpen}
+                    onClose={() => {
+                        setIsBudgetModalOpen(false);
+                        setBudgetModalTargetCategoryId(null);
+                    }}
+                    categories={financeData.categories}
+                    budgets={categoryBudgets}
+                    onSaveBudgets={handleUpdateCategoryBudgets}
+                    expensesByCategory={currentMonthExpensesByCategory}
+                    initialSelectedCategoryId={budgetModalTargetCategoryId}
+                />
+
+                {location.pathname === '/' && isMonthlyWrapOpen && (
+                    <MonthlyWrapModal
+                        isOpen
+                        onClose={() => setIsMonthlyWrapOpen(false)}
+                        transactions={validTransactions}
+                        categories={financeData.categories}
+                        budgets={categoryBudgets}
+                        plannedPaymentRules={financeData.plannedPaymentRules}
+                    />
+                )}
+
                 {location.pathname === '/' && (
                     <button
                         type="button"
@@ -1681,7 +1802,7 @@ function App() {
     }, [storageUserId]);
 
     useEffect(() => {
-        setHomeVisibleCount(20);
+        setHomeVisibleCount(8);
     }, [selectedMonthYear, dateRange?.start, dateRange?.end, homeTransactions.length]);
 
     useEffect(() => {
@@ -1695,12 +1816,6 @@ function App() {
         setSelectedIncomeCategories(keepIfAlreadyEmpty);
         setIsExportModalOpen(false);
     }, [selectedMonthYear, dateRange?.start, dateRange?.end, activeReportTrendRange]);
-
-    const handleHomeLogoRefresh = useCallback(() => {
-        if (window.confirm('Refresh homepage now?')) {
-            window.location.reload();
-        }
-    }, []);
 
     useEffect(() => {
         if (location.pathname !== '/') {
@@ -2056,7 +2171,7 @@ function App() {
             <div className="relative">
                 <div className={`transition-opacity duration-500 ease-out ${isContentVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
                     <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
-                        <AppHeader onLogoClick={handleHomeLogoRefresh} syncStatus={syncStatusSnapshot.state} />
+                        <AppHeader onLogoClick={() => setIsMonthlyWrapOpen(true)} syncStatus={syncStatusSnapshot.state} />
 
                         <div className={`${amountCard} w-full sm:max-w-xs`}>
                             <p className="mb-1 text-xs font-medium text-gray-700 dark:text-gray-300 sm:mb-2 sm:text-sm">Net Balance</p>
@@ -2066,82 +2181,160 @@ function App() {
                         </div>
                     </div>
 
-                    <div className="app-section">
-                        <div className="mb-4 flex flex-col gap-2 xs:flex-row xs:items-center xs:justify-between xs:gap-4">
+                    {financeData && (
+                        <CategoryBudgetTracker
+                            categories={financeData.categories}
+                            budgets={categoryBudgets}
+                            transactions={validTransactions}
+                            onOpenBudgetModal={handleOpenBudgetModal}
+                            onFilterByCategory={handleFilterByCategoryFromBudget}
+                        />
+                    )}
+
+                    <div id="recent-transactions-section" className="app-section">
+                        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="min-w-0">
                                 <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl">
                                     Recent Transactions
                                 </h2>
                                 <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400 sm:mt-1 sm:text-sm">
-                                    Showing {Math.min(visibleHomeTransactions.length, homeTransactions.length)} of {homeTransactions.length} transaction{homeTransactions.length !== 1 ? 's' : ''}
+                                    {isHomeSearchOpen && hasActiveTransactionSearch
+                                        ? `${transactionSearchResults.length} result${transactionSearchResults.length !== 1 ? 's' : ''} found | ${transactionSearchScopeLabel}`
+                                        : isHomeSearchOpen
+                                        ? `Type to search (${transactionSearchScopeLabel.toLowerCase()})...`
+                                        : `Showing ${Math.min(visibleHomeTransactions.length, homeTransactions.length)} of ${homeTransactions.length} transaction${homeTransactions.length !== 1 ? 's' : ''}`}
                                 </p>
                             </div>
+
+                            {/* Search Icon or Animated Search Bar */}
+                            <div className="flex items-center gap-2 self-end sm:self-center">
+                                {!isHomeSearchOpen ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenHomeSearch}
+                                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200/80 bg-white/80 text-slate-700 shadow-sm backdrop-blur-xl transition-[transform,colors,box-shadow] duration-200 hover:border-blue-300 hover:bg-sky-50/70 hover:text-blue-600 hover:shadow-md active:scale-95 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:border-blue-500/50 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+                                        title="Search transactions"
+                                        aria-label="Search transactions"
+                                    >
+                                        <Search size={18} />
+                                    </button>
+                                ) : (
+                                    <div className="flex w-full items-center gap-2 transition-all duration-300 ease-out sm:w-auto">
+                                        <div className="relative flex w-full items-center sm:w-72 md:w-80">
+                                            <Search size={16} className="pointer-events-none absolute left-3.5 text-slate-400 dark:text-slate-500" />
+                                            <input
+                                                ref={homeSearchInputRef}
+                                                id="home-transaction-search-input"
+                                                type="search"
+                                                value={transactionSearchQuery}
+                                                onChange={(event) => setTransactionSearchQuery(event.target.value)}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === 'Escape') {
+                                                        handleCloseHomeSearch();
+                                                    }
+                                                }}
+                                                placeholder="Search transactions..."
+                                                autoComplete="off"
+                                                className="h-10 w-full rounded-2xl border border-blue-400/90 bg-white/95 pl-9 pr-8 text-sm font-medium text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-blue-500/70 dark:bg-slate-900/90 dark:text-slate-50 dark:placeholder:text-slate-500"
+                                            />
+                                            {transactionSearchQuery && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setTransactionSearchQuery('')}
+                                                    className="absolute right-2.5 flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                                                    title="Clear search query"
+                                                    aria-label="Clear search query"
+                                                >
+                                                    <X size={13} />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {hasSelectedTransactionSearchRange && (
+                                            <label
+                                                htmlFor="home-search-range-toggle"
+                                                className="flex h-10 shrink-0 cursor-pointer items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-white/80 px-2.5 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur-xl transition hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800"
+                                                title={selectedTransactionSearchRangeLabel}
+                                            >
+                                                <input
+                                                    id="home-search-range-toggle"
+                                                    type="checkbox"
+                                                    checked={searchWithinSelectedRange}
+                                                    onChange={(e) => setSearchWithinSelectedRange(e.target.checked)}
+                                                    className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 accent-blue-600"
+                                                />
+                                                <span className="hidden xs:inline">Range</span>
+                                            </label>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            onClick={handleCloseHomeSearch}
+                                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-slate-200/80 bg-white/80 text-slate-500 shadow-sm backdrop-blur-xl transition hover:bg-slate-100 hover:text-slate-800 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                                            title="Close search"
+                                            aria-label="Close search"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        {renderTransactionGrid(visibleHomeTransactions)}
+                        {/* Search Results OR Normal Visible Transactions */}
+                        {isHomeSearchOpen && hasActiveTransactionSearch ? (
+                            transactionSearchResults.length > 0 ? (
+                                <>
+                                    {renderTransactionGrid(visibleSearchResults)}
 
-                        {canLoadMoreHomeTransactions && (
-                            <div className="mt-4 flex justify-center">
-                                <button
-                                    type="button"
-                                    onClick={() => setHomeVisibleCount(homeTransactions.length)}
-                                    className={FreeWhiteBtn}
-                                >
-                                    Load All
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                                    {canLoadMoreSearchResults && (
+                                        <div className="mt-4 flex justify-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => setSearchVisibleCount((count) => count + 24)}
+                                                className={FreeWhiteBtn}
+                                            >
+                                                Load More ({transactionSearchResults.length - visibleSearchResults.length} remaining)
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="app-border-soft flex flex-col items-center justify-center rounded-[1.75rem] bg-white/75 p-8 text-center shadow-sm backdrop-blur-xl dark:bg-slate-900/55 sm:p-10">
+                                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                                        <Search size={22} />
+                                    </div>
+                                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">
+                                        No transactions found
+                                    </h3>
+                                    <p className="mt-1 max-w-sm text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
+                                        No transactions matched "{transactionSearchQuery}". Try another keyword or clear search.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setTransactionSearchQuery('')}
+                                        className="mt-4 rounded-xl border border-slate-200/80 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                    >
+                                        Clear Search
+                                    </button>
+                                </div>
+                            )
+                        ) : (
+                            <>
+                                {renderTransactionGrid(visibleHomeTransactions)}
 
-                    <div className="app-section mt-6">
-                        <div className="mb-4 flex flex-col gap-2 xs:flex-row xs:items-center xs:justify-between xs:gap-4">
-                            <div className="min-w-0">
-                                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50 sm:text-xl md:text-2xl">
-                                    Search Transactions
-                                </h2>
-                                <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400 sm:mt-1 sm:text-sm">
-                                    {hasActiveTransactionSearch
-                                        ? `${transactionSearchResults.length} result${transactionSearchResults.length !== 1 ? 's' : ''} | ${transactionSearchScopeLabel}`
-                                        : transactionSearchScopeLabel}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="app-border-soft flex flex-col gap-3 rounded-[1.75rem] bg-white/78 p-3 shadow-[0_18px_48px_-30px_rgba(15,23,42,0.34)] backdrop-blur-2xl dark:bg-slate-900/58 sm:flex-row sm:items-center">
-                            <label htmlFor="transaction-search-input" className="relative flex min-w-0 flex-1 items-center">
-                                <Search size={18} className="pointer-events-none absolute left-3.5 text-slate-400 dark:text-slate-500" />
-                                <input
-                                    id="transaction-search-input"
-                                    type="search"
-                                    value={transactionSearchQuery}
-                                    onChange={(event) => setTransactionSearchQuery(event.target.value)}
-                                    placeholder="Search transactions"
-                                    autoComplete="off"
-                                    className="h-12 w-full rounded-2xl border border-slate-200/80 bg-white/88 pl-11 pr-4 text-sm font-medium text-slate-900 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.34)] outline-none transition-[border-color,box-shadow,background-color] duration-200 placeholder:text-slate-400 focus:border-blue-300 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.16)] dark:border-slate-700/70 dark:bg-slate-950/45 dark:text-slate-50 dark:placeholder:text-slate-500 dark:focus:border-blue-500/70"
-                                />
-                            </label>
-
-                            <label
-                                htmlFor="transaction-search-range-toggle"
-                                className={`app-border-soft flex h-12 shrink-0 cursor-pointer items-center gap-2 rounded-2xl bg-slate-50/82 px-3 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.34)] transition-colors duration-200 dark:bg-slate-950/35 dark:text-slate-200 ${hasSelectedTransactionSearchRange ? 'hover:bg-sky-50 dark:hover:bg-sky-500/10' : 'cursor-not-allowed opacity-55'}`}
-                                title={hasSelectedTransactionSearchRange ? selectedTransactionSearchRangeLabel : 'No range selected'}
-                            >
-                                <input
-                                    id="transaction-search-range-toggle"
-                                    type="checkbox"
-                                    checked={searchWithinSelectedRange && hasSelectedTransactionSearchRange}
-                                    disabled={!hasSelectedTransactionSearchRange}
-                                    onChange={(event) => setSearchWithinSelectedRange(event.target.checked)}
-                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 accent-blue-600 disabled:cursor-not-allowed"
-                                />
-                                <span className="whitespace-nowrap">Selected range</span>
-                            </label>
-                        </div>
-
-                        {hasActiveTransactionSearch && (
-                            <div className="mt-4">
-                                {renderTransactionGrid(transactionSearchResults)}
-                            </div>
+                                {canLoadMoreHomeTransactions && (
+                                    <div className="mt-4 flex justify-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => setHomeVisibleCount(homeTransactions.length)}
+                                            className={FreeWhiteBtn}
+                                        >
+                                            Load All
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

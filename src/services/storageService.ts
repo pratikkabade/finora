@@ -8,6 +8,7 @@ const LOCAL_MODIFIED_DATE_KEY_PREFIX = 'localModifiedDate_';
 const LOCAL_SYNC_QUEUE_KEY_PREFIX = 'localSyncQueue_';
 const BALANCE_SUMMARY_KEY_PREFIX = 'balanceSummary_';
 export const NET_BALANCE_ACCOUNT_IDS_PREF_KEY = 'net_balance_account_ids';
+export const CATEGORY_BUDGETS_PREF_KEY = 'category_budgets';
 
 export type LocalSyncCollectionName = 'accounts' | 'categories' | 'transactions' | 'plannedPaymentRules' | 'settings';
 
@@ -215,6 +216,30 @@ function parseNetBalanceAccountIdsPreference(rawValue?: string): string[] | null
   }
 
   return null;
+}
+
+export function parseCategoryBudgetsPreference(rawValue?: string): Record<string, number> {
+  if (!rawValue || rawValue.trim() === '') {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      const budgets: Record<string, number> = {};
+      for (const [key, val] of Object.entries(parsed)) {
+        const num = Number(val);
+        if (Number.isFinite(num) && num > 0) {
+          budgets[key] = num;
+        }
+      }
+      return budgets;
+    }
+  } catch (err) {
+    console.error('Error parsing category budgets preference:', err);
+  }
+
+  return {};
 }
 
 /**

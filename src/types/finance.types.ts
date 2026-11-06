@@ -60,6 +60,31 @@ export interface Settings {
   settingCurrency?: string;
 }
 
+export type CategoryBudgetMap = Record<string, number>;
+
+export interface CategoryBudgetStatus {
+  categoryId: string;
+  category: Category;
+  budget: number;
+  spent: number;
+  remaining: number;
+  overspent: number;
+  percentage: number;
+  isOverBudget: boolean;
+  status: 'good' | 'warning' | 'danger';
+  transactionCount: number;
+}
+
+export interface TotalBudgetSummary {
+  totalBudget: number;
+  totalSpent: number;
+  totalRemaining: number;
+  totalOverspent: number;
+  overallPercentage: number;
+  overBudgetCount: number;
+  trackedCategoriesCount: number;
+}
+
 export interface FinanceData {
   accounts: Account[];
   categories: Category[];
